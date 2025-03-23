@@ -172,3 +172,7 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# SQLite database files
+backend/chores_tracker.db
+*.db
