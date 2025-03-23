@@ -1,0 +1,15 @@
+fastapi>=0.104.0
+uvicorn>=0.23.2
+sqlalchemy>=2.0.0
+alembic>=1.12.0
+pydantic>=2.4.2
+pydantic-settings>=2.0.0
+python-dotenv>=1.0.0
+jinja2>=3.1.2
+databases>=0.8.0
+aiomysql>=0.2.0  # For MySQL in production
+aiosqlite>=0.19.0  # For SQLite in local dev
+pytest>=7.4.2
+httpx>=0.25.0
+pymysql>=1.1.0
+email-validator>=2.1.0
