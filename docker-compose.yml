@@ -10,7 +10,7 @@ services:
     volumes:
       - ./backend:/app/backend
     environment:
-      - DATABASE_URL=sqlite+aiosqlite:///./chores_tracker.db
+      - DATABASE_URL=sqlite+aiosqlite:////app/backend/chores_tracker.db
       - SECRET_KEY=development_secret_key
       - DEBUG=True
     command: uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 --reload

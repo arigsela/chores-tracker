@@ -11,7 +11,14 @@ class ChoreBase(BaseModel):
 
 class ChoreCreate(ChoreBase):
     assignee_id: int
-    creator_id: int
+
+class ChoreUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    reward: Optional[float] = None
+    is_recurring: Optional[bool] = None
+    frequency: Optional[str] = None
+    assignee_id: Optional[int] = None
 
 class ChoreResponse(ChoreBase):
     id: int
