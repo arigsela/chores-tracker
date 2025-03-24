@@ -20,6 +20,7 @@ setup(
         "bcrypt==3.2.2",
         "python-jose>=3.3.0",
         "python-multipart>=0.0.6",
+        "jinja2>=3.0.0",
     ],
     extras_require={
         "test": [
