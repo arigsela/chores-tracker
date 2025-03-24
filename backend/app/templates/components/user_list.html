@@ -1,0 +1,7 @@
+{% if users %}
+    {% for user in users %}
+        {% include "components/user_item.html" %}
+    {% endfor %}
+{% else %}
+    <p class="text-gray-500 italic">No users found.</p>
+{% endif %}

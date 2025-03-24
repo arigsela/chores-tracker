@@ -1,0 +1,69 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Chores Tracker - Users{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-lg shadow-md p-6">
+    <div class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl font-bold">Family Members</h2>
+        <button 
+            class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600"
+            hx-get="/pages/user-form"
+            hx-target="#user-form-container"
+        >
+            Add New User
+        </button>
+    </div>
+
+    <div class="mb-6">
+        <h3 class="text-lg font-semibold mb-2">Children</h3>
+        <div 
+            id="children-list" 
+            hx-get="/api/v1/users/summary" 
+            hx-trigger="load"
+            class="border rounded-lg p-4 bg-blue-50"
+        >
+            <p class="text-gray-500">Loading children...</p>
+        </div>
+    </div>
+
+    <!-- Container for the user form -->
+    <div id="user-form-container" class="mt-8"></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Check if user is logged in
+    document.addEventListener('DOMContentLoaded', function() {
+        const token = localStorage.getItem('token');
+        if (!token) {
+            window.location.href = '/pages/login';
+        }
+    });
+
+    // Add authentication headers to all HTMX requests
+    document.addEventListener('htmx:configRequest', function(event) {
+        const token = localStorage.getItem('token');
+        if (token) {
+            event.detail.headers['Authorization'] = 'Bearer ' + token;
+        }
+    });
+
+    // Handle refresh for user lists
+    document.addEventListener('htmx:afterSwap', function(event) {
+        if (event.detail.target.id === 'user-form-container' && !event.detail.target.innerHTML) {
+            // If form was closed, refresh the user list
+            htmx.trigger('#children-list', 'load');
+        }
+    });
+
+    // Handle unauthorized responses
+    document.addEventListener('htmx:responseError', function(event) {
+        if (event.detail.xhr.status === 401) {
+            // Unauthorized - redirect to login
+            window.location.href = '/pages/login';
+        }
+    });
+</script>
+{% endblock %} 

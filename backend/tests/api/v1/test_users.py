@@ -8,12 +8,13 @@ async def test_register_user(client: AsyncClient):
     # Test valid registration
     response = await client.post(
         "/api/v1/users/register",
-        json={
+        data={
             "email": "newuser@example.com",
             "username": "newuser",
             "password": "password123",
-            "is_parent": True
+            "is_parent": "true"
         },
+        headers={"Content-Type": "application/x-www-form-urlencoded"}
     )
     assert response.status_code == 201
     data = response.json()
@@ -25,12 +26,13 @@ async def test_register_user(client: AsyncClient):
     # Test duplicate email
     response = await client.post(
         "/api/v1/users/register",
-        json={
+        data={
             "email": "newuser@example.com",
             "username": "differentuser",
             "password": "password123",
-            "is_parent": True
+            "is_parent": "true"
         },
+        headers={"Content-Type": "application/x-www-form-urlencoded"}
     )
     assert response.status_code == 400
     assert "Email already registered" in response.json()["detail"]
@@ -38,12 +40,13 @@ async def test_register_user(client: AsyncClient):
     # Test duplicate username
     response = await client.post(
         "/api/v1/users/register",
-        json={
+        data={
             "email": "different@example.com",
             "username": "newuser",
             "password": "password123",
-            "is_parent": True
+            "is_parent": "true"
         },
+        headers={"Content-Type": "application/x-www-form-urlencoded"}
     )
     assert response.status_code == 400
     assert "Username already taken" in response.json()["detail"]
