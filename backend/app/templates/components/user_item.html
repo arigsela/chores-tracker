@@ -1,0 +1,32 @@
+<div class="bg-white p-4 rounded-lg shadow mb-4 border-l-4 border-purple-500">
+    <div class="flex justify-between">
+        <h3 class="font-bold text-lg">{{ user.username }}</h3>
+        <span class="text-green-600 font-semibold">${{ user.total_earned|default('0.00') }}</span>
+    </div>
+    
+    <p class="text-gray-600 mt-1">{{ user.email }}</p>
+    
+    <div class="mt-3 flex justify-between items-center">
+        <span class="text-sm text-gray-500">
+            {{ user.completed_chores|default(0) }} chores completed
+        </span>
+        
+        <div class="space-x-2">
+            <button 
+                class="bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600"
+                hx-get="/api/v1/chores?assignee_id={{ user.id }}"
+                hx-target="#main-content"
+            >
+                View Chores
+            </button>
+            
+            <button 
+                class="bg-purple-500 text-white px-3 py-1 rounded text-sm hover:bg-purple-600"
+                hx-get="/pages/chore-form?assignee_id={{ user.id }}"
+                hx-target="#main-content"
+            >
+                Add Chore
+            </button>
+        </div>
+    </div>
+</div>

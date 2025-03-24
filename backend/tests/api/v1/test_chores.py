@@ -18,6 +18,8 @@ async def test_create_chore(client: AsyncClient, parent_token, test_child_user):
         },
         headers={"Authorization": f"Bearer {parent_token}"}
     )
+    print(f"Response status: {response.status_code}")
+    print(f"Response body: {response.text}")
     assert response.status_code == 201
     data = response.json()
     assert data["title"] == "Take out the trash"

@@ -1,0 +1,95 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Chores Tracker - Chores{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-lg shadow-md p-6">
+    <div class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl font-bold">All Chores</h2>
+        <button 
+            class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+            hx-get="/pages/chores-form"
+            hx-target="#chore-form-container"
+        >
+            Add New Chore
+        </button>
+    </div>
+
+    <div class="mb-6">
+        <h3 class="text-lg font-semibold mb-2">Active Chores</h3>
+        <div 
+            id="active-chores" 
+            hx-get="/api/v1/chores?status=active" 
+            hx-trigger="load"
+            class="border rounded-lg p-4 bg-blue-50"
+        >
+            <p class="text-gray-500">Loading active chores...</p>
+        </div>
+    </div>
+
+    <div class="mb-6">
+        <h3 class="text-lg font-semibold mb-2">Pending Approval</h3>
+        <div 
+            id="pending-chores" 
+            hx-get="/api/v1/chores?status=pending" 
+            hx-trigger="load"
+            class="border rounded-lg p-4 bg-yellow-50"
+        >
+            <p class="text-gray-500">Loading pending chores...</p>
+        </div>
+    </div>
+
+    <div class="mb-6">
+        <h3 class="text-lg font-semibold mb-2">Completed Chores</h3>
+        <div 
+            id="completed-chores" 
+            hx-get="/api/v1/chores?status=completed" 
+            hx-trigger="load"
+            class="border rounded-lg p-4 bg-green-50"
+        >
+            <p class="text-gray-500">Loading completed chores...</p>
+        </div>
+    </div>
+
+    <!-- Container for the chore form -->
+    <div id="chore-form-container" class="mt-8"></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Check if user is logged in
+    document.addEventListener('DOMContentLoaded', function() {
+        const token = localStorage.getItem('token');
+        if (!token) {
+            window.location.href = '/pages/login';
+        }
+    });
+
+    // Add authentication headers to all HTMX requests
+    document.addEventListener('htmx:configRequest', function(event) {
+        const token = localStorage.getItem('token');
+        if (token) {
+            event.detail.headers['Authorization'] = 'Bearer ' + token;
+        }
+    });
+
+    // Handle refresh for chores lists
+    document.addEventListener('htmx:afterSwap', function(event) {
+        if (event.detail.target.id === 'chore-form-container' && !event.detail.target.innerHTML) {
+            // If form was closed, refresh all chore lists
+            htmx.trigger('#active-chores', 'load');
+            htmx.trigger('#pending-chores', 'load');
+            htmx.trigger('#completed-chores', 'load');
+        }
+    });
+
+    // Handle unauthorized responses
+    document.addEventListener('htmx:responseError', function(event) {
+        if (event.detail.xhr.status === 401) {
+            // Unauthorized - redirect to login
+            window.location.href = '/pages/login';
+        }
+    });
+</script>
+{% endblock %} 

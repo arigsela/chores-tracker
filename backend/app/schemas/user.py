@@ -21,6 +21,7 @@ class Token(BaseModel):
 class UserResponse(UserBase):
     id: int
     is_active: bool = True
+    parent_id: Optional[int] = None
 
     class Config:
         from_attributes = True
