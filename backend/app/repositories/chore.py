@@ -1,7 +1,6 @@
 from typing import Optional, Dict, Any, List
 from sqlalchemy import select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import joinedload
 
 from .base import BaseRepository
 from ..models.chore import Chore
@@ -12,30 +11,20 @@ class ChoreRepository(BaseRepository[Chore]):
     
     async def get_by_assignee(self, db: AsyncSession, *, assignee_id: int) -> List[Chore]:
         """Get all chores for an assignee."""
-        result = await db.execute(
-            select(Chore)
-            .where(Chore.assignee_id == assignee_id)
-            .options(joinedload(Chore.assignee), joinedload(Chore.creator))
-        )
+        result = await db.execute(select(Chore).where(Chore.assignee_id == assignee_id))
         return result.scalars().all()
     
     async def get_by_creator(self, db: AsyncSession, *, creator_id: int) -> List[Chore]:
         """Get all chores created by a user."""
-        result = await db.execute(
-            select(Chore)
-            .where(Chore.creator_id == creator_id)
-            .options(joinedload(Chore.assignee), joinedload(Chore.creator))
-        )
+        result = await db.execute(select(Chore).where(Chore.creator_id == creator_id))
         return result.scalars().all()
     
     async def get_completed_unapproved(self, db: AsyncSession) -> List[Chore]:
         """Get all completed but unapproved chores."""
         result = await db.execute(
-            select(Chore)
-            .where(
+            select(Chore).where(
                 and_(Chore.is_completed == True, Chore.is_approved == False)
             )
-            .options(joinedload(Chore.assignee), joinedload(Chore.creator))
         )
         return result.scalars().all()
     

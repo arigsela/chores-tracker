@@ -46,10 +46,5 @@ class UserRepository(BaseRepository[User]):
     
     async def get_children(self, db: AsyncSession, *, parent_id: int) -> List[User]:
         """Get all children for a parent."""
-        result = await db.execute(
-            select(User).where(
-                User.parent_id == parent_id,
-                User.is_parent == False
-            )
-        )
+        result = await db.execute(select(User).where(User.parent_id == parent_id))
         return result.scalars().all()

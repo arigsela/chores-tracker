@@ -1,6 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Response, Form, Body, Request
+from fastapi import APIRouter, Depends, HTTPException, status, Response
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List, Optional, Dict, Any
+from typing import List
 
 from ....db.base import get_db
 from ....repositories.chore import ChoreRepository
@@ -15,17 +15,11 @@ user_repo = UserRepository()
 
 @router.post("/", response_model=ChoreResponse, status_code=status.HTTP_201_CREATED)
 async def create_chore(
-    request: Request,
+    chore_in: ChoreCreate, 
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-    title: Optional[str] = Form(None),
-    description: Optional[str] = Form(None),
-    reward: Optional[float] = Form(None),
-    assignee_id: Optional[int] = Form(None),
-    is_recurring: Optional[str] = Form(None),
-    frequency: Optional[str] = Form(None),
+    current_user: User = Depends(get_current_user)
 ):
-    """Create a new chore. Accepts both form data and JSON."""
+    """Create a new chore."""
     # Only parents can create chores
     if not current_user.is_parent:
         raise HTTPException(
@@ -33,41 +27,8 @@ async def create_chore(
             detail="Only parents can create chores"
         )
     
-    chore_data = None
-    
-    # Check if we're using form data
-    if title is not None:  # Form data was provided
-        # Convert is_recurring from string to boolean
-        is_recurring_bool = is_recurring == "on"
-        
-        chore_data = {
-            "title": title,
-            "description": description or "",
-            "reward": float(reward) if reward is not None else 0.0,
-            "assignee_id": int(assignee_id) if assignee_id is not None else None,
-            "is_recurring": is_recurring_bool,
-            "frequency": frequency if is_recurring_bool else None,
-        }
-    else:
-        # Must be JSON data, try to parse it
-        try:
-            json_body = await request.json()
-            chore_data = json_body
-        except:
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail="Invalid JSON data or missing required fields"
-            )
-    
-    # Validate required fields in JSON data
-    if not chore_data or "title" not in chore_data or "assignee_id" not in chore_data:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Missing required fields: title and assignee_id"
-        )
-    
     # Check if assignee exists and is a child of the current user
-    assignee = await user_repo.get(db, id=chore_data["assignee_id"])
+    assignee = await user_repo.get(db, id=chore_in.assignee_id)
     if not assignee:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -80,10 +41,9 @@ async def create_chore(
             detail="You can only assign chores to your own children"
         )
     
-    # Add creator_id to chore data
-    chore_data["creator_id"] = current_user.id
-    
     # Create chore
+    chore_data = chore_in.dict()
+    chore_data["creator_id"] = current_user.id
     chore = await chore_repo.create(db, obj_in=chore_data)
     return chore
 
@@ -111,7 +71,7 @@ async def read_chore(
     current_user: User = Depends(get_current_user)
 ):
     """Get a specific chore."""
-    chore = await chore_repo.get(db, id=chore_id, eager_load_relations=["assignee", "creator"])
+    chore = await chore_repo.get(db, id=chore_id)
     if not chore:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

@@ -1,7 +1,6 @@
 from typing import Generic, TypeVar, Type, Optional, List, Any, Dict, Union
 from sqlalchemy import select, update, delete
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import joinedload
 from ..db.base import Base
 
 ModelType = TypeVar("ModelType", bound=Base)
@@ -12,17 +11,9 @@ class BaseRepository(Generic[ModelType]):
     def __init__(self, model: Type[ModelType]):
         self.model = model
     
-    async def get(self, db: AsyncSession, id: Any, eager_load_relations: List[str] = None) -> Optional[ModelType]:
+    async def get(self, db: AsyncSession, id: Any) -> Optional[ModelType]:
         """Get a record by ID."""
-        query = select(self.model).where(self.model.id == id)
-        
-        # Add eager loading if requested
-        if eager_load_relations:
-            for relation in eager_load_relations:
-                relation_attr = getattr(self.model, relation)
-                query = query.options(joinedload(relation_attr))
-                
-        result = await db.execute(query)
+        result = await db.execute(select(self.model).where(self.model.id == id))
         return result.scalars().first()
     
     async def get_multi(
@@ -52,7 +43,7 @@ class BaseRepository(Generic[ModelType]):
             .values(**obj_in)
         )
         await db.commit()
-        return await self.get(db, id, eager_load_relations=["assignee", "creator"])
+        return await self.get(db, id)
     
     async def delete(self, db: AsyncSession, *, id: Any) -> None:
         """Delete a record."""
