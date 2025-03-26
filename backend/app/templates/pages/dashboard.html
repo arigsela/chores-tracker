@@ -7,7 +7,7 @@
     <div class="flex flex-col md:flex-row md:justify-between md:items-center mb-6">
         <h1 class="text-3xl font-bold mb-4 md:mb-0">Dashboard</h1>
         
-        <div class="flex space-x-2">
+        <div class="flex space-x-2" id="parent-buttons" style="display: none;">
             <button 
                 class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
                 hx-get="/pages/chore-form"
@@ -27,13 +27,26 @@
         </div>
     </div>
     
+    <!-- Parent view for child selection -->
+    <div id="parent-view" class="bg-white p-4 rounded-lg shadow mb-6" style="display: none;">
+        <h2 class="text-xl font-semibold mb-4 text-blue-700">Select a Child</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="children-list"
+             hx-get="/api/v1/users/children"
+             hx-trigger="load"
+             hx-swap="innerHTML">
+            <p class="text-gray-500">Loading children...</p>
+        </div>
+        
+        <div id="selected-child-chores" class="mt-6"></div>
+    </div>
+    
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <!-- Chores to Approve -->
-        <div class="bg-white p-4 rounded-lg shadow">
+        <div class="bg-white p-4 rounded-lg shadow" id="pending-approval-section">
             <h2 class="text-xl font-semibold mb-4 text-purple-700">Pending Approval</h2>
             <div 
                 id="pending-chores"
-                hx-get="/api/v1/chores?status=pending"
+                hx-get="/api/v1/chores/pending-approval"
                 hx-trigger="load"
                 hx-swap="innerHTML"
             >
@@ -42,15 +55,28 @@
         </div>
         
         <!-- Active Chores -->
-        <div class="bg-white p-4 rounded-lg shadow">
+        <div class="bg-white p-4 rounded-lg shadow" id="active-chores-section">
             <h2 class="text-xl font-semibold mb-4 text-blue-700">Active Chores</h2>
             <div 
                 id="active-chores"
-                hx-get="/api/v1/chores?status=active"
+                hx-get="/api/v1/chores"
                 hx-trigger="load"
                 hx-swap="innerHTML"
             >
                 <p class="text-gray-500">Loading active chores...</p>
+            </div>
+        </div>
+        
+        <!-- Available Chores (Child view) -->
+        <div class="bg-white p-4 rounded-lg shadow" id="available-chores-section" style="display: none;">
+            <h2 class="text-xl font-semibold mb-4 text-green-700">Available Chores</h2>
+            <div 
+                id="available-chores"
+                hx-get="/api/v1/chores/available"
+                hx-trigger="load"
+                hx-swap="innerHTML"
+            >
+                <p class="text-gray-500">Loading available chores...</p>
             </div>
         </div>
         
@@ -107,7 +133,7 @@
             }
         });
         
-        // Check if user is parent
+        // Check if user is parent or child
         fetch('/api/v1/users/me', {
             headers: {
                 'Authorization': 'Bearer ' + token
@@ -115,9 +141,25 @@
         })
         .then(response => response.json())
         .then(user => {
-            if (!user.is_parent) {
-                // Hide add child button for non-parents
-                document.getElementById('add-user-btn').style.display = 'none';
+            if (user.is_parent) {
+                // Parent view setup
+                document.getElementById('parent-buttons').style.display = 'flex';
+                document.getElementById('parent-view').style.display = 'block';
+                
+                // Show pending approval section for parents
+                document.getElementById('pending-approval-section').style.display = 'block';
+                document.getElementById('available-chores-section').style.display = 'none';
+            } else {
+                // Child view setup
+                document.getElementById('parent-buttons').style.display = 'none';
+                document.getElementById('parent-view').style.display = 'none';
+                
+                // Show available chores section for children
+                document.getElementById('pending-approval-section').style.display = 'none';
+                document.getElementById('available-chores-section').style.display = 'block';
+                
+                // Update active chores endpoint for child
+                document.getElementById('active-chores').setAttribute('hx-get', '/api/v1/chores');
             }
         })
         .catch(error => {
@@ -126,6 +168,36 @@
             window.location.href = '/pages/login';
         });
     });
+    
+    // Function to handle child selection
+    function viewChildChores(childId) {
+        const selectedChildSection = document.getElementById('selected-child-chores');
+        selectedChildSection.innerHTML = `
+            <div class="border-t pt-4 mt-4">
+                <h3 class="text-lg font-semibold mb-4">Child's Chores</h3>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    <div class="bg-white border rounded p-4">
+                        <h4 class="font-medium mb-2">Available Chores</h4>
+                        <div
+                            hx-get="/api/v1/chores/child/${childId}"
+                            hx-trigger="load"
+                            hx-swap="innerHTML">
+                            Loading...
+                        </div>
+                    </div>
+                    <div class="bg-white border rounded p-4">
+                        <h4 class="font-medium mb-2">Completed Chores</h4>
+                        <div
+                            hx-get="/api/v1/chores/child/${childId}/completed"
+                            hx-trigger="load"
+                            hx-swap="innerHTML">
+                            Loading...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
     
     // Logout function
     function logout() {

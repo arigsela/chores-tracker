@@ -1,6 +1,14 @@
 {% if users %}
     {% for user in users %}
-        {% include "components/user_item.html" %}
+        <div class="bg-white p-4 rounded-lg shadow mb-4 hover:shadow-md cursor-pointer transition-all" onclick="viewChildChores({{ user.id }})">
+            <div class="flex justify-between">
+                <h3 class="font-bold text-lg">{{ user.username }}</h3>
+            </div>
+            <p class="text-gray-600 mt-1">{{ user.email }}</p>
+            <p class="mt-2 text-sm">
+                <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded-full">Child</span>
+            </p>
+        </div>
     {% endfor %}
 {% else %}
     <p class="text-gray-500 italic">No users found.</p>

@@ -5,37 +5,71 @@
 {% block content %}
 <div class="bg-white rounded-lg shadow-md p-6">
     <div class="flex justify-between items-center mb-6">
-        <h2 class="text-2xl font-bold">All Chores</h2>
-        <button 
-            class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
-            hx-get="/pages/chores-form"
-            hx-target="#chore-form-container"
-        >
-            Add New Chore
-        </button>
+        <h2 class="text-2xl font-bold">My Chores</h2>
+        <div id="user-role-container">Loading...</div>
     </div>
 
-    <div class="mb-6">
-        <h3 class="text-lg font-semibold mb-2">Active Chores</h3>
-        <div 
-            id="active-chores" 
-            hx-get="/api/v1/chores?status=active" 
-            hx-trigger="load"
-            class="border rounded-lg p-4 bg-blue-50"
-        >
-            <p class="text-gray-500">Loading active chores...</p>
+    <!-- Child-specific view -->
+    <div id="child-view" style="display: none;">
+        <div class="mb-6">
+            <h3 class="text-lg font-semibold mb-2">Available Chores</h3>
+            <div 
+                id="available-chores" 
+                hx-get="/api/v1/chores/available" 
+                hx-trigger="load"
+                class="border rounded-lg p-4 bg-blue-50"
+            >
+                <p class="text-gray-500">Loading available chores...</p>
+            </div>
+        </div>
+
+        <div class="mb-6">
+            <h3 class="text-lg font-semibold mb-2">Pending Approval</h3>
+            <div 
+                id="pending-chores-child" 
+                hx-get="/api/v1/chores?status=pending" 
+                hx-trigger="load"
+                class="border rounded-lg p-4 bg-yellow-50"
+            >
+                <p class="text-gray-500">Loading pending chores...</p>
+            </div>
         </div>
     </div>
 
-    <div class="mb-6">
-        <h3 class="text-lg font-semibold mb-2">Pending Approval</h3>
-        <div 
-            id="pending-chores" 
-            hx-get="/api/v1/chores?status=pending" 
-            hx-trigger="load"
-            class="border rounded-lg p-4 bg-yellow-50"
-        >
-            <p class="text-gray-500">Loading pending chores...</p>
+    <!-- Parent-specific view -->
+    <div id="parent-view" style="display: none;">
+        <div class="mb-4">
+            <button 
+                class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+                hx-get="/pages/chores-form"
+                hx-target="#chore-form-container"
+            >
+                Add New Chore
+            </button>
+        </div>
+        
+        <div class="mb-6">
+            <h3 class="text-lg font-semibold mb-2">Active Chores</h3>
+            <div 
+                id="active-chores" 
+                hx-get="/api/v1/chores?status=active" 
+                hx-trigger="load"
+                class="border rounded-lg p-4 bg-blue-50"
+            >
+                <p class="text-gray-500">Loading active chores...</p>
+            </div>
+        </div>
+
+        <div class="mb-6">
+            <h3 class="text-lg font-semibold mb-2">Pending Approval</h3>
+            <div 
+                id="pending-chores" 
+                hx-get="/api/v1/chores/pending-approval" 
+                hx-trigger="load"
+                class="border rounded-lg p-4 bg-yellow-50"
+            >
+                <p class="text-gray-500">Loading pending chores...</p>
+            </div>
         </div>
     </div>
 
@@ -64,6 +98,31 @@
         if (!token) {
             window.location.href = '/pages/login';
         }
+        
+        // Determine if user is parent or child
+        fetch('/api/v1/users/me', {
+            headers: {
+                'Authorization': 'Bearer ' + token
+            }
+        })
+        .then(response => response.json())
+        .then(user => {
+            // Update page based on user role
+            if (user.is_parent) {
+                document.getElementById('user-role-container').textContent = 'Parent View';
+                document.getElementById('parent-view').style.display = 'block';
+                document.getElementById('child-view').style.display = 'none';
+            } else {
+                document.getElementById('user-role-container').textContent = 'Child View';
+                document.getElementById('parent-view').style.display = 'none';
+                document.getElementById('child-view').style.display = 'block';
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching user data:', error);
+            localStorage.removeItem('token');
+            window.location.href = '/pages/login';
+        });
     });
 
     // Add authentication headers to all HTMX requests
@@ -80,6 +139,8 @@
             // If form was closed, refresh all chore lists
             htmx.trigger('#active-chores', 'load');
             htmx.trigger('#pending-chores', 'load');
+            htmx.trigger('#pending-chores-child', 'load');
+            htmx.trigger('#available-chores', 'load');
             htmx.trigger('#completed-chores', 'load');
         }
     });

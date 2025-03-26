@@ -102,12 +102,56 @@ async def child_token(test_child_user):
 
 @pytest_asyncio.fixture(scope="function")
 async def test_chore(db_session, test_parent_user, test_child_user):
-    """Create a test chore."""
+    """Create a test chore with fixed reward."""
     chore = Chore(
         title="Clean room",
         description="Make sure to vacuum and dust",
         reward=5.00,
+        is_range_reward=False,
+        cooldown_days=0,
         is_recurring=False,
+        is_disabled=False,
+        assignee_id=test_child_user.id,
+        creator_id=test_parent_user.id
+    )
+    db_session.add(chore)
+    await db_session.commit()
+    await db_session.refresh(chore)
+    return chore
+
+
+@pytest_asyncio.fixture(scope="function")
+async def test_range_chore(db_session, test_parent_user, test_child_user):
+    """Create a test chore with range-based reward."""
+    chore = Chore(
+        title="Take out trash",
+        description="Empty all trash cans and take to the curb",
+        is_range_reward=True,
+        min_reward=2.00,
+        max_reward=4.00,
+        cooldown_days=7,  # Weekly cooldown
+        is_recurring=True,
+        is_disabled=False,
+        assignee_id=test_child_user.id,
+        creator_id=test_parent_user.id
+    )
+    db_session.add(chore)
+    await db_session.commit()
+    await db_session.refresh(chore)
+    return chore
+
+
+@pytest_asyncio.fixture(scope="function")
+async def test_disabled_chore(db_session, test_parent_user, test_child_user):
+    """Create a test disabled chore."""
+    chore = Chore(
+        title="Mow lawn",
+        description="Mow the front and back lawn",
+        reward=10.00,
+        is_range_reward=False,
+        cooldown_days=14,  # Bi-weekly cooldown
+        is_recurring=True,
+        is_disabled=True,
         assignee_id=test_child_user.id,
         creator_id=test_parent_user.id
     )

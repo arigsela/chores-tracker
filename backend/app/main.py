@@ -179,5 +179,5 @@ async def get_chores_html(
     
     return templates.TemplateResponse(
         "components/chore_list.html", 
-        {"request": request, "chores": chores}
+        {"request": request, "chores": chores, "current_user": current_user}
     )
