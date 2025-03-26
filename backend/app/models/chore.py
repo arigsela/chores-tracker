@@ -30,3 +30,17 @@ class Chore(Base):
     # Relationships
     assignee = relationship("User", back_populates="chores_assigned", foreign_keys=[assignee_id])
     creator = relationship("User", back_populates="chores_created", foreign_keys=[creator_id])
+
+    @property
+    def is_disabled(self) -> bool:
+        """Check if the chore is disabled."""
+        return not self.is_active
+    
+    @property
+    def is_new(self) -> bool:
+        """Check if the chore is newly created (within the last hour)."""
+        if not self.created_at:
+            return False
+        
+        from datetime import datetime, timedelta
+        return datetime.utcnow() - self.created_at < timedelta(hours=1)

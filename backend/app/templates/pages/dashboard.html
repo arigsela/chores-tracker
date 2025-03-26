@@ -46,7 +46,7 @@
             <h2 class="text-xl font-semibold mb-4 text-purple-700">Pending Approval</h2>
             <div 
                 id="pending-chores"
-                hx-get="/api/v1/chores/pending-approval"
+                hx-get="/api/v1/html/chores/pending-approval"
                 hx-trigger="load"
                 hx-swap="innerHTML"
             >
@@ -59,7 +59,7 @@
             <h2 class="text-xl font-semibold mb-4 text-blue-700">Active Chores</h2>
             <div 
                 id="active-chores"
-                hx-get="/api/v1/chores"
+                hx-get="/api/v1/html/chores/active"
                 hx-trigger="load"
                 hx-swap="innerHTML"
             >
@@ -72,7 +72,7 @@
             <h2 class="text-xl font-semibold mb-4 text-green-700">Available Chores</h2>
             <div 
                 id="available-chores"
-                hx-get="/api/v1/chores/available"
+                hx-get="/api/v1/html/chores/available"
                 hx-trigger="load"
                 hx-swap="innerHTML"
             >
@@ -85,7 +85,7 @@
             <h2 class="text-xl font-semibold mb-4 text-green-700">Completed</h2>
             <div 
                 id="completed-chores"
-                hx-get="/api/v1/chores?status=completed"
+                hx-get="/api/v1/html/chores/completed"
                 hx-trigger="load"
                 hx-swap="innerHTML"
             >
@@ -159,7 +159,7 @@
                 document.getElementById('available-chores-section').style.display = 'block';
                 
                 // Update active chores endpoint for child
-                document.getElementById('active-chores').setAttribute('hx-get', '/api/v1/chores');
+                document.getElementById('active-chores').setAttribute('hx-get', '/api/v1/html/chores/active');
             }
         })
         .catch(error => {
@@ -179,7 +179,7 @@
                     <div class="bg-white border rounded p-4">
                         <h4 class="font-medium mb-2">Available Chores</h4>
                         <div
-                            hx-get="/api/v1/chores/child/${childId}"
+                            hx-get="/api/v1/html/chores/child/${childId}"
                             hx-trigger="load"
                             hx-swap="innerHTML">
                             Loading...
@@ -188,7 +188,7 @@
                     <div class="bg-white border rounded p-4">
                         <h4 class="font-medium mb-2">Completed Chores</h4>
                         <div
-                            hx-get="/api/v1/chores/child/${childId}/completed"
+                            hx-get="/api/v1/html/chores/child/${childId}/completed"
                             hx-trigger="load"
                             hx-swap="innerHTML">
                             Loading...
@@ -203,6 +203,85 @@
     function logout() {
         localStorage.removeItem('token');
         window.location.href = '/pages/login';
+    }
+
+    // Function to approve chores with reward value
+    function approveWithReward(choreId) {
+        const rewardValue = document.getElementById('reward_value_' + choreId).value;
+        const url = `/api/v1/chores/${choreId}/approve?reward_value=${rewardValue}`;
+        
+        // Get authorization token
+        const token = localStorage.getItem('token');
+        
+        // Use fetch instead of htmx.ajax
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer ' + token,
+                'Content-Type': 'application/json'
+            },
+            body: '{}'  // Empty JSON body to satisfy FastAPI
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(err => {
+                    throw new Error(JSON.stringify(err));
+                });
+            }
+            return response.text();
+        })
+        .then(html => {
+            // Replace the chore element with the new HTML
+            document.getElementById('chore-' + choreId).outerHTML = html;
+            
+            // Refresh lists that might need updating
+            htmx.trigger('#pending-chores', 'load');
+            htmx.trigger('#active-chores', 'load');
+            htmx.trigger('#completed-chores', 'load');
+        })
+        .catch(error => {
+            console.error('Error approving chore:', error);
+            alert('Error approving chore: ' + error.message);
+        });
+    }
+    
+    // Function to approve regular chores (no reward value)
+    function approveChore(choreId) {
+        const url = `/api/v1/chores/${choreId}/approve`;
+        
+        // Get authorization token
+        const token = localStorage.getItem('token');
+        
+        // Use fetch instead of htmx.ajax
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer ' + token,
+                'Content-Type': 'application/json'
+            },
+            body: '{}'  // Empty JSON body to satisfy FastAPI
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(err => {
+                    throw new Error(JSON.stringify(err));
+                });
+            }
+            return response.text();
+        })
+        .then(html => {
+            // Replace the chore element with the new HTML
+            document.getElementById('chore-' + choreId).outerHTML = html;
+            
+            // Refresh lists that might need updating
+            htmx.trigger('#pending-chores', 'load');
+            htmx.trigger('#active-chores', 'load');
+            htmx.trigger('#completed-chores', 'load');
+        })
+        .catch(error => {
+            console.error('Error approving chore:', error);
+            alert('Error approving chore: ' + error.message);
+        });
     }
 </script>
 {% endblock %}

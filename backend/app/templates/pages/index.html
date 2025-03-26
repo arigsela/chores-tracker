@@ -9,13 +9,14 @@
     
     <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
         <div class="bg-blue-50 p-4 rounded-lg border border-blue-200">
-            <h3 class="text-xl font-semibold mb-2">Recent Chores</h3>
+            <h3 class="text-xl font-semibold mb-2" id="chores-section-title">Recent Chores</h3>
             <div id="recent-chores">
-                <p class="text-gray-500">Loading recent chores...</p>
+                <p class="text-gray-500">Loading chores...</p>
             </div>
             <button 
                 class="mt-4 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-                hx-get="/api/v1/chores"
+                id="chores-refresh-button"
+                hx-get="/api/v1/html/chores/active"
                 hx-target="#recent-chores"
                 hx-trigger="load"
             >
@@ -23,7 +24,7 @@
             </button>
         </div>
         
-        <div class="bg-green-50 p-4 rounded-lg border border-green-200">
+        <div id="quick-actions" class="bg-green-50 p-4 rounded-lg border border-green-200" style="display: none;">
             <h3 class="text-xl font-semibold mb-2">Quick Actions</h3>
             <div class="space-y-2">
                 <button 
@@ -46,4 +47,47 @@
     
     <div id="main-content" class="mt-8"></div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Check if user is logged in
+    document.addEventListener('DOMContentLoaded', function() {
+        const token = localStorage.getItem('token');
+        if (!token) {
+            window.location.href = '/pages/login';
+            return;
+        }
+        
+        // Set token for all HTMX requests
+        document.body.addEventListener('htmx:configRequest', function(event) {
+            event.detail.headers['Authorization'] = 'Bearer ' + token;
+        });
+        
+        // Determine if user is parent or child
+        fetch('/api/v1/users/me', {
+            headers: {
+                'Authorization': 'Bearer ' + token
+            }
+        })
+        .then(response => response.json())
+        .then(user => {
+            // Update page based on user role
+            if (user.is_parent) {
+                // Show quick actions for parents only
+                document.getElementById('quick-actions').style.display = 'block';
+                
+                // Update chores section to show pending approval for parents
+                document.getElementById('chores-section-title').textContent = 'Pending Approval';
+                document.getElementById('chores-refresh-button').setAttribute('hx-get', '/api/v1/html/chores/pending-approval');
+                document.getElementById('chores-refresh-button').click(); // Refresh to load pending approval
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching user data:', error);
+            localStorage.removeItem('token');
+            window.location.href = '/pages/login';
+        });
+    });
+</script>
 {% endblock %}

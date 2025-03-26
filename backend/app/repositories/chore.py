@@ -97,6 +97,22 @@ class ChoreRepository(BaseRepository[Chore]):
         )
         return result.scalars().all()
     
+    async def get_pending_approval_for_child(self, db: AsyncSession, *, assignee_id: int) -> List[Chore]:
+        """Get all completed but unapproved chores for a specific child."""
+        result = await db.execute(
+            select(Chore)
+            .where(
+                and_(
+                    Chore.assignee_id == assignee_id,
+                    Chore.is_completed == True, 
+                    Chore.is_approved == False,
+                    Chore.is_disabled == False
+                )
+            )
+            .options(joinedload(Chore.assignee), joinedload(Chore.creator))
+        )
+        return result.scalars().all()
+    
     async def get_completed_by_child(self, db: AsyncSession, *, child_id: int) -> List[Chore]:
         """Get all completed chores for a specific child."""
         result = await db.execute(

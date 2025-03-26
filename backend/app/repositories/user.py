@@ -23,7 +23,7 @@ class UserRepository(BaseRepository[User]):
     async def create(self, db: AsyncSession, *, obj_in: Dict[str, Any]) -> User:
         """Create a new user with hashed password."""
         db_obj = User(
-            email=obj_in["email"],
+            email=obj_in.get("email"),
             username=obj_in["username"],
             hashed_password=get_password_hash(obj_in["password"]),
             is_active=True,

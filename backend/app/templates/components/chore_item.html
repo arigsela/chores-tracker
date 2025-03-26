@@ -1,6 +1,19 @@
-<div class="bg-white p-4 rounded-lg shadow mb-4 border-l-4 {% if chore.is_disabled %}border-gray-500 opacity-60{% elif chore.is_approved %}border-green-500{% elif chore.is_completed %}border-yellow-500{% else %}border-blue-500{% endif %}">
+<div id="chore-{{ chore.id }}" 
+    class="bg-white p-4 rounded-lg shadow mb-4 border-l-4 
+        {% if chore.is_disabled %}border-gray-500 opacity-60
+        {% elif chore.is_approved %}border-green-500
+        {% elif chore.is_completed %}border-yellow-500
+        {% else %}border-blue-500{% endif %}
+        {% if chore.is_new %}animate-pulse bg-blue-50{% endif %}"
+    {% if chore.is_new %}data-new-chore="true"{% endif %}
+>
     <div class="flex justify-between">
-        <h3 class="font-bold text-lg">{{ chore.title }}</h3>
+        <div class="flex items-center">
+            <h3 class="font-bold text-lg">{{ chore.title }}</h3>
+            {% if chore.is_new %}
+            <span class="ml-2 bg-blue-500 text-white text-xs px-2 py-1 rounded-full">NEW</span>
+            {% endif %}
+        </div>
         <span class="text-green-600 font-semibold">
             {% if chore.is_range_reward %}
                 ${{ chore.min_reward }} - ${{ chore.max_reward }}
@@ -12,7 +25,7 @@
     
     <p class="text-gray-600 mt-1">{{ chore.description }}</p>
     
-    {% if chore.cooldown_days > 0 %}
+    {% if chore.cooldown_days and chore.cooldown_days > 0 %}
     <p class="text-sm text-gray-500 mt-1">
         Can be completed every {{ chore.cooldown_days }} day{% if chore.cooldown_days > 1 %}s{% endif %}
     </p>
@@ -40,13 +53,10 @@
             {% elif not chore.is_approved %}
             {% if current_user.is_parent %}
             {% if chore.is_range_reward %}
-            <form class="inline-flex items-center" 
-                  hx-post="/api/v1/chores/{{ chore.id }}/approve" 
-                  hx-swap="outerHTML"
-                  hx-target="closest div">
+            <div class="inline-flex items-center">
                 <input 
                     type="number" 
-                    name="reward_value" 
+                    id="reward_value_{{ chore.id }}" 
                     min="{{ chore.min_reward }}" 
                     max="{{ chore.max_reward }}" 
                     step="0.01" 
@@ -55,18 +65,18 @@
                     required
                 />
                 <button 
-                    type="submit"
+                    type="button"
                     class="bg-purple-500 text-white px-3 py-1 rounded text-sm hover:bg-purple-600"
+                    onclick="approveWithReward('{{ chore.id }}')"
                 >
                     Approve
                 </button>
-            </form>
+            </div>
             {% else %}
             <button 
+                type="button"
                 class="bg-purple-500 text-white px-3 py-1 rounded text-sm hover:bg-purple-600"
-                hx-post="/api/v1/chores/{{ chore.id }}/approve"
-                hx-swap="outerHTML"
-                hx-target="closest div"
+                onclick="approveChore('{{ chore.id }}')"
             >
                 Approve
             </button>
