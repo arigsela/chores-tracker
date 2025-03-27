@@ -2,7 +2,7 @@ from fastapi import FastAPI, Request, Depends, HTTPException, status, Query
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.templating import Jinja2Templates
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from pathlib import Path
 from datetime import datetime, timedelta
 import os
@@ -48,9 +48,21 @@ templates = Jinja2Templates(directory=settings.TEMPLATES_DIR)
 templates.env.globals["now"] = lambda: datetime.now()
 
 # Modify the root endpoint to redirect to the dashboard if authenticated
-@app.get("/")
-async def root(request: Request):
+@app.get("/", response_class=HTMLResponse)
+async def read_index(request: Request, db: AsyncSession = Depends(get_db)):
+    """Render the index page."""
     return templates.TemplateResponse("pages/index.html", {"request": request})
+
+@app.get("/pages/{page}", response_class=HTMLResponse)
+async def read_page(request: Request, page: str, db: AsyncSession = Depends(get_db)):
+    """Render a specific page template."""
+    try:
+        # Make sure the page exists
+        path = f"pages/{page}.html"
+        
+        return templates.TemplateResponse(path, {"request": request})
+    except Exception as e:
+        raise HTTPException(status_code=404, detail=f"Page not found: {str(e)}")
 
 # Add a specific route for the dashboard
 @app.get("/dashboard", response_class=HTMLResponse)
@@ -298,13 +310,6 @@ async def complete_chore_html(
             detail="Chore not found"
         )
     
-    # Check if chore is disabled
-    if chore.is_disabled:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="This chore has been disabled"
-        )
-    
     # Only the assignee can mark a chore as completed
     if chore.assignee_id != current_user.id:
         raise HTTPException(
@@ -354,25 +359,37 @@ async def approve_chore_html(
     current_user: models.User = Depends(get_current_user)
 ):
     """Approve a chore and return HTML response."""
-    # Extract reward_value from query parameters
+    # Extract reward_value from query parameters with extra debugging
     reward_value = None
     query_params = dict(request.query_params)
+    print(f"Query parameters: {query_params}")
+    
     if "reward_value" in query_params:
         try:
-            reward_value = float(query_params["reward_value"])
-        except (ValueError, TypeError):
+            reward_value_str = query_params["reward_value"]
+            print(f"Found reward_value in query_params: {reward_value_str}, type: {type(reward_value_str)}")
+            reward_value = float(reward_value_str)
+            print(f"Converted reward_value to float: {reward_value}")
+        except (ValueError, TypeError) as e:
+            print(f"Error converting reward_value to float: {e}")
             pass
     
     # If not in query params, try form data
     if reward_value is None:
         try:
             form_data = await request.form()
+            print(f"Form data: {form_data}")
             if "reward_value" in form_data:
                 try:
-                    reward_value = float(form_data["reward_value"])
-                except (ValueError, TypeError):
+                    reward_value_str = form_data["reward_value"]
+                    print(f"Found reward_value in form_data: {reward_value_str}, type: {type(reward_value_str)}")
+                    reward_value = float(reward_value_str)
+                    print(f"Converted reward_value to float: {reward_value}")
+                except (ValueError, TypeError) as e:
+                    print(f"Error converting form data reward_value to float: {e}")
                     pass
-        except:
+        except Exception as e:
+            print(f"Error processing form data: {e}")
             pass
     
     # If still None, try JSON body
@@ -382,12 +399,20 @@ async def approve_chore_html(
             if body:
                 try:
                     json_body = await request.json()
+                    print(f"JSON body: {json_body}")
                     if json_body and "reward_value" in json_body:
-                        reward_value = float(json_body["reward_value"])
-                except:
+                        reward_value_json = json_body["reward_value"]
+                        print(f"Found reward_value in JSON: {reward_value_json}, type: {type(reward_value_json)}")
+                        reward_value = float(reward_value_json)
+                        print(f"Converted JSON reward_value to float: {reward_value}")
+                except Exception as e:
+                    print(f"Error processing JSON body: {e}")
                     pass
-        except:
+        except Exception as e:
+            print(f"Error reading request body: {e}")
             pass
+    
+    print(f"Final reward_value after all extraction attempts: {reward_value}, type: {type(reward_value) if reward_value is not None else None}")
     
     from .repositories.chore import ChoreRepository
     chore_repo = ChoreRepository()
@@ -426,12 +451,20 @@ async def approve_chore_html(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Reward value must be between {chore.min_reward} and {chore.max_reward}"
             )
+    # For non-range chores, if no reward_value is given, use the existing reward
+    elif not chore.is_range_reward and reward_value is None:
+        reward_value = chore.reward
+        print(f"Using chore's existing reward value: {reward_value}")
+    
+    # Print a summary before approval
+    print(f"Approving chore {chore_id}: {chore.title} with reward value: {reward_value}")
     
     # Approve the chore
     updated_chore = await chore_repo.approve_chore(db, chore_id=chore_id, reward_value=reward_value)
     
     # Reload the chore with its relations to render properly
     updated_chore = await chore_repo.get(db, id=chore_id, eager_load_relations=["assignee", "creator"])
+    print(f"Updated chore reward: {updated_chore.reward}")
     
     # Render the updated chore as HTML
     return templates.TemplateResponse(
@@ -465,7 +498,7 @@ async def disable_chore_html(
             detail="Only the creator can disable chores"
         )
     
-    # Disable the chore
+    # Disable the chore (only setting is_disabled flag, not changing other properties)
     updated_chore = await chore_repo.disable_chore(db, chore_id=chore_id)
     
     # Reload the chore with its relations to render properly
@@ -525,7 +558,16 @@ async def get_pending_approval_chores_html(
         
     from .repositories.chore import ChoreRepository
     chore_repo = ChoreRepository()
-    chores = await chore_repo.get_pending_approval(db, creator_id=current_user.id)
+    all_chores = await chore_repo.get_by_creator(db, creator_id=current_user.id)
+    
+    # Explicitly filter to only include completed but not approved chores
+    chores = [c for c in all_chores if c.is_completed and not c.is_approved]
+    
+    print(f"Pending approval endpoint found {len(chores)} chores that are completed but not approved")
+    
+    # Log all chores for debugging
+    for chore in all_chores:
+        print(f"Chore {chore.id}: {chore.title} for {chore.assignee.username}, completed: {chore.is_completed}, approved: {chore.is_approved}")
     
     return templates.TemplateResponse(
         "components/chore_list.html", 
@@ -539,9 +581,11 @@ async def get_child_chores_html(
     db: AsyncSession = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ):
-    """Get HTML for a specific child's chores."""
+    """Get HTML for a specific child's active chores."""
+    print(f"Getting active chores for child ID: {child_id}")
     # Only for parents
     if not current_user.is_parent:
+        print(f"User {current_user.username} is not a parent, access denied")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="This endpoint is only for parent users"
@@ -554,13 +598,26 @@ async def get_child_chores_html(
     
     # Check if child belongs to this parent
     child = await user_repo.get(db, id=child_id)
-    if not child or child.parent_id != current_user.id:
+    if not child:
+        print(f"Child with ID {child_id} not found")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Child not found or not your child"
+            detail="Child not found"
         )
     
-    chores = await chore_repo.get_by_assignee(db, assignee_id=child_id)
+    if child.parent_id != current_user.id:
+        print(f"Child with ID {child_id} does not belong to parent {current_user.username}")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not your child"
+        )
+    
+    all_chores = await chore_repo.get_by_assignee(db, assignee_id=child_id)
+    print(f"Found {len(all_chores)} total chores for child ID {child_id}")
+    
+    # Filter to only show active (not completed) chores
+    chores = [c for c in all_chores if not c.is_completed]
+    print(f"Filtered to {len(chores)} active chores for child ID {child_id}")
     
     return templates.TemplateResponse(
         "components/chore_list.html", 
@@ -575,8 +632,10 @@ async def get_child_completed_chores_html(
     current_user: models.User = Depends(get_current_user)
 ):
     """Get HTML for a specific child's completed chores."""
+    print(f"Getting completed chores for child ID: {child_id}")
     # Only for parents
     if not current_user.is_parent:
+        print(f"User {current_user.username} is not a parent, access denied")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="This endpoint is only for parent users"
@@ -589,17 +648,72 @@ async def get_child_completed_chores_html(
     
     # Check if child belongs to this parent
     child = await user_repo.get(db, id=child_id)
-    if not child or child.parent_id != current_user.id:
+    if not child:
+        print(f"Child with ID {child_id} not found")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Child not found or not your child"
+            detail="Child not found"
+        )
+    
+    if child.parent_id != current_user.id:
+        print(f"Child with ID {child_id} does not belong to parent {current_user.username}")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not your child"
         )
     
     chores = await chore_repo.get_completed_by_child(db, child_id=child_id)
+    print(f"Found {len(chores)} completed chores for child ID {child_id}")
     
     return templates.TemplateResponse(
         "components/chore_list.html", 
         {"request": request, "chores": chores, "current_user": current_user}
+    )
+
+@app.get("/api/v1/html/children/{child_id}/reset-password-form", response_class=HTMLResponse)
+async def render_reset_password_form(
+    request: Request,
+    child_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """Render the reset password form for a child."""
+    # Ensure the current user is a parent
+    if not current_user.is_parent:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only parents can reset passwords"
+        )
+    
+    # Get the child user
+    from .repositories.user import UserRepository
+    user_repo = UserRepository()
+    child = await user_repo.get(db, id=child_id)
+    
+    if not child:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Child not found"
+        )
+    
+    # Ensure the child is actually a child (not a parent)
+    if child.is_parent:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Cannot reset password for a parent account"
+        )
+    
+    # Ensure the child belongs to the current parent
+    if child.parent_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only reset passwords for your own children"
+        )
+    
+    # Render the reset password form
+    return templates.TemplateResponse(
+        "components/reset_password_form.html",
+        {"request": request, "child": child}
     )
 
 @app.post("/api/v1/html/chores/create", response_class=HTMLResponse)
@@ -687,3 +801,193 @@ async def create_chore_html(
         "components/chore_item.html", 
         {"request": request, "chore": new_chore, "current_user": current_user}
     )
+
+@app.post("/api/v1/chores/{chore_id}/enable", response_class=HTMLResponse)
+async def enable_chore_html(
+    request: Request,
+    chore_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """Enable a disabled chore and return HTML response."""
+    from .repositories.chore import ChoreRepository
+    chore_repo = ChoreRepository()
+    
+    # Get the chore
+    chore = await chore_repo.get(db, id=chore_id, eager_load_relations=["assignee", "creator"])
+    if not chore:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Chore not found"
+        )
+    
+    # Only the creator (parent) can enable chores
+    if not current_user.is_parent or chore.creator_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only the creator can enable chores"
+        )
+    
+    # Check if the chore is actually disabled
+    if not chore.is_disabled:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Chore is not disabled"
+        )
+    
+    # Enable the chore
+    updated_chore = await chore_repo.enable_chore(db, chore_id=chore_id)
+    
+    # Reload the chore with its relations to render properly
+    updated_chore = await chore_repo.get(db, id=chore_id, eager_load_relations=["assignee", "creator"])
+    
+    # Render the updated chore as HTML
+    return templates.TemplateResponse(
+        "components/chore_item.html", 
+        {"request": request, "chore": updated_chore, "current_user": current_user}
+    )
+
+@app.post("/api/v1/admin/fix-disabled-chores", response_class=JSONResponse)
+async def fix_disabled_chores(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """Fix chores that were 'disabled' with the old implementation."""
+    # Only parents can run this admin function
+    if not current_user.is_parent:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only parents can run this function"
+        )
+    
+    from .repositories.chore import ChoreRepository
+    chore_repo = ChoreRepository()
+    
+    # Run the fix
+    fixed_count = await chore_repo.reset_disabled_chores(db)
+    
+    # Return the number of fixed chores
+    return {"message": f"Fixed {fixed_count} disabled chores", "fixed_count": fixed_count}
+
+@app.get("/api/v1/html/users/children", response_class=HTMLResponse)
+async def get_children_html(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """Get HTML for children of the current parent."""
+    # Only parents can view children
+    if not current_user.is_parent:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only parents can view children"
+        )
+    
+    from .repositories.user import UserRepository
+    user_repo = UserRepository()
+    
+    # Get all children for the current parent
+    children = await user_repo.get_children(db, parent_id=current_user.id)
+    
+    # Render the children list
+    return templates.TemplateResponse(
+        "components/user_list.html",
+        {"request": request, "users": children}
+    )
+
+@app.post("/api/v1/direct-reset-password/{child_id}", response_class=HTMLResponse)
+async def direct_reset_password(
+    request: Request,
+    child_id: int,
+    new_password: str = Form(...),
+    token: Optional[str] = Form(None),
+    db: AsyncSession = Depends(get_db),
+    current_user: Optional[models.User] = Depends(get_current_user)
+):
+    """An alternative endpoint for password reset, directly in main.py for testing."""
+    print(f"DIRECT RESET: Received password reset request for child_id={child_id}")
+    print(f"DIRECT RESET: New password length: {len(new_password)}")
+    print(f"DIRECT RESET: Token provided: {bool(token)}")
+    
+    # If current_user is None but token is provided, try to get the user from the token
+    if current_user is None and token:
+        try:
+            from .dependencies.auth import verify_token
+            from .models.user import User
+            
+            print(f"DIRECT RESET: Attempting to get user from token")
+            user_id = verify_token(token)
+            if user_id:
+                current_user = await db.get(User, user_id)
+                print(f"DIRECT RESET: Got user from token: {current_user.username} (ID: {current_user.id})")
+        except Exception as e:
+            print(f"DIRECT RESET: Error getting user from token: {str(e)}")
+    
+    # Ensure we have a valid current user
+    if not current_user:
+        error_html = """
+        <div style="background-color: #fee2e2; padding: 20px; border-radius: 10px; text-align: center;">
+            <h2 style="color: #b91c1c; margin-bottom: 10px;">Authentication Error</h2>
+            <p>Could not authenticate you. Please log in again.</p>
+            <a href="/pages/login" style="display: inline-block; margin-top: 10px; background-color: #b91c1c; color: white; padding: 8px 16px; border-radius: 5px; text-decoration: none;">
+                Go to Login
+            </a>
+        </div>
+        """
+        print(f"DIRECT RESET: No authenticated user found")
+        return HTMLResponse(content=error_html, status_code=401)
+    
+    # Ensure the current user is a parent
+    if not current_user.is_parent:
+        return HTMLResponse(content="Only parents can reset passwords", status_code=403)
+    
+    # Get the child user
+    from .repositories.user import UserRepository
+    user_repo = UserRepository()
+    child = await user_repo.get(db, id=child_id)
+    
+    if not child:
+        return HTMLResponse(content=f"Child with ID {child_id} not found", status_code=404)
+    
+    # Ensure the child belongs to the current parent
+    if child.parent_id != current_user.id:
+        return HTMLResponse(content="You can only reset passwords for your own children", status_code=403)
+    
+    try:
+        # Generate a bcrypt hash directly
+        import bcrypt
+        password_bytes = new_password.encode('utf-8')
+        salt = bcrypt.gensalt(rounds=12)
+        hashed_password = bcrypt.hashpw(password_bytes, salt).decode('utf-8')
+        
+        # Direct SQL update
+        from sqlalchemy import text
+        query = text("UPDATE users SET hashed_password = :hashed_password WHERE id = :user_id")
+        await db.execute(query, {"hashed_password": hashed_password, "user_id": child_id})
+        await db.commit()
+        
+        # Verify the update
+        verify_query = text("SELECT hashed_password FROM users WHERE id = :user_id")
+        result = await db.execute(verify_query, {"user_id": child_id})
+        updated_user = result.fetchone()
+        
+        if updated_user and updated_user[0] == hashed_password:
+            print(f"DIRECT RESET: Password updated successfully for {child.username}")
+            success_message = f"""
+            <div style="background-color: #d1fae5; padding: 20px; border-radius: 10px; text-align: center;">
+                <h2 style="color: #047857; margin-bottom: 10px;">Password Reset Successful</h2>
+                <p>Password for {child.username} has been reset.</p>
+                <p>New password hash: {hashed_password[:15]}...</p>
+                <a href="/pages/login" style="display: inline-block; margin-top: 10px; background-color: #059669; color: white; padding: 8px 16px; border-radius: 5px; text-decoration: none;">
+                    Go to Login
+                </a>
+            </div>
+            """
+            return HTMLResponse(content=success_message)
+        else:
+            print(f"DIRECT RESET: Password verification failed for {child.username}")
+            return HTMLResponse(content="Password updated but verification failed", status_code=500)
+    except Exception as e:
+        print(f"DIRECT RESET: Error: {str(e)}")
+        return HTMLResponse(content=f"Error: {str(e)}", status_code=500)

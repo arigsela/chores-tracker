@@ -18,11 +18,10 @@
             
             <button 
                 class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-                hx-get="/pages/user-form"
+                hx-get="/users"
                 hx-target="#main-content"
-                id="add-user-btn"
             >
-                Add Child
+                Manage Family
             </button>
         </div>
     </div>
@@ -108,119 +107,158 @@
             <p class="text-gray-500">Loading allowance summary...</p>
         </div>
     </div>
+    
+    <!-- Admin Tools (for parents only) -->
+    <div class="mt-8 bg-white p-4 rounded-lg shadow" id="admin-tools" style="display: none;">
+        <h2 class="text-xl font-semibold mb-4">Admin Tools</h2>
+        <div class="space-y-2">
+            <div>
+                <button 
+                    class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+                    id="fix-disabled-chores-btn"
+                    onclick="fixDisabledChores()"
+                >
+                    Fix Disabled Chores
+                </button>
+                <p class="text-sm text-gray-500 mt-1">
+                    This will fix any chores that were 'disabled' with the old implementation.
+                </p>
+            </div>
+        </div>
+    </div>
 </div>
 
 {% block scripts %}
 <script>
-    // Check authentication when page loads
     document.addEventListener('DOMContentLoaded', function() {
-        const token = localStorage.getItem('token');
-        if (!token) {
-            window.location.href = '/pages/login';
-        }
-        
-        // Set token for all HTMX requests
-        document.body.addEventListener('htmx:configRequest', function(event) {
-            event.detail.headers['Authorization'] = 'Bearer ' + token;
-        });
-        
-        // Handle unauthorized responses
-        document.addEventListener('htmx:responseError', function(event) {
-            if (event.detail.xhr.status === 401) {
-                // Unauthorized - redirect to login
-                localStorage.removeItem('token');
-                window.location.href = '/pages/login';
-            }
-        });
-        
-        // Check if user is parent or child
-        fetch('/api/v1/users/me', {
-            headers: {
-                'Authorization': 'Bearer ' + token
-            }
-        })
-        .then(response => response.json())
-        .then(user => {
-            if (user.is_parent) {
-                // Parent view setup
-                document.getElementById('parent-buttons').style.display = 'flex';
-                document.getElementById('parent-view').style.display = 'block';
-                
-                // Show pending approval section for parents
-                document.getElementById('pending-approval-section').style.display = 'block';
-                document.getElementById('available-chores-section').style.display = 'none';
-            } else {
-                // Child view setup
-                document.getElementById('parent-buttons').style.display = 'none';
-                document.getElementById('parent-view').style.display = 'none';
-                
-                // Show available chores section for children
-                document.getElementById('pending-approval-section').style.display = 'none';
-                document.getElementById('available-chores-section').style.display = 'block';
-                
-                // Update active chores endpoint for child
-                document.getElementById('active-chores').setAttribute('hx-get', '/api/v1/html/chores/active');
-            }
-        })
-        .catch(error => {
-            console.error('Error fetching user data:', error);
-            localStorage.removeItem('token');
-            window.location.href = '/pages/login';
-        });
+        // Check if user is parent and show appropriate controls
+        checkUserRoleAndInit();
     });
     
-    // Function to handle child selection
-    function viewChildChores(childId) {
-        const selectedChildSection = document.getElementById('selected-child-chores');
-        selectedChildSection.innerHTML = `
-            <div class="border-t pt-4 mt-4">
-                <h3 class="text-lg font-semibold mb-4">Child's Chores</h3>
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                    <div class="bg-white border rounded p-4">
-                        <h4 class="font-medium mb-2">Available Chores</h4>
-                        <div
-                            hx-get="/api/v1/html/chores/child/${childId}"
-                            hx-trigger="load"
-                            hx-swap="innerHTML">
-                            Loading...
-                        </div>
-                    </div>
-                    <div class="bg-white border rounded p-4">
-                        <h4 class="font-medium mb-2">Completed Chores</h4>
-                        <div
-                            hx-get="/api/v1/html/chores/child/${childId}/completed"
-                            hx-trigger="load"
-                            hx-swap="innerHTML">
-                            Loading...
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
+    function checkUserRoleAndInit() {
+        const token = localStorage.getItem('token');
+        
+        if (token) {
+            fetch('/api/v1/users/me', {
+                headers: {
+                    'Authorization': 'Bearer ' + token
+                }
+            })
+            .then(response => response.json())
+            .then(user => {
+                // Store user data
+                window.currentUser = user;
+                
+                // Update username display
+                const usernameDisplay = document.getElementById('username-display');
+                if (usernameDisplay) {
+                    usernameDisplay.textContent = user.username;
+                }
+                
+                if (user.is_parent) {
+                    // Show parent view elements
+                    document.getElementById('parent-view').style.display = 'block';
+                    document.getElementById('parent-buttons').style.display = 'flex';
+                    document.getElementById('admin-tools').style.display = 'block';
+                } else {
+                    // Show child view elements
+                    document.getElementById('available-chores-section').style.display = 'block';
+                    document.getElementById('child-view').style.display = 'block';
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching user data:', error);
+                // Handle error - likely unauthorized
+                localStorage.removeItem('token');
+                window.location.href = '/pages/login';
+            });
+        } else {
+            // No token found, redirect to login
+            window.location.href = '/pages/login';
+        }
     }
     
-    // Logout function
-    function logout() {
-        localStorage.removeItem('token');
-        window.location.href = '/pages/login';
+    function fixDisabledChores() {
+        if (!confirm("This will fix any chores that were incorrectly disabled. Continue?")) {
+            return;
+        }
+        
+        const token = localStorage.getItem('token');
+        
+        // Call the admin endpoint
+        fetch('/api/v1/admin/fix-disabled-chores', {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer ' + token,
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(err => {
+                    throw new Error(JSON.stringify(err));
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            alert(`Success! ${data.fixed_count} chores were fixed.`);
+            // Reload the page to show the updated chores
+            window.location.reload();
+        })
+        .catch(error => {
+            console.error('Error fixing disabled chores:', error);
+            alert('Error fixing disabled chores: ' + error.message);
+        });
     }
-
+    
+    function viewChildChores(childId) {
+        // Make AJAX request to get child's chores
+        fetch(`/api/v1/html/chores/child/${childId}`, {
+            headers: {
+                'Authorization': 'Bearer ' + localStorage.getItem('token')
+            }
+        })
+        .then(response => response.text())
+        .then(html => {
+            document.getElementById('selected-child-chores').innerHTML = html;
+        })
+        .catch(error => console.error('Error fetching child chores:', error));
+    }
+    
+    // Set token for all HTMX requests
+    document.body.addEventListener('htmx:configRequest', function(event) {
+        const token = localStorage.getItem('token');
+        if (token) {
+            event.detail.headers['Authorization'] = 'Bearer ' + token;
+        }
+    });
+    
+    // Handle unauthorized responses
+    document.addEventListener('htmx:responseError', function(event) {
+        if (event.detail.xhr.status === 401) {
+            // Unauthorized - redirect to login
+            localStorage.removeItem('token');
+            window.location.href = '/pages/login';
+        }
+    });
+    
     // Function to approve chores with reward value
     function approveWithReward(choreId) {
         const rewardValue = document.getElementById('reward_value_' + choreId).value;
-        const url = `/api/v1/chores/${choreId}/approve?reward_value=${rewardValue}`;
+        console.log('Approving chore with reward value:', rewardValue);
         
         // Get authorization token
         const token = localStorage.getItem('token');
         
-        // Use fetch instead of htmx.ajax
-        fetch(url, {
+        // Use fetch with JSON body
+        fetch(`/api/v1/chores/${choreId}/approve`, {
             method: 'POST',
             headers: {
                 'Authorization': 'Bearer ' + token,
                 'Content-Type': 'application/json'
             },
-            body: '{}'  // Empty JSON body to satisfy FastAPI
+            body: JSON.stringify({ reward_value: parseFloat(rewardValue) })
         })
         .then(response => {
             if (!response.ok) {
@@ -238,6 +276,11 @@
             htmx.trigger('#pending-chores', 'load');
             htmx.trigger('#active-chores', 'load');
             htmx.trigger('#completed-chores', 'load');
+            
+            // Reload the page after a brief delay to ensure all data is refreshed
+            setTimeout(function() {
+                window.location.reload();
+            }, 1000);
         })
         .catch(error => {
             console.error('Error approving chore:', error);
@@ -247,19 +290,36 @@
     
     // Function to approve regular chores (no reward value)
     function approveChore(choreId) {
-        const url = `/api/v1/chores/${choreId}/approve`;
+        // Find the reward value displayed for this chore
+        const choreElement = document.getElementById('chore-' + choreId);
+        let rewardValue = null;
+        
+        if (choreElement) {
+            // Try to get the reward value from the DOM
+            const rewardElement = choreElement.querySelector('.text-green-600.font-semibold');
+            if (rewardElement) {
+                // Extract numeric value from the text (e.g., "$5.00" -> 5.00)
+                const rewardText = rewardElement.textContent.trim();
+                const match = rewardText.match(/\$(\d+(\.\d+)?)/);
+                if (match && match[1]) {
+                    rewardValue = parseFloat(match[1]);
+                }
+            }
+        }
+        
+        console.log('Approving chore with extracted reward value:', rewardValue);
         
         // Get authorization token
         const token = localStorage.getItem('token');
         
-        // Use fetch instead of htmx.ajax
-        fetch(url, {
+        // Use fetch instead of htmx.ajax, but with JSON body instead of URL parameters
+        fetch(`/api/v1/chores/${choreId}/approve`, {
             method: 'POST',
             headers: {
                 'Authorization': 'Bearer ' + token,
                 'Content-Type': 'application/json'
             },
-            body: '{}'  // Empty JSON body to satisfy FastAPI
+            body: JSON.stringify({ reward_value: rewardValue })
         })
         .then(response => {
             if (!response.ok) {
@@ -277,10 +337,45 @@
             htmx.trigger('#pending-chores', 'load');
             htmx.trigger('#active-chores', 'load');
             htmx.trigger('#completed-chores', 'load');
+            
+            // Reload the page after a brief delay to ensure all data is refreshed
+            setTimeout(function() {
+                window.location.reload();
+            }, 1000);
         })
         .catch(error => {
             console.error('Error approving chore:', error);
             alert('Error approving chore: ' + error.message);
+        });
+    }
+    
+    // Logout function
+    function logout() {
+        localStorage.removeItem('token');
+        window.location.href = '/pages/login';
+    }
+    
+    function openResetPasswordForm(childId, childUsername) {
+        // Fetch the reset password form
+        fetch(`/api/v1/html/children/${childId}/reset-password-form`, {
+            headers: {
+                'Authorization': 'Bearer ' + localStorage.getItem('token')
+            }
+        })
+        .then(response => response.text())
+        .then(html => {
+            document.getElementById('main-content').innerHTML = html;
+            
+            // Set the child ID and username in the form
+            const childIdField = document.getElementById('child_id');
+            const childUsernameField = document.getElementById('child-username');
+            
+            if (childIdField) childIdField.value = childId;
+            if (childUsernameField) childUsernameField.textContent = childUsername;
+        })
+        .catch(error => {
+            console.error('Error fetching reset password form:', error);
+            alert('Error fetching the reset password form. Please try again.');
         });
     }
 </script>

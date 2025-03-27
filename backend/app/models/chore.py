@@ -18,8 +18,8 @@ class Chore(Base):
     frequency = Column(String, nullable=True)  # daily, weekly, etc. (legacy field)
     is_completed = Column(Boolean, default=False)
     is_approved = Column(Boolean, default=False)
+    is_disabled = Column(Boolean, default=False)  # Indicates if chore is disabled
     completion_date = Column(DateTime(timezone=True), nullable=True)  # When the chore was last completed
-    is_disabled = Column(Boolean, default=False)  # Whether chore is disabled
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
@@ -31,11 +31,6 @@ class Chore(Base):
     assignee = relationship("User", back_populates="chores_assigned", foreign_keys=[assignee_id])
     creator = relationship("User", back_populates="chores_created", foreign_keys=[creator_id])
 
-    @property
-    def is_disabled(self) -> bool:
-        """Check if the chore is disabled."""
-        return not self.is_active
-    
     @property
     def is_new(self) -> bool:
         """Check if the chore is newly created (within the last hour)."""

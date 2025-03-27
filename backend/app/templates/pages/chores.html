@@ -25,6 +25,7 @@
 
         <div class="mb-6">
             <h3 class="text-lg font-semibold mb-2">Pending Approval</h3>
+            <p class="text-sm text-gray-600 mb-2">Chores you've completed that are waiting for parent approval</p>
             <div 
                 id="pending-chores-child" 
                 hx-get="/api/v1/html/chores/pending" 
@@ -156,19 +157,19 @@
     // Function to approve chores with reward value
     function approveWithReward(choreId) {
         const rewardValue = document.getElementById('reward_value_' + choreId).value;
-        const url = `/api/v1/chores/${choreId}/approve?reward_value=${rewardValue}`;
+        console.log('Approving chore with reward value:', rewardValue);
         
         // Get authorization token
         const token = localStorage.getItem('token');
         
-        // Use fetch instead of htmx.ajax
-        fetch(url, {
+        // Use fetch with JSON body
+        fetch(`/api/v1/chores/${choreId}/approve`, {
             method: 'POST',
             headers: {
                 'Authorization': 'Bearer ' + token,
                 'Content-Type': 'application/json'
             },
-            body: '{}'  // Empty JSON body to satisfy FastAPI
+            body: JSON.stringify({ reward_value: parseFloat(rewardValue) })
         })
         .then(response => {
             if (!response.ok) {
@@ -186,6 +187,11 @@
             htmx.trigger('#pending-chores', 'load');
             htmx.trigger('#pending-chores-child', 'load');
             htmx.trigger('#completed-chores', 'load');
+            
+            // Reload the page after a brief delay to ensure all data is refreshed
+            setTimeout(function() {
+                window.location.reload();
+            }, 1000);
         })
         .catch(error => {
             console.error('Error approving chore:', error);
@@ -195,19 +201,36 @@
     
     // Function to approve regular chores (no reward value)
     function approveChore(choreId) {
-        const url = `/api/v1/chores/${choreId}/approve`;
+        // Find the reward value displayed for this chore
+        const choreElement = document.getElementById('chore-' + choreId);
+        let rewardValue = null;
+        
+        if (choreElement) {
+            // Try to get the reward value from the DOM
+            const rewardElement = choreElement.querySelector('.text-green-600.font-semibold');
+            if (rewardElement) {
+                // Extract numeric value from the text (e.g., "$5.00" -> 5.00)
+                const rewardText = rewardElement.textContent.trim();
+                const match = rewardText.match(/\$(\d+(\.\d+)?)/);
+                if (match && match[1]) {
+                    rewardValue = parseFloat(match[1]);
+                }
+            }
+        }
+        
+        console.log('Approving chore with extracted reward value:', rewardValue);
         
         // Get authorization token
         const token = localStorage.getItem('token');
         
-        // Use fetch instead of htmx.ajax
-        fetch(url, {
+        // Use fetch instead of htmx.ajax, but with JSON body instead of URL parameters
+        fetch(`/api/v1/chores/${choreId}/approve`, {
             method: 'POST',
             headers: {
                 'Authorization': 'Bearer ' + token,
                 'Content-Type': 'application/json'
             },
-            body: '{}'  // Empty JSON body to satisfy FastAPI
+            body: JSON.stringify({ reward_value: rewardValue })
         })
         .then(response => {
             if (!response.ok) {
@@ -225,6 +248,11 @@
             htmx.trigger('#pending-chores', 'load');
             htmx.trigger('#pending-chores-child', 'load');
             htmx.trigger('#completed-chores', 'load');
+            
+            // Reload the page after a brief delay to ensure all data is refreshed
+            setTimeout(function() {
+                window.location.reload();
+            }, 1000);
         })
         .catch(error => {
             console.error('Error approving chore:', error);

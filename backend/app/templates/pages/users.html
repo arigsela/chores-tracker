@@ -19,7 +19,7 @@
         <h3 class="text-lg font-semibold mb-2">Children</h3>
         <div 
             id="children-list" 
-            hx-get="/api/v1/users/summary" 
+            hx-get="/api/v1/html/users/children" 
             hx-trigger="load"
             class="border rounded-lg p-4 bg-blue-50"
         >
@@ -65,5 +65,35 @@
             window.location.href = '/pages/login';
         }
     });
+    
+    // Function to open reset password form
+    function openResetPasswordForm(childId, childUsername) {
+        // Fetch the reset password form
+        fetch(`/api/v1/html/children/${childId}/reset-password-form`, {
+            headers: {
+                'Authorization': 'Bearer ' + localStorage.getItem('token')
+            }
+        })
+        .then(response => response.text())
+        .then(html => {
+            document.getElementById('user-form-container').innerHTML = html;
+            
+            // Set the child ID and username in the form
+            const childIdField = document.getElementById('child_id');
+            const childUsernameField = document.getElementById('child-username');
+            
+            if (childIdField) childIdField.value = childId;
+            if (childUsernameField) childUsernameField.textContent = childUsername;
+        })
+        .catch(error => {
+            console.error('Error fetching reset password form:', error);
+            alert('Error fetching the reset password form. Please try again.');
+        });
+    }
+    
+    // Function to view child's chores (to match the functionality in the button)
+    function viewChildChores(childId) {
+        window.location.href = `/dashboard?child=${childId}`;
+    }
 </script>
 {% endblock %} 

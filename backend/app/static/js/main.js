@@ -46,12 +46,4 @@ function logout() {
 // Run on page load
 document.addEventListener('DOMContentLoaded', function() {
     checkAuth();
-    
-    // Add logout button to header if logged in
-    const token = getToken();
-    if (token && document.querySelector('header nav ul')) {
-        const logoutLi = document.createElement('li');
-        logoutLi.innerHTML = '<a href="#" onclick="logout()" class="hover:underline">Logout</a>';
-        document.querySelector('header nav ul').appendChild(logoutLi);
-    }
 });
