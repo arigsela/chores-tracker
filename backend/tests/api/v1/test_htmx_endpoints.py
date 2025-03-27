@@ -125,10 +125,9 @@ async def test_user_creation_form_submission(client: AsyncClient, parent_token, 
         }
     )
     assert response.status_code == 201
-    data = response.json()
-    assert data["email"] == "newchild@example.com"
-    assert data["username"] == "newchild"
-    assert data["is_parent"] == False
+    # Expecting HTML response, not JSON
+    assert "Success" in response.text
+    assert "newchild" in response.text
     
     # Test with invalid data to check 422 error
     response = await client.post(

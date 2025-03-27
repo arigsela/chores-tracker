@@ -234,7 +234,7 @@ async def login(
             print(f"User not found: {form_data.username}")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="User not found"
+                detail="Incorrect username or password"
             )
         
         # Attempt authentication

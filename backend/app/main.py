@@ -81,6 +81,11 @@ async def users_page(request: Request):
     """Display users page."""
     return templates.TemplateResponse("pages/users.html", {"request": request})
 
+@app.get("/reports", response_class=HTMLResponse)
+async def reports_page(request: Request):
+    """Display reports page."""
+    return templates.TemplateResponse("pages/reports.html", {"request": request})
+
 @app.get("/pages/{page_name}", response_class=HTMLResponse)
 async def get_page(request: Request, page_name: str):
     """Render a page by name."""
@@ -991,3 +996,63 @@ async def direct_reset_password(
     except Exception as e:
         print(f"DIRECT RESET: Error: {str(e)}")
         return HTMLResponse(content=f"Error: {str(e)}", status_code=500)
+
+@app.get("/api/v1/reports/potential-earnings", response_class=HTMLResponse)
+async def get_potential_earnings_report(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """Generate report showing potential earnings for each child."""
+    if not current_user.is_parent:
+        return HTMLResponse("<p>Not authorized</p>")
+    
+    from .repositories.user import UserRepository
+    from .repositories.chore import ChoreRepository
+    user_repo = UserRepository()
+    chore_repo = ChoreRepository()
+    
+    children = await user_repo.get_children(db, parent_id=current_user.id)
+    
+    # Get summary data for each child
+    report_data = []
+    total_weekly = 0
+    total_monthly = 0
+    total_chores = 0
+    
+    for child in children:
+        chores = await chore_repo.get_by_assignee(db, assignee_id=child.id)
+        
+        # Filter only recurring chores
+        recurring_chores = [c for c in chores if c.is_recurring and not c.is_disabled]
+        
+        # Calculate weekly potential earnings
+        weekly_potential = sum(c.reward for c in recurring_chores)
+        
+        # Calculate monthly potential (weekly * 4)
+        monthly_potential = weekly_potential * 4
+        
+        # Update totals
+        total_weekly += weekly_potential
+        total_monthly += monthly_potential
+        total_chores += len(recurring_chores)
+        
+        report_data.append({
+            "id": child.id,
+            "username": child.username,
+            "weekly_potential": weekly_potential,
+            "monthly_potential": monthly_potential,
+            "recurring_chores": len(recurring_chores),
+            "chores": recurring_chores
+        })
+    
+    totals = {
+        "weekly": total_weekly,
+        "monthly": total_monthly,
+        "chores": total_chores
+    }
+    
+    return templates.TemplateResponse(
+        "components/potential_earnings_report.html", 
+        {"request": request, "children": report_data, "totals": totals}
+    )

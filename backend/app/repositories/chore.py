@@ -17,7 +17,10 @@ class ChoreRepository(BaseRepository[Chore]):
         result = await db.execute(
             select(Chore)
             .where(
-                Chore.assignee_id == assignee_id
+                and_(
+                    Chore.assignee_id == assignee_id,
+                    Chore.is_disabled == False  # Only return non-disabled chores for children
+                )
             )
             .options(joinedload(Chore.assignee), joinedload(Chore.creator))
         )

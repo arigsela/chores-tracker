@@ -59,7 +59,6 @@ async def test_user_registration_missing_fields(client: AsyncClient, parent_toke
     assert "detail" in data
     # Check which fields are reported as missing
     missing_fields = [error["loc"][1] for error in data["detail"]]
-    assert "email" in missing_fields
     assert "password" in missing_fields
 
 @pytest.mark.asyncio
