@@ -46,13 +46,16 @@ class BaseRepository(Generic[ModelType]):
         self, db: AsyncSession, *, id: Any, obj_in: Dict[str, Any]
     ) -> Optional[ModelType]:
         """Update a record."""
+        # Execute the update operation
         await db.execute(
             update(self.model)
             .where(self.model.id == id)
             .values(**obj_in)
         )
+        # Commit the changes
         await db.commit()
-        return await self.get(db, id, eager_load_relations=["assignee", "creator"])
+        # Retrieve the updated object (without eager loading by default)
+        return await self.get(db, id)
     
     async def delete(self, db: AsyncSession, *, id: Any) -> None:
         """Delete a record."""

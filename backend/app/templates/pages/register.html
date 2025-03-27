@@ -4,7 +4,7 @@
 
 {% block content %}
 <div class="max-w-md mx-auto bg-white p-8 rounded-lg shadow-md">
-    <h2 class="text-2xl font-bold mb-6 text-center">Register</h2>
+    <h2 class="text-2xl font-bold mb-6 text-center">Register as Parent</h2>
     
     <div id="register-error" class="hidden mb-4 p-3 bg-red-100 text-red-700 rounded-md"></div>
     
@@ -27,16 +27,12 @@
                    type="password" id="password" name="password" required>
         </div>
         
-        <div class="mb-6">
-            <label class="flex items-center">
-                <input type="checkbox" id="is_parent" name="is_parent" value="true" class="mr-2">
-                <span class="text-gray-700">I am a parent</span>
-            </label>
-        </div>
+        <!-- Hidden field to set is_parent to true -->
+        <input type="hidden" name="is_parent" value="true">
         
         <button class="w-full bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 type="submit">
-            Register
+            Register as Parent
         </button>
     </form>
     

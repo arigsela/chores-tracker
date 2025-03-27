@@ -5,37 +5,72 @@
 {% block content %}
 <div class="bg-white rounded-lg shadow-md p-6">
     <div class="flex justify-between items-center mb-6">
-        <h2 class="text-2xl font-bold">All Chores</h2>
-        <button 
-            class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
-            hx-get="/pages/chores-form"
-            hx-target="#chore-form-container"
-        >
-            Add New Chore
-        </button>
+        <h2 class="text-2xl font-bold">My Chores</h2>
+        <div id="user-role-container">Loading...</div>
     </div>
 
-    <div class="mb-6">
-        <h3 class="text-lg font-semibold mb-2">Active Chores</h3>
-        <div 
-            id="active-chores" 
-            hx-get="/api/v1/chores?status=active" 
-            hx-trigger="load"
-            class="border rounded-lg p-4 bg-blue-50"
-        >
-            <p class="text-gray-500">Loading active chores...</p>
+    <!-- Child-specific view -->
+    <div id="child-view" style="display: none;">
+        <div class="mb-6">
+            <h3 class="text-lg font-semibold mb-2">Available Chores</h3>
+            <div 
+                id="available-chores" 
+                hx-get="/api/v1/html/chores/available" 
+                hx-trigger="load"
+                class="border rounded-lg p-4 bg-blue-50"
+            >
+                <p class="text-gray-500">Loading available chores...</p>
+            </div>
+        </div>
+
+        <div class="mb-6">
+            <h3 class="text-lg font-semibold mb-2">Pending Approval</h3>
+            <p class="text-sm text-gray-600 mb-2">Chores you've completed that are waiting for parent approval</p>
+            <div 
+                id="pending-chores-child" 
+                hx-get="/api/v1/html/chores/pending" 
+                hx-trigger="load"
+                class="border rounded-lg p-4 bg-yellow-50"
+            >
+                <p class="text-gray-500">Loading pending chores...</p>
+            </div>
         </div>
     </div>
 
-    <div class="mb-6">
-        <h3 class="text-lg font-semibold mb-2">Pending Approval</h3>
-        <div 
-            id="pending-chores" 
-            hx-get="/api/v1/chores?status=pending" 
-            hx-trigger="load"
-            class="border rounded-lg p-4 bg-yellow-50"
-        >
-            <p class="text-gray-500">Loading pending chores...</p>
+    <!-- Parent-specific view -->
+    <div id="parent-view" style="display: none;">
+        <div class="mb-4">
+            <button 
+                class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+                hx-get="/pages/chores-form"
+                hx-target="#chore-form-container"
+            >
+                Add New Chore
+            </button>
+        </div>
+        
+        <div class="mb-6">
+            <h3 class="text-lg font-semibold mb-2">Active Chores</h3>
+            <div 
+                id="active-chores" 
+                hx-get="/api/v1/html/chores/active" 
+                hx-trigger="load"
+                class="border rounded-lg p-4 bg-blue-50"
+            >
+                <p class="text-gray-500">Loading active chores...</p>
+            </div>
+        </div>
+
+        <div class="mb-6">
+            <h3 class="text-lg font-semibold mb-2">Pending Approval</h3>
+            <div 
+                id="pending-chores" 
+                hx-get="/api/v1/html/chores/pending" 
+                hx-trigger="load"
+                class="border rounded-lg p-4 bg-yellow-50"
+            >
+                <p class="text-gray-500">Loading pending chores...</p>
+            </div>
         </div>
     </div>
 
@@ -43,7 +78,7 @@
         <h3 class="text-lg font-semibold mb-2">Completed Chores</h3>
         <div 
             id="completed-chores" 
-            hx-get="/api/v1/chores?status=completed" 
+            hx-get="/api/v1/html/chores/completed" 
             hx-trigger="load"
             class="border rounded-lg p-4 bg-green-50"
         >
@@ -64,6 +99,31 @@
         if (!token) {
             window.location.href = '/pages/login';
         }
+        
+        // Determine if user is parent or child
+        fetch('/api/v1/users/me', {
+            headers: {
+                'Authorization': 'Bearer ' + token
+            }
+        })
+        .then(response => response.json())
+        .then(user => {
+            // Update page based on user role
+            if (user.is_parent) {
+                document.getElementById('user-role-container').textContent = 'Parent View';
+                document.getElementById('parent-view').style.display = 'block';
+                document.getElementById('child-view').style.display = 'none';
+            } else {
+                document.getElementById('user-role-container').textContent = 'Child View';
+                document.getElementById('parent-view').style.display = 'none';
+                document.getElementById('child-view').style.display = 'block';
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching user data:', error);
+            localStorage.removeItem('token');
+            window.location.href = '/pages/login';
+        });
     });
 
     // Add authentication headers to all HTMX requests
@@ -80,6 +140,8 @@
             // If form was closed, refresh all chore lists
             htmx.trigger('#active-chores', 'load');
             htmx.trigger('#pending-chores', 'load');
+            htmx.trigger('#pending-chores-child', 'load');
+            htmx.trigger('#available-chores', 'load');
             htmx.trigger('#completed-chores', 'load');
         }
     });
@@ -91,5 +153,111 @@
             window.location.href = '/pages/login';
         }
     });
+    
+    // Function to approve chores with reward value
+    function approveWithReward(choreId) {
+        const rewardValue = document.getElementById('reward_value_' + choreId).value;
+        console.log('Approving chore with reward value:', rewardValue);
+        
+        // Get authorization token
+        const token = localStorage.getItem('token');
+        
+        // Use fetch with JSON body
+        fetch(`/api/v1/chores/${choreId}/approve`, {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer ' + token,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ reward_value: parseFloat(rewardValue) })
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(err => {
+                    throw new Error(JSON.stringify(err));
+                });
+            }
+            return response.text();
+        })
+        .then(html => {
+            // Replace the chore element with the new HTML
+            document.getElementById('chore-' + choreId).outerHTML = html;
+            
+            // Refresh lists that might need updating
+            htmx.trigger('#pending-chores', 'load');
+            htmx.trigger('#pending-chores-child', 'load');
+            htmx.trigger('#completed-chores', 'load');
+            
+            // Reload the page after a brief delay to ensure all data is refreshed
+            setTimeout(function() {
+                window.location.reload();
+            }, 1000);
+        })
+        .catch(error => {
+            console.error('Error approving chore:', error);
+            alert('Error approving chore: ' + error.message);
+        });
+    }
+    
+    // Function to approve regular chores (no reward value)
+    function approveChore(choreId) {
+        // Find the reward value displayed for this chore
+        const choreElement = document.getElementById('chore-' + choreId);
+        let rewardValue = null;
+        
+        if (choreElement) {
+            // Try to get the reward value from the DOM
+            const rewardElement = choreElement.querySelector('.text-green-600.font-semibold');
+            if (rewardElement) {
+                // Extract numeric value from the text (e.g., "$5.00" -> 5.00)
+                const rewardText = rewardElement.textContent.trim();
+                const match = rewardText.match(/\$(\d+(\.\d+)?)/);
+                if (match && match[1]) {
+                    rewardValue = parseFloat(match[1]);
+                }
+            }
+        }
+        
+        console.log('Approving chore with extracted reward value:', rewardValue);
+        
+        // Get authorization token
+        const token = localStorage.getItem('token');
+        
+        // Use fetch instead of htmx.ajax, but with JSON body instead of URL parameters
+        fetch(`/api/v1/chores/${choreId}/approve`, {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer ' + token,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ reward_value: rewardValue })
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(err => {
+                    throw new Error(JSON.stringify(err));
+                });
+            }
+            return response.text();
+        })
+        .then(html => {
+            // Replace the chore element with the new HTML
+            document.getElementById('chore-' + choreId).outerHTML = html;
+            
+            // Refresh lists that might need updating
+            htmx.trigger('#pending-chores', 'load');
+            htmx.trigger('#pending-chores-child', 'load');
+            htmx.trigger('#completed-chores', 'load');
+            
+            // Reload the page after a brief delay to ensure all data is refreshed
+            setTimeout(function() {
+                window.location.reload();
+            }, 1000);
+        })
+        .catch(error => {
+            console.error('Error approving chore:', error);
+            alert('Error approving chore: ' + error.message);
+        });
+    }
 </script>
 {% endblock %} 
