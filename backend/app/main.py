@@ -28,7 +28,7 @@ app = FastAPI(
 # Set up CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.BACKEND_CORS_ORIGINS,
+    allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -46,6 +46,12 @@ app.mount("/static", StaticFiles(directory=static_dir), name="static")
 # Templates
 templates = Jinja2Templates(directory=settings.TEMPLATES_DIR)
 templates.env.globals["now"] = lambda: datetime.now()
+
+# Add a health check endpoint for Kubernetes readiness probes
+@app.get("/api/v1/healthcheck", status_code=200)
+async def healthcheck():
+    """Health check endpoint for Kubernetes readiness probes."""
+    return {"status": "ok"}
 
 # Modify the root endpoint to redirect to the dashboard if authenticated
 @app.get("/", response_class=HTMLResponse)
