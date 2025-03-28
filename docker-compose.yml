@@ -11,8 +11,10 @@ services:
       - ./backend:/app/backend
     environment:
       - DATABASE_URL=sqlite+aiosqlite:////app/backend/chores_tracker.db
-      - SECRET_KEY=development_secret_key
-      - DEBUG=True
+      - SECRET_KEY=${SECRET_KEY:-development_secret_key}
+      - DEBUG=${DEBUG:-True}
+      - ENVIRONMENT=development
+      - BACKEND_CORS_ORIGINS="http://localhost:3000,http://localhost:8000"
     command: uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 --reload
 
-  # We'll add the frontend service later
+# We'll add the frontend service later
