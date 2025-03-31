@@ -51,24 +51,16 @@
         // Check if user is logged in and display username
         document.addEventListener('DOMContentLoaded', function() {
             const token = localStorage.getItem('token');
+            const isAuthPage = ['/pages/login', '/pages/register'].includes(window.location.pathname);
+            
             if (token) {
-                // Set token for all HTMX requests
-                document.body.addEventListener('htmx:configRequest', function(event) {
-                    event.detail.headers['Authorization'] = 'Bearer ' + token;
-                });
-                
-                // Fetch current user info
+                // Only check auth if we have a token
                 fetch('/api/v1/users/me', {
                     headers: {
                         'Authorization': 'Bearer ' + token
                     }
                 })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Not authorized');
-                    }
-                    return response.json();
-                })
+                .then(response => response.json())
                 .then(user => {
                     const roleText = user.is_parent ? 'Parent' : 'Child';
                     document.getElementById('username-display').innerHTML = `
@@ -78,13 +70,13 @@
                 })
                 .catch(error => {
                     console.error('Error fetching user data:', error);
-                    // Redirect to login if not authorized
-                    if (window.location.pathname !== '/pages/login') {
+                    // Only redirect to login if not already on an auth page
+                    if (!isAuthPage) {
                         window.location.href = '/pages/login';
                     }
                 });
-            } else if (window.location.pathname !== '/pages/login') {
-                // Redirect to login if no token
+            } else if (!isAuthPage) {
+                // Only redirect to login if not already on an auth page
                 window.location.href = '/pages/login';
             }
         });

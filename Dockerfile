@@ -9,8 +9,10 @@ ENV PYTHONPATH="/app" \
     PORT=8000 \
     ENVIRONMENT="production"
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# Install system dependencies required for MySQL
+RUN apt-get update && apt-get install -y \
+    default-libmysqlclient-dev \
+    pkg-config \
     build-essential \
     netcat-traditional \
     && rm -rf /var/lib/apt/lists/*
@@ -26,7 +28,10 @@ COPY backend /app/backend
 COPY docker-entrypoint.sh /app/docker-entrypoint.sh
 RUN chmod +x /app/docker-entrypoint.sh
 
-# Expose port
+# Verify files are present (debugging)
+RUN ls -la /app/backend && \
+    ls -la /app/backend/alembic.ini
+
 EXPOSE 8000
 
 # Set entrypoint

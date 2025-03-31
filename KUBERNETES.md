@@ -136,8 +136,9 @@ stringData:
      name: chores-tracker-secrets
    type: Opaque
    stringData:
-     DATABASE_URL: "mysql+aiomysql://chores_user:your-secure-password@mysql:3306/chores_tracker"
+     DATABASE_URL: "mysql+aiomysql://chores_user:your-secure-password@mysql.mysql.svc.cluster.local:3306/chores_tracker"
      SECRET_KEY: "your-secure-production-key"
+     ACCESS_TOKEN_EXPIRE_MINUTES: "11520"
    ```
 
 4. Create the Deployment:

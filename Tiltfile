@@ -1,17 +1,7 @@
 # Load Docker Compose config
 docker_compose('docker-compose.yml')
 
-# Forward port 8000 (API)
-k8s_resource('api', port_forwards='8000:8000')
-
-# Define resources
-k8s_resource(
-    'api',
-    resource_deps=[],
-    labels=['backend'],
-)
-
-# Set up a live update for the backend
+# Build the API image
 docker_build(
     'chores-tracker-api',
     '.',
@@ -21,3 +11,7 @@ docker_build(
         run('pip install -r /app/requirements.txt', trigger='./backend/requirements.txt'),
     ],
 )
+
+# Configure Docker Compose resources
+dc_resource('api', labels=['backend'])
+dc_resource('mysql', labels=['backend', 'db'])

@@ -1,6 +1,24 @@
 version: '3.8'
 
 services:
+  mysql:
+    image: mysql:5.7
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   api:
     build:
       context: .
@@ -10,11 +28,14 @@ services:
     volumes:
       - ./backend:/app/backend
     environment:
-      - DATABASE_URL=sqlite+aiosqlite:////app/backend/chores_tracker.db
-      - SECRET_KEY=${SECRET_KEY:-development_secret_key}
-      - DEBUG=${DEBUG:-True}
-      - ENVIRONMENT=development
-      - BACKEND_CORS_ORIGINS="http://localhost:3000,http://localhost:8000"
-    command: uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 --reload
+      - DATABASE_URL=${DATABASE_URL}
+      - SECRET_KEY=${SECRET_KEY}
+      - DEBUG=${DEBUG}
+      - ENVIRONMENT=${ENVIRONMENT}
+      - BACKEND_CORS_ORIGINS=${BACKEND_CORS_ORIGINS}
+    depends_on:
+      mysql:
+        condition: service_healthy
 
-# We'll add the frontend service later
+volumes:
+  mysql_data:
