@@ -12,7 +12,10 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development")
     
     # Database
-    DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./chores_tracker.db")
+    DATABASE_URL: str = os.getenv(
+        "DATABASE_URL",
+        "mysql+aiomysql://chores-user:password@localhost:3306/chores-db"
+    )
     
     # CORS
     BACKEND_CORS_ORIGINS: Union[List[str], str] = os.getenv("BACKEND_CORS_ORIGINS", "*")

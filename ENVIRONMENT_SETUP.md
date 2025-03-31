@@ -1,51 +1,74 @@
 # Environment Setup Guide
 
-This document explains how to configure the Chores Tracker application for different environments.
+## Initial Setup
 
-## Environment Configuration
+1. Copy the environment template:
+   ```bash
+   cp .env.sample .env
+   ```
 
-The application uses environment variables to determine its configuration. These can be set through:
-1. A `.env` file in the project root
-2. Docker Compose environment variables
-3. Kubernetes ConfigMaps and Secrets
+2. Edit `.env` with your secure credentials:
+   - Generate a strong `MYSQL_ROOT_PASSWORD`
+   - Generate a strong `MYSQL_PASSWORD`
+   - Generate a secure `SECRET_KEY`
+   - Never commit the `.env` file to version control
+
+3. Start the development environment:
+   ```bash
+   tilt up
+   ```
+
+## Security Notes
+
+- The `.env` file contains sensitive information and should never be committed to version control
+- Each developer should maintain their own `.env` file locally
+- Production credentials should be managed through secure secrets management systems
+- Regular security audits should be performed to ensure no credentials are accidentally committed
+- Generate a secure SECRET_KEY for production using:
+  ```bash
+  python -c "import secrets; print(secrets.token_urlsafe(32))"
+  ```
+
+## Environment Variables
+
+Required environment variables:
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| MYSQL_ROOT_PASSWORD | MySQL root password | `strongpassword123` |
+| MYSQL_DATABASE | Database name | `chores-db` |
+| MYSQL_USER | Database user | `chores-user` |
+| MYSQL_PASSWORD | Database password | `securepass123` |
+| DATABASE_URL | Full database connection URL | `mysql+aiomysql://user:pass@mysql:3306/db` |
+| SECRET_KEY | API encryption key | `your-secret-key` |
+| DEBUG | Debug mode flag | `True` or `False` |
+| ENVIRONMENT | Environment name | `development` or `production` |
+| BACKEND_CORS_ORIGINS | Allowed CORS origins | `"http://localhost:3000,http://localhost:8000"` |
+| ACCESS_TOKEN_EXPIRE_MINUTES | JWT token expiration time in minutes | `11520` |
 
 ## Local Development
 
-For local development, you have two options:
-
-### Option 1: SQLite (Simplest)
+For local development:
 
 1. Create a `.env` file based on `.env.sample`:
    ```
    ENVIRONMENT=development
    DEBUG=True
-   DATABASE_URL=sqlite+aiosqlite:///./chores_tracker.db
+   DATABASE_URL=mysql+aiomysql://chores-user:password@mysql:3306/chores-db
    SECRET_KEY=dev_secret_key
    BACKEND_CORS_ORIGINS="http://localhost:3000,http://localhost:8000"
    ```
 
-2. Run with docker-compose:
+2. Start the development environment using Tilt:
    ```bash
-   docker-compose up
+   tilt up
    ```
 
-### Option 2: MySQL (Production-like)
+   This will start both the MySQL database and the API service.
 
-If you want to test with MySQL locally, you'll need to:
-
-1. Uncomment the MySQL service in docker-compose.yml 
-2. Update your `.env` file with MySQL configuration:
-   ```
-   ENVIRONMENT=development
-   DEBUG=True
-   DATABASE_URL=mysql+aiomysql://chores_user:chores_password@mysql:3306/chores_tracker
-   SECRET_KEY=dev_secret_key
-   BACKEND_CORS_ORIGINS="http://localhost:3000,http://localhost:8000"
-   ```
-
-3. Run with docker-compose:
+3. To stop the development environment:
    ```bash
-   docker-compose up
+   tilt down
    ```
 
 ## Production Deployment
@@ -106,11 +129,11 @@ For production deployment to Kubernetes:
 
 ## Database Migrations
 
-Migrations are automatically run when the container starts through the `docker-entrypoint.sh` script. For the first deployment or when you need to manually run migrations:
+Migrations are automatically run when the container starts. For manual migration management:
 
 ```bash
-# For local development
-docker-compose exec api python -m alembic -c backend/alembic.ini upgrade head
+# Using Docker Compose
+docker compose exec api python -m alembic -c backend/alembic.ini upgrade head
 
 # For Kubernetes
 kubectl exec -it <pod-name> -- python -m alembic -c backend/alembic.ini upgrade head
