@@ -1,10 +1,6 @@
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 from ..core.config import settings
-
-# Create base class for models
-Base = declarative_base()
 
 # Import all the models, so that Base has them before being
 # imported by Alembic
@@ -17,6 +13,10 @@ engine = create_async_engine(
     settings.DATABASE_URL, 
     echo=False, 
     future=True,
+    pool_pre_ping=True,  # Test connections before using them
+    pool_size=5,         # Number of connections to maintain in pool
+    max_overflow=10,     # Maximum overflow connections allowed
+    pool_recycle=3600,   # Recycle connections after 1 hour
 )
 
 AsyncSessionLocal = sessionmaker(
