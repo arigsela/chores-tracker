@@ -113,3 +113,8 @@ class UserRepository(BaseRepository[User]):
             print(f"DEBUG: Failed to update password for user_id={user_id}")
         
         return updated_user
+    
+    async def update_password(self, db: AsyncSession, *, user_id: int, new_password: str) -> Optional[User]:
+        """Update a user's password."""
+        # This is an alias for reset_password for consistency with the service layer
+        return await self.reset_password(db, user_id=user_id, new_password=new_password)

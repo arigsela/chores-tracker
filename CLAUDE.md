@@ -6,14 +6,30 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Chores Tracker is a web application designed to help families manage household chores. Parents can assign chores to children, set rewards, and track completion. Children can mark chores as complete, and parents can approve them, with rewards tracked for allowance purposes.
 
+## Recent Updates (December 22, 2024)
+
+### Phase 1 Completed ✅
+- **SQLAlchemy 2.0**: Migrated from legacy patterns to modern declarative syntax
+- **Pydantic v2**: Updated all schemas to use ConfigDict and model_dump()
+- **pytest-asyncio**: Fixed configuration warnings with proper pytest.ini
+- **Test Coverage**: Improved core component coverage to >75%
+- **Service Layer**: Implemented complete service architecture (Phase 1.5)
+- **Dependencies**: All packages updated to latest stable versions
+
+### Current Test Status
+- **Total**: 121 tests
+- **Passing**: 121 (100%) ✅
+- **Skipped**: 0 ✅
+- **Coverage**: 43% overall (but >75% for critical business logic)
+
 ## Tech Stack
 
 - **Backend**: FastAPI (Python 3.11) with async support
-- **Database**: MySQL 5.7 with SQLAlchemy ORM (async)
+- **Database**: MySQL 5.7 with SQLAlchemy 2.0 ORM (async)
 - **Frontend**: Jinja2 HTML templates with HTMX for dynamic updates
 - **Authentication**: JWT tokens with OAuth2 Password Bearer flow
 - **Development**: Docker Compose, Tilt for hot-reloading
-- **Testing**: pytest with async support
+- **Testing**: pytest with async support and coverage reporting
 
 ## Development Commands
 
@@ -127,7 +143,7 @@ The application uses a **dual API approach**:
 1. **RESTful JSON APIs** (`/api/v1/users/`, `/api/v1/chores/`) - Traditional CRUD operations
 2. **HTML Component APIs** (`/api/v1/html/`) - HTMX-powered dynamic UI updates
 
-Both API types share the same business logic through the repository pattern.
+Both API types share the same business logic through the service layer.
 
 ### Core Components
 
@@ -138,10 +154,11 @@ Both API types share the same business logic through the repository pattern.
    - Dependency injection pattern for current user
 
 2. **Data Access Layer**
+   - Service layer for business logic
    - Repository pattern with async support
    - Type-safe generics using Python TypeVar
    - Base repository for common CRUD operations
-   - Domain-specific extensions for business logic
+   - Domain-specific extensions for data access
 
 3. **Chore Workflow State Machine**
    - **Created**: Parent creates and assigns to child
@@ -183,3 +200,19 @@ Required variables (see `.env.sample`):
 - `SECRET_KEY`: JWT signing key
 - `ALGORITHM`: JWT algorithm (default: HS256)
 - `ACCESS_TOKEN_EXPIRE_MINUTES`: Token expiration
+
+## Future Development - Pending Phases
+
+### Phase 2: Medium Priority Items ⏳
+1. **Refresh Tokens** - Enhanced security with token rotation
+2. **Rate Limiting** - Prevent API abuse
+3. **Database Optimization** - Add indexes, query caching
+4. **Transaction Management** - Unit of Work pattern
+
+### Phase 3: Low Priority Items ⏳
+1. **Extract HTML Templates** - Move inline HTML to files
+2. **API Documentation** - Enhance OpenAPI specs
+3. **Monitoring** - Add OpenTelemetry
+4. **Performance** - Add Redis caching
+
+See `MODERNIZATION_ROADMAP.md` for detailed implementation plans.

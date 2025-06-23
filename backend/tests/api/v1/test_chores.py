@@ -273,7 +273,7 @@ async def test_update_chore(client: AsyncClient, parent_token, child_token, test
         headers={"Authorization": f"Bearer {child_token}"}
     )
     assert response.status_code == 403
-    assert "Not authorized to update this chore" in response.json()["detail"]
+    assert "Only parents can update chores" in response.json()["detail"]
 
 
 @pytest.mark.asyncio
@@ -316,7 +316,7 @@ async def test_complete_and_approve_fixed_reward_chore(client: AsyncClient, pare
         headers={"Authorization": f"Bearer {child_token}"}
     )
     assert response.status_code == 403
-    assert "Only the creator can approve chores" in response.json()["detail"]
+    assert "Only parents can approve chores" in response.json()["detail"]
 
     # Parent approves the chore
     response = await client.post(
@@ -373,7 +373,7 @@ async def test_approve_range_reward_outside_bounds(client: AsyncClient, parent_t
         json={"is_approved": True, "reward_value": 1.00},  # Below min_reward of 2.00
         headers={"Authorization": f"Bearer {parent_token}"}
     )
-    assert response.status_code == 400
+    assert response.status_code == 422
     assert "Reward value must be between" in response.json()["detail"]
     
     # Try to approve with a value above maximum
@@ -382,7 +382,7 @@ async def test_approve_range_reward_outside_bounds(client: AsyncClient, parent_t
         json={"is_approved": True, "reward_value": 5.00},  # Above max_reward of 4.00
         headers={"Authorization": f"Bearer {parent_token}"}
     )
-    assert response.status_code == 400
+    assert response.status_code == 422
     assert "Reward value must be between" in response.json()["detail"]
 
 
@@ -410,6 +410,8 @@ async def test_chore_cooldown_period(client: AsyncClient, db_session, parent_tok
         f"/api/v1/chores/{test_range_chore.id}/complete",
         headers={"Authorization": f"Bearer {child_token}"}
     )
+    if response.status_code != 200:
+        print(f"Error completing after approval: {response.json()}")
     assert response.status_code == 200
     
     # Parent approves the chore again
@@ -497,7 +499,7 @@ async def test_disable_chore(client: AsyncClient, parent_token, child_token, tes
         headers={"Authorization": f"Bearer {child_token}"}
     )
     assert response.status_code == 403
-    assert "Only the creator can disable chores" in response.json()["detail"]
+    assert "Only parents can disable chores" in response.json()["detail"]
     
     # Parent can disable the chore
     response = await client.post(
@@ -514,7 +516,7 @@ async def test_disable_chore(client: AsyncClient, parent_token, child_token, tes
         headers={"Authorization": f"Bearer {child_token}"}
     )
     assert response.status_code == 400
-    assert "This chore has been disabled" in response.json()["detail"]
+    assert "Cannot complete a disabled chore" in response.json()["detail"]
 
 
 @pytest.mark.asyncio
@@ -585,7 +587,7 @@ async def test_delete_chore(client: AsyncClient, parent_token, child_token, test
         headers={"Authorization": f"Bearer {child_token}"}
     )
     assert response.status_code == 403
-    assert "Not authorized to delete this chore" in response.json()["detail"]
+    assert "Only parents can delete chores" in response.json()["detail"]
 
     # Parent can delete the chore
     response = await client.delete(

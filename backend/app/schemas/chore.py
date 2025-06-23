@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Optional
 from datetime import datetime
 
@@ -31,6 +31,8 @@ class ChoreUpdate(BaseModel):
     is_disabled: Optional[bool] = None
 
 class ChoreResponse(ChoreBase):
+    model_config = ConfigDict(from_attributes=True)
+    
     id: int
     assignee_id: int
     creator_id: int
@@ -39,9 +41,6 @@ class ChoreResponse(ChoreBase):
     completion_date: Optional[datetime] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
-
-    class Config:
-        from_attributes = True
 
 class ChoreComplete(BaseModel):
     is_completed: bool = True

@@ -1,3 +1,4 @@
+from pydantic import ConfigDict
 from pydantic_settings import BaseSettings
 from typing import Optional, List, Union
 import os
@@ -36,9 +37,10 @@ class Settings(BaseSettings):
     # Debug
     DEBUG: bool = os.getenv("DEBUG", "True").lower() in ("true", "1", "t")
 
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
+    model_config = ConfigDict(
+        env_file=".env",
+        case_sensitive=True
+    )
 
 
 settings = Settings()
