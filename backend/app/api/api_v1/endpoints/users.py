@@ -3,8 +3,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
 import re
 from sqlalchemy import text
+from ....core.config import settings
 
 from ....db.base import get_db
 from ....schemas.user import UserCreate, UserResponse, Token
@@ -15,6 +17,9 @@ from ....models.user import User
 from ....middleware.rate_limit import limit_login, limit_register, limit_api_endpoint_default
 
 router = APIRouter()
+
+# Templates
+templates = Jinja2Templates(directory=settings.TEMPLATES_DIR)
 
 # Simple email validation pattern
 EMAIL_PATTERN = re.compile(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$")
@@ -134,23 +139,11 @@ async def register_user(
     
     # If child account and from form, return HTML success message
     if not is_parent_bool:
-        success_html = f"""
-        <div class="bg-green-100 p-6 rounded-lg shadow-md border-2 border-green-300">
-            <h2 class="text-2xl font-bold mb-4 text-green-700 flex items-center">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                </svg>
-                Success!
-            </h2>
-            <p class="text-green-700 mb-2">Child account for <span class="font-bold">{username}</span> has been created successfully.</p>
-            <button 
-                class="mt-4 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
-                onclick="document.getElementById('main-content').innerHTML = '';">
-                Close
-            </button>
-        </div>
-        """
-        return HTMLResponse(content=success_html, status_code=status.HTTP_201_CREATED)
+        return templates.TemplateResponse(
+            "components/child_account_created.html",
+            {"request": Request(scope={"type": "http", "headers": []}, receive=None), "username": username},
+            status_code=status.HTTP_201_CREATED
+        )
     
     # Otherwise return the user data for API clients
     return user
@@ -392,54 +385,39 @@ async def reset_child_password_html(
         
         # Return success HTML
         print(f"DEBUG [33]: Returning success HTML")
-        success_html = f"""
-        <div class="bg-white p-6 rounded-lg shadow-md text-center">
-            <h2 class="text-2xl font-bold text-green-600 mb-4">
-                Password Reset Successful
-            </h2>
-            <p class="text-green-700 mb-2">Password for <span class="font-bold">{updated_child.username}</span> has been reset successfully.</p>
-            <button 
-                class="mt-4 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
-                onclick="localStorage.removeItem('token'); window.location.href = '/pages/login';">
-                Log Out to Test New Password
-            </button>
-        </div>
-        """
-        return HTMLResponse(content=success_html, status_code=status.HTTP_200_OK)
+        return templates.TemplateResponse(
+            "components/password_reset_dialog.html",
+            {
+                "request": Request(scope={"type": "http", "headers": []}, receive=None),
+                "success": True,
+                "username": updated_child.username
+            },
+            status_code=status.HTTP_200_OK
+        )
     except ValueError as e:
         print(f"DEBUG [ERROR]: Password reset failed with ValueError: {str(e)}")
         # Return error HTML
-        error_html = f"""
-        <div class="bg-white p-6 rounded-lg shadow-md text-center">
-            <h2 class="text-2xl font-bold text-red-600 mb-4">
-                Password Reset Failed
-            </h2>
-            <p class="text-red-700 mb-2">{str(e)}</p>
-            <button 
-                class="mt-4 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
-                onclick="document.getElementById('main-content').innerHTML = '';">
-                Close
-            </button>
-        </div>
-        """
-        return HTMLResponse(content=error_html, status_code=status.HTTP_422_UNPROCESSABLE_ENTITY)
+        return templates.TemplateResponse(
+            "components/password_reset_dialog.html",
+            {
+                "request": Request(scope={"type": "http", "headers": []}, receive=None),
+                "success": False,
+                "error_message": str(e)
+            },
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY
+        )
     except Exception as e:
         print(f"DEBUG [ERROR]: Unexpected error during password reset: {str(e)}")
         import traceback
         traceback.print_exc()
         
         # Return error HTML
-        error_html = f"""
-        <div class="bg-white p-6 rounded-lg shadow-md text-center">
-            <h2 class="text-2xl font-bold text-red-600 mb-4">
-                Password Reset Failed
-            </h2>
-            <p class="text-red-700 mb-2">An unexpected error occurred: {str(e)}</p>
-            <button 
-                class="mt-4 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
-                onclick="document.getElementById('main-content').innerHTML = '';">
-                Close
-            </button>
-        </div>
-        """
-        return HTMLResponse(content=error_html, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return templates.TemplateResponse(
+            "components/password_reset_dialog.html",
+            {
+                "request": Request(scope={"type": "http", "headers": []}, receive=None),
+                "success": False,
+                "error_message": f"An unexpected error occurred: {str(e)}"
+            },
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )

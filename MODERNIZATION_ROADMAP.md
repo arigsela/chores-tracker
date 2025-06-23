@@ -34,7 +34,7 @@ This document outlines the modernization plan for the Chores Tracker application
 - [ ] Improve test coverage to 80%
 
 ### Phase 3: Low Priority 📋
-- [ ] Extract HTML to template files
+- [x] Extract HTML to template files ✅ (2025-06-23)
 - [ ] Add API documentation
 - [ ] Performance optimizations
 - [ ] Add monitoring/logging
@@ -360,16 +360,31 @@ class UnitOfWork:
 
 ## Phase 3: Low Priority Items
 
-### 3.1 Extract HTML to Template Files
+### 3.1 Extract HTML to Template Files ✅ COMPLETED
 
-**Current:** HTML strings in Python code
-**Target:** Proper Jinja2 templates
+**Status:** ✅ Completed on 2025-06-23
 
-**Steps:**
-1. Create template structure
-2. Move HTML from Python to templates
-3. Use template inheritance
-4. Add template caching
+**Implementation Summary:**
+- Created component templates for all inline HTML strings
+- Extracted HTML from main.py and users.py endpoints
+- Implemented reusable templates:
+  - `children_options.html` - Dropdown options for children
+  - `not_authorized.html` - Authorization error messages
+  - `authentication_error.html` - Login redirect page
+  - `password_reset_success.html` - Password reset confirmation
+  - `error_message.html` - Generic error display
+  - `child_account_created.html` - Child account creation success
+  - `password_reset_dialog.html` - Combined success/error dialog
+- Updated all endpoints to use Jinja2 templates instead of inline HTML
+- All tests passing with template implementation
+
+**Files Created:**
+- `backend/app/templates/components/` - Component template directory
+- 7 new template files for different UI components
+
+**Files Modified:**
+- `backend/app/main.py` - Replaced inline HTML with template calls
+- `backend/app/api/api_v1/endpoints/users.py` - Replaced HTML strings with templates
 
 ### 3.2 Enhanced API Documentation
 
