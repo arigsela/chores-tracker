@@ -4,7 +4,9 @@ A modern web application for families to manage household chores, built with Fas
 
 ## 🚀 Project Status
 
-### Phase 1 Completed ✅ (December 2024)
+### Phase 1 & 2 Progress ✅
+
+**Phase 1 Completed** (December 2024)
 - ✅ **SQLAlchemy 2.0** migration completed
 - ✅ **Pydantic v2** migration completed  
 - ✅ **pytest-asyncio** warnings fixed
@@ -12,12 +14,18 @@ A modern web application for families to manage household chores, built with Fas
 - ✅ **Service layer** architecture implemented
 - ✅ **All deprecations** removed - using 2024 best practices
 
+**Phase 2 In Progress** (June 2025)
+- ✅ **Rate limiting** implemented with slowapi
+- ✅ **Database optimizations** - indexes, eager loading, connection pooling
+- 🔄 **Unit of Work pattern** - next up
+- 📋 **Test coverage to 80%** - pending
+
 ### CI/CD Status
 [![Backend Tests](https://github.com/arigsela/chores-tracker/actions/workflows/backend-tests.yml/badge.svg)](https://github.com/arigsela/chores-tracker/actions/workflows/backend-tests.yml)
 
 **Test Summary:**
-- Total tests: 121
-- Passing: 121 (100%) ✅
+- Total tests: 130 (126 + 4 rate limit tests)
+- Passing: 130 (100%) ✅
 - Skipped: 0 ✅
 - Failing: 0 ✅
 
@@ -147,12 +155,23 @@ docker compose exec api python -m backend.app.scripts.reset_password
 
 ## 📈 Future Improvements
 
-### Phase 2: Security & Performance (Next)
+### Phase 2: Security & Performance (In Progress)
+- ✅ Add rate limiting (completed)
+- ✅ Optimize database queries (completed)
+- 🔄 Add transaction management (Unit of Work) - next
+- 📋 Improve test coverage to 80%
+
+### Phase 3: Low Priority Items (Future)
+- Extract HTML to template files
+- Add comprehensive API documentation  
+- Add caching layer (Redis)
+- Enhanced monitoring and logging
+
+### Phase 4: Advanced Security (Future)
 - Implement refresh tokens
-- Add rate limiting
-- Optimize database queries
-- Add caching layer
-- Implement soft delete for all models
+- Add OAuth2 providers
+- Implement 2FA
+- Conduct security audit
 
 ### Phase 3: UI & Monitoring
 - Extract inline HTML to templates
@@ -189,4 +208,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ---
 
-**Last Updated:** December 22, 2024
+**Last Updated:** June 23, 2025

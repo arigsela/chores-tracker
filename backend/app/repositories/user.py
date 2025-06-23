@@ -1,6 +1,7 @@
 from typing import Optional, Dict, Any, List
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import joinedload
 
 from .base import BaseRepository
 from ..models.user import User
@@ -83,8 +84,9 @@ class UserRepository(BaseRepository[User]):
                 User.parent_id == parent_id,
                 User.is_parent == False
             )
+            .options(joinedload(User.chores_assigned))
         )
-        return result.scalars().all()
+        return result.unique().scalars().all()
     
     async def reset_password(self, db: AsyncSession, *, user_id: int, new_password: str) -> Optional[User]:
         """Reset a user's password."""

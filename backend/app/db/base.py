@@ -8,15 +8,23 @@ from .base_class import Base  # noqa
 from ..models.user import User  # noqa
 from ..models.chore import Chore  # noqa
 
-# Create async engine
+# Create async engine with optimized connection pool settings
 engine = create_async_engine(
     settings.DATABASE_URL, 
     echo=False, 
     future=True,
-    pool_pre_ping=True,  # Test connections before using them
-    pool_size=5,         # Number of connections to maintain in pool
-    max_overflow=10,     # Maximum overflow connections allowed
-    pool_recycle=3600,   # Recycle connections after 1 hour
+    # Connection pool settings
+    pool_pre_ping=True,      # Test connections before using them
+    pool_size=20,            # Increased pool size for better concurrency
+    max_overflow=40,         # Allow more overflow connections during peak load
+    pool_recycle=3600,       # Recycle connections after 1 hour (avoid MySQL timeouts)
+    pool_timeout=30,         # Timeout for getting connection from pool
+    connect_args={
+        "server_settings": {
+            "jit": "off"     # Disable JIT for more predictable performance
+        },
+        "command_timeout": 60,
+    } if "postgresql" in settings.DATABASE_URL else {}
 )
 
 AsyncSessionLocal = sessionmaker(

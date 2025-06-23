@@ -36,6 +36,9 @@ class Settings(BaseSettings):
     
     # Debug
     DEBUG: bool = os.getenv("DEBUG", "True").lower() in ("true", "1", "t")
+    
+    # Testing
+    TESTING: bool = os.getenv("TESTING", "False").lower() in ("true", "1", "t")
 
     model_config = ConfigDict(
         env_file=".env",

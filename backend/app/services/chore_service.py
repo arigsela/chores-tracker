@@ -11,6 +11,7 @@ from ..models.chore import Chore
 from ..models.user import User
 from ..repositories.chore import ChoreRepository
 from ..repositories.user import UserRepository
+from ..core.unit_of_work import UnitOfWork
 
 
 class ChoreService(BaseService[Chore, ChoreRepository]):
@@ -366,3 +367,182 @@ class ChoreService(BaseService[Chore, ChoreRepository]):
         
         # Delete chore
         await self.repository.delete(db, id=chore_id)
+    
+    async def bulk_assign_chores(
+        self,
+        uow: UnitOfWork,
+        *,
+        creator_id: int,
+        assignments: List[Dict[str, Any]]
+    ) -> List[Chore]:
+        """
+        Bulk assign multiple chores to children in a single transaction.
+        
+        This ensures all assignments succeed or none do.
+        
+        Args:
+            uow: Unit of Work for transaction management
+            creator_id: ID of the parent creating the chores
+            assignments: List of chore assignments, each containing:
+                - title: Chore title
+                - description: Chore description
+                - assignee_id: ID of child to assign to
+                - reward: Reward amount
+                - Other chore fields...
+                
+        Returns:
+            List of created chores
+            
+        Example:
+            async with UnitOfWork() as uow:
+                chores = await chore_service.bulk_assign_chores(
+                    uow,
+                    creator_id=parent_id,
+                    assignments=[
+                        {"title": "Clean room", "assignee_id": child1_id, "reward": 5.0},
+                        {"title": "Do homework", "assignee_id": child2_id, "reward": 10.0}
+                    ]
+                )
+                await uow.commit()
+        """
+        created_chores = []
+        
+        try:
+            for assignment in assignments:
+                # Validate assignee
+                assignee_id = assignment.get("assignee_id")
+                if assignee_id:
+                    assignee = await uow.users.get(uow.session, id=assignee_id)
+                    if not assignee:
+                        raise ValueError(f"Assignee with ID {assignee_id} not found")
+                    
+                    if assignee.parent_id != creator_id:
+                        raise ValueError(f"Child with ID {assignee_id} does not belong to this parent")
+                
+                # Create chore data
+                chore_data = {
+                    "title": assignment["title"],
+                    "description": assignment.get("description", ""),
+                    "reward": assignment["reward"],
+                    "is_range_reward": assignment.get("is_range_reward", False),
+                    "min_reward": assignment.get("min_reward"),
+                    "max_reward": assignment.get("max_reward"),
+                    "cooldown_days": assignment.get("cooldown_days", 0),
+                    "is_recurring": assignment.get("is_recurring", False),
+                    "creator_id": creator_id,
+                    "assignee_id": assignee_id,
+                    "is_completed": False,
+                    "is_approved": False,
+                    "is_disabled": False
+                }
+                
+                # Create chore
+                chore = await uow.chores.create(uow.session, obj_in=chore_data)
+                created_chores.append(chore)
+            
+            return created_chores
+            
+        except Exception as e:
+            # Transaction will be rolled back automatically by UnitOfWork
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Failed to bulk assign chores: {str(e)}"
+            )
+    
+    async def approve_chore_with_next_instance(
+        self,
+        uow: UnitOfWork,
+        *,
+        chore_id: int,
+        parent_id: int,
+        reward_value: Optional[float] = None
+    ) -> Dict[str, Any]:
+        """
+        Approve a chore and create the next instance if it's recurring.
+        
+        This is a transactional operation ensuring both approval and next instance
+        creation succeed together.
+        
+        Args:
+            uow: Unit of Work for transaction management
+            chore_id: ID of chore to approve
+            parent_id: ID of parent approving the chore
+            reward_value: Actual reward amount (for range rewards)
+            
+        Returns:
+            Dictionary with approved chore and next instance (if created)
+        """
+        try:
+            # Get the chore
+            chore = await uow.chores.get(uow.session, id=chore_id)
+            if not chore:
+                raise ValueError("Chore not found")
+            
+            # Validate parent is the creator
+            if chore.creator_id != parent_id:
+                raise ValueError("You can only approve chores you created")
+            
+            # Validate chore is completed but not approved
+            if not chore.is_completed:
+                raise ValueError("Chore must be completed before approval")
+            if chore.is_approved:
+                raise ValueError("Chore is already approved")
+            
+            # Prepare approval data
+            update_data = {
+                "is_approved": True,
+                "completion_date": datetime.now()
+            }
+            
+            # Handle range rewards
+            if chore.is_range_reward:
+                if reward_value is None:
+                    raise ValueError("Reward value is required for range-based rewards")
+                if reward_value < chore.min_reward or reward_value > chore.max_reward:
+                    raise ValueError(f"Reward must be between {chore.min_reward} and {chore.max_reward}")
+                update_data["reward"] = reward_value
+            
+            # Approve the chore
+            approved_chore = await uow.chores.update(
+                uow.session, id=chore_id, obj_in=update_data
+            )
+            
+            next_chore = None
+            
+            # Create next instance if recurring
+            if chore.is_recurring and chore.cooldown_days > 0:
+                # Calculate next available date
+                next_available = datetime.now() + timedelta(days=chore.cooldown_days)
+                
+                # Create next instance
+                next_chore_data = {
+                    "title": chore.title,
+                    "description": chore.description,
+                    "reward": chore.reward if not chore.is_range_reward else None,
+                    "is_range_reward": chore.is_range_reward,
+                    "min_reward": chore.min_reward,
+                    "max_reward": chore.max_reward,
+                    "cooldown_days": chore.cooldown_days,
+                    "is_recurring": True,
+                    "frequency": chore.frequency,
+                    "creator_id": chore.creator_id,
+                    "assignee_id": chore.assignee_id,
+                    "is_completed": False,
+                    "is_approved": False,
+                    "is_disabled": False,
+                    "created_at": next_available  # Set creation date to future
+                }
+                
+                next_chore = await uow.chores.create(uow.session, obj_in=next_chore_data)
+            
+            return {
+                "approved_chore": approved_chore,
+                "next_instance": next_chore
+            }
+            
+        except Exception as e:
+            # Transaction will be rolled back automatically by UnitOfWork
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Failed to approve chore: {str(e)}"
+            )

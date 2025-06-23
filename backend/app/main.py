@@ -17,6 +17,8 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi import Form, File, UploadFile
 
 from .core.config import settings
+from .middleware.rate_limit import setup_rate_limiting
+from .core.logging import setup_query_logging, setup_connection_pool_logging
 
 from .api.api_v1.api import api_router
 
@@ -33,6 +35,19 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Set up rate limiting
+setup_rate_limiting(app)
+
+# Set up query logging (only for slow queries in production)
+if settings.DEBUG:
+    setup_query_logging(enable_all_queries=True)
+else:
+    setup_query_logging(enable_all_queries=False)
+
+# Set up connection pool logging in debug mode
+if settings.DEBUG:
+    setup_connection_pool_logging()
 
 # API routes
 app.include_router(api_router, prefix=settings.API_V1_STR)

@@ -8,10 +8,12 @@ from ....schemas.chore import ChoreCreate, ChoreResponse, ChoreUpdate, ChoreAppr
 from ....dependencies.auth import get_current_user
 from ....dependencies.services import ChoreServiceDep
 from ....models.user import User
+from ....middleware.rate_limit import limit_api_endpoint, limit_create, limit_update, limit_delete
 
 router = APIRouter()
 
 @router.post("/", response_model=ChoreResponse, status_code=status.HTTP_201_CREATED)
+@limit_create
 async def create_chore(
     request: Request,
     db: AsyncSession = Depends(get_db),

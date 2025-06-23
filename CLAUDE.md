@@ -91,6 +91,12 @@ docker compose exec api python -m pytest -x
 
 # Rerun failed tests
 docker compose exec api python -m pytest --lf
+
+# Run tests excluding rate limiting tests
+docker compose exec api python -m pytest -m "not rate_limit"
+
+# Run only rate limiting tests
+docker compose exec api python -m pytest -m rate_limit
 ```
 
 ### Utility Scripts

@@ -27,11 +27,10 @@ This document outlines the modernization plan for the Chores Tracker application
 - [x] Improve test coverage to 70% ✅
 - [x] Add service layer architecture ✅
 
-### Phase 2: Medium Priority 🔄
-- [ ] Implement refresh tokens
-- [ ] Add rate limiting
-- [ ] Optimize database queries
-- [ ] Add transaction management
+### Phase 2: Medium Priority 🔄 IN PROGRESS
+- [x] Add rate limiting ✅ (2025-06-23)
+- [x] Optimize database queries ✅ (2025-06-23)
+- [ ] Add transaction management (Unit of Work)
 - [ ] Improve test coverage to 80%
 
 ### Phase 3: Low Priority 📋
@@ -39,6 +38,12 @@ This document outlines the modernization plan for the Chores Tracker application
 - [ ] Add API documentation
 - [ ] Performance optimizations
 - [ ] Add monitoring/logging
+
+### Phase 4: Advanced Security 🔐
+- [ ] Implement refresh tokens
+- [ ] Add OAuth2 providers
+- [ ] Implement 2FA
+- [ ] Security audit
 
 ---
 
@@ -271,61 +276,61 @@ class ChoreService(BaseService[Chore]):
 
 ## Phase 2: Medium Priority Items
 
-### 2.1 Implement Refresh Tokens
+### 2.1 Add Rate Limiting ✅ COMPLETED
 
-**Purpose:** Enhanced security with token rotation
+**Status:** ✅ Completed on 2025-06-23
 
-**Implementation Steps:**
-1. Add refresh token model
-2. Update JWT utilities
-3. Add refresh endpoint
-4. Update frontend to handle token refresh
+**Implementation Summary:**
+- Integrated slowapi for comprehensive rate limiting
+- Created middleware with configurable rules per endpoint type
+- Applied rate limiting to sensitive endpoints (login, register, create)
+- Added separate test suite with pytest markers
+- Disabled rate limiting in test environment for reliability
 
-**Database Migration:**
-```sql
-CREATE TABLE refresh_tokens (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    user_id INT NOT NULL,
-    token VARCHAR(255) UNIQUE NOT NULL,
-    expires_at TIMESTAMP NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE
-);
-```
+**Rate Limit Rules:**
+- Login: 5 requests per minute
+- Registration: 3 requests per minute  
+- API endpoints: 100 requests per minute
+- Create operations: 30 requests per minute
 
-### 2.2 Add Rate Limiting
+**Files Created:**
+- `backend/app/middleware/rate_limit.py`
+- `backend/tests/test_rate_limiting.py`
 
-**Purpose:** Prevent API abuse
+### 2.2 Database Query Optimization ✅ COMPLETED
 
-**Implementation:**
-```python
-# backend/app/middleware/rate_limit.py
-from slowapi import Limiter
-from slowapi.util import get_remote_address
+**Status:** ✅ Completed on 2025-06-23
 
-limiter = Limiter(key_func=get_remote_address)
+**Implementation Summary:**
+1. **Database Indexes:**
+   - Added indexes on all foreign keys (parent_id, assignee_id, creator_id)
+   - Created composite index for chore status queries
+   - Added index on created_at for time-based queries
+   - Created robust migration handling MySQL constraints
 
-# Apply to routes
-@router.post("/login")
-@limiter.limit("5/minute")
-async def login(request: Request, ...):
-    pass
-```
+2. **Eager Loading:**
+   - Implemented joinedload for all relationship queries
+   - Fixed N+1 query problems in chore and user repositories
+   - Added unique() calls for collection joins
 
-### 2.3 Database Query Optimization
+3. **Connection Pool Optimization:**
+   - Increased pool size: 5 → 20 connections
+   - Increased max overflow: 10 → 40 connections
+   - Added connection recycling (1 hour)
+   - Enabled pre-ping for reliability
 
-**Current Issues:**
-- No eager loading strategy
-- Missing indexes on foreign keys
-- No query result caching
+4. **Query Performance Monitoring:**
+   - Created logging system for slow queries (>1 second)
+   - Added debug mode for all query logging
+   - Connection pool event monitoring
 
-**Optimizations:**
-1. Add database indexes
-2. Implement query result caching
-3. Use joinedload for related data
-4. Add connection pool tuning
+**Files Created/Modified:**
+- `backend/alembic/versions/fd1e718695e9_add_indexes_for_foreign_keys_and_query_.py`
+- `backend/app/core/logging.py`
+- `backend/app/db/base.py`
+- `backend/tests/test_database_optimizations.py`
 
-### 2.4 Transaction Management (Unit of Work)
+### 2.3 Transaction Management (Unit of Work)
 
 **Purpose:** Ensure data consistency
 
@@ -389,6 +394,38 @@ class UnitOfWork:
 2. APM integration (DataDog/NewRelic)
 3. Health check endpoints
 4. Metrics collection
+
+---
+
+## Phase 4: Advanced Security Items
+
+### 4.1 Implement Refresh Tokens
+
+**Purpose:** Enhanced security with token rotation
+
+**Implementation Steps:**
+1. Add refresh token model
+2. Update JWT utilities
+3. Add refresh endpoint
+4. Update frontend to handle token refresh
+
+**Database Migration:**
+```sql
+CREATE TABLE refresh_tokens (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    user_id INT NOT NULL,
+    token VARCHAR(255) UNIQUE NOT NULL,
+    expires_at TIMESTAMP NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE
+);
+```
+
+**Security Considerations:**
+- Store refresh tokens securely
+- Implement token revocation
+- Prevent token replay attacks
+- Add token rotation on use
 
 ---
 

@@ -98,6 +98,9 @@ async def test_read_users(client: AsyncClient, parent_token, test_parent_user, t
         "/api/v1/users/",
         headers={"Authorization": f"Bearer {parent_token}"}
     )
+    if response.status_code != 200:
+        print(f"Response status: {response.status_code}")
+        print(f"Response body: {response.text}")
     assert response.status_code == 200
     data = response.json()
     assert len(data) == 2  # Our two test users

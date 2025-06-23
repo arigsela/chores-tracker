@@ -2,16 +2,18 @@
 User service with business logic for user operations.
 """
 import re
-from typing import Optional
+from typing import Optional, List, Dict, Any
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .base import BaseService
 from ..models.user import User
+from ..models.chore import Chore
 from ..repositories.user import UserRepository
 from ..schemas.user import UserCreate
 from ..core.security.jwt import create_access_token, verify_token
 from ..core.security.password import verify_password
+from ..core.unit_of_work import UnitOfWork
 
 
 # Email validation pattern
@@ -262,3 +264,111 @@ class UserService(BaseService[User, UserRepository]):
             )
         
         return updated_user
+    
+    async def register_family(
+        self,
+        uow: UnitOfWork,
+        *,
+        parent_data: Dict[str, Any],
+        children_data: List[Dict[str, Any]] = None,
+        initial_chores: List[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """
+        Register a complete family with parent, children, and initial chores.
+        
+        This is a transactional operation - if any part fails, everything is rolled back.
+        
+        Args:
+            uow: Unit of Work for transaction management
+            parent_data: Parent user data (username, password, email)
+            children_data: List of child user data (username, password)
+            initial_chores: List of chores to create and assign
+            
+        Returns:
+            Dictionary with created parent, children, and chores
+            
+        Example:
+            async with UnitOfWork() as uow:
+                result = await user_service.register_family(
+                    uow,
+                    parent_data={"username": "mom", "password": "pass123", "email": "mom@example.com"},
+                    children_data=[
+                        {"username": "child1", "password": "pass123"},
+                        {"username": "child2", "password": "pass123"}
+                    ],
+                    initial_chores=[
+                        {"title": "Clean room", "assignee": "child1", "reward": 5.0},
+                        {"title": "Take out trash", "assignee": "child2", "reward": 3.0}
+                    ]
+                )
+                await uow.commit()
+        """
+        try:
+            # Create parent account
+            parent = await self.register_user(
+                uow.session,
+                username=parent_data["username"],
+                password=parent_data["password"],
+                email=parent_data["email"],
+                is_parent=True
+            )
+            
+            created_children = []
+            created_chores = []
+            
+            # Create children accounts if provided
+            if children_data:
+                child_username_to_id = {}
+                
+                for child_data in children_data:
+                    child = await self.register_user(
+                        uow.session,
+                        username=child_data["username"],
+                        password=child_data["password"],
+                        is_parent=False,
+                        parent_id=parent.id
+                    )
+                    created_children.append(child)
+                    child_username_to_id[child.username] = child.id
+                
+                # Create initial chores if provided
+                if initial_chores:
+                    for chore_data in initial_chores:
+                        # Find assignee ID if username provided
+                        assignee_id = None
+                        if "assignee" in chore_data:
+                            assignee_id = child_username_to_id.get(chore_data["assignee"])
+                            if not assignee_id:
+                                raise ValueError(f"Unknown assignee: {chore_data['assignee']}")
+                        
+                        # Create chore
+                        chore = await uow.chores.create(
+                            uow.session,
+                            obj_in={
+                                "title": chore_data["title"],
+                                "description": chore_data.get("description", ""),
+                                "reward": chore_data["reward"],
+                                "is_range_reward": False,
+                                "cooldown_days": chore_data.get("cooldown_days", 0),
+                                "is_recurring": chore_data.get("is_recurring", False),
+                                "creator_id": parent.id,
+                                "assignee_id": assignee_id,
+                                "is_completed": False,
+                                "is_approved": False,
+                                "is_disabled": False
+                            }
+                        )
+                        created_chores.append(chore)
+            
+            return {
+                "parent": parent,
+                "children": created_children,
+                "chores": created_chores
+            }
+            
+        except Exception as e:
+            # Transaction will be rolled back automatically by UnitOfWork
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Failed to register family: {str(e)}"
+            )

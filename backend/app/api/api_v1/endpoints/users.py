@@ -12,6 +12,7 @@ from ....core.security.jwt import create_access_token, verify_token
 from ....dependencies.auth import get_current_user
 from ....dependencies.services import UserServiceDep
 from ....models.user import User
+from ....middleware.rate_limit import limit_login, limit_register, limit_api_endpoint_default
 
 router = APIRouter()
 
@@ -19,7 +20,9 @@ router = APIRouter()
 EMAIL_PATTERN = re.compile(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$")
 
 @router.post("/register", status_code=status.HTTP_201_CREATED)
+@limit_register
 async def register_user(
+    request: Request,
     username: str = Form(...),
     password: str = Form(...),
     is_parent: str = Form(...),
@@ -154,7 +157,9 @@ async def register_user(
 
 # Keep the JSON-based endpoint for backward compatibility and API clients
 @router.post("/", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+@limit_register
 async def create_user(
+    request: Request,
     user_in: UserCreate, 
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -207,11 +212,13 @@ async def create_user(
         )
 
 @router.post("/login", response_model=Token)
+@limit_login
 async def login(
+    request: Request,
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: AsyncSession = Depends(get_db),
     user_service: UserServiceDep = None
-):
+) -> dict:
     """Login a user."""
     # Log the login attempt
     print(f"Login attempt for username: {form_data.username}")
@@ -240,7 +247,9 @@ async def login(
         raise
 
 @router.get("/", response_model=List[UserResponse])
+@limit_api_endpoint_default
 async def read_users(
+    request: Request,
     skip: int = 0, 
     limit: int = 100, 
     db: AsyncSession = Depends(get_db),
