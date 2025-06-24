@@ -13,11 +13,19 @@ from backend.app.models.user import User
 from backend.app.models.chore import Chore
 
 
+@pytest.fixture
+def test_uow_factory(db_session):
+    """Create a factory for UnitOfWork that uses the test session."""
+    async def factory():
+        return db_session
+    return factory
+
+
 class TestUnitOfWorkServiceMethods:
     """Test service methods that use UnitOfWork for transactional operations."""
     
     @pytest.mark.asyncio
-    async def test_bulk_assign_chores_success(self, db_session: AsyncSession):
+    async def test_bulk_assign_chores_success(self, db_session: AsyncSession, test_uow_factory):
         """Test successful bulk assignment of chores."""
         user_service = UserService()
         chore_service = ChoreService()
@@ -78,7 +86,7 @@ class TestUnitOfWorkServiceMethods:
         ]
         
         # Perform bulk assignment
-        async with UnitOfWork() as uow:
+        async with UnitOfWork(session_factory=test_uow_factory) as uow:
             created_chores = await chore_service.bulk_assign_chores(
                 uow,
                 creator_id=parent.id,
@@ -103,7 +111,7 @@ class TestUnitOfWorkServiceMethods:
         assert created_chores[2].max_reward == 5.0
     
     @pytest.mark.asyncio
-    async def test_bulk_assign_chores_rollback_on_error(self, db_session: AsyncSession):
+    async def test_bulk_assign_chores_rollback_on_error(self, db_session: AsyncSession, test_uow_factory):
         """Test that bulk assignment rolls back on error."""
         user_service = UserService()
         chore_service = ChoreService()
@@ -142,7 +150,7 @@ class TestUnitOfWorkServiceMethods:
         
         # Try bulk assignment - should fail
         with pytest.raises(Exception):
-            async with UnitOfWork() as uow:
+            async with UnitOfWork(session_factory=test_uow_factory) as uow:
                 await chore_service.bulk_assign_chores(
                     uow,
                     creator_id=parent.id,
@@ -155,7 +163,7 @@ class TestUnitOfWorkServiceMethods:
         assert len(chores) == 0
     
     @pytest.mark.asyncio
-    async def test_approve_chore_with_next_instance(self, db_session: AsyncSession):
+    async def test_approve_chore_with_next_instance(self, db_session: AsyncSession, test_uow_factory):
         """Test approving a recurring chore creates next instance."""
         user_service = UserService()
         chore_service = ChoreService()
@@ -201,7 +209,7 @@ class TestUnitOfWorkServiceMethods:
         )
         
         # Approve with next instance creation
-        async with UnitOfWork() as uow:
+        async with UnitOfWork(session_factory=test_uow_factory) as uow:
             result = await chore_service.approve_chore_with_next_instance(
                 uow,
                 chore_id=chore.id,
@@ -222,7 +230,7 @@ class TestUnitOfWorkServiceMethods:
         assert next_chore.assignee_id == child.id
     
     @pytest.mark.asyncio
-    async def test_approve_range_chore_with_next_instance(self, db_session: AsyncSession):
+    async def test_approve_range_chore_with_next_instance(self, db_session: AsyncSession, test_uow_factory):
         """Test approving a range-based recurring chore."""
         user_service = UserService()
         chore_service = ChoreService()
@@ -270,7 +278,7 @@ class TestUnitOfWorkServiceMethods:
         )
         
         # Approve with specific reward value
-        async with UnitOfWork() as uow:
+        async with UnitOfWork(session_factory=test_uow_factory) as uow:
             result = await chore_service.approve_chore_with_next_instance(
                 uow,
                 chore_id=chore.id,
@@ -290,7 +298,7 @@ class TestUnitOfWorkServiceMethods:
         assert next_chore.max_reward == 15.0
     
     @pytest.mark.asyncio
-    async def test_approve_non_recurring_chore(self, db_session: AsyncSession):
+    async def test_approve_non_recurring_chore(self, db_session: AsyncSession, test_uow_factory):
         """Test approving a non-recurring chore doesn't create next instance."""
         user_service = UserService()
         chore_service = ChoreService()
@@ -315,6 +323,7 @@ class TestUnitOfWorkServiceMethods:
         # Create one-time chore
         chore_data = {
             "title": "One Time Task",
+            "description": "A one-time task",
             "assignee_id": child.id,
             "reward": 20.0,
             "is_recurring": False
@@ -334,7 +343,7 @@ class TestUnitOfWorkServiceMethods:
         )
         
         # Approve
-        async with UnitOfWork() as uow:
+        async with UnitOfWork(session_factory=test_uow_factory) as uow:
             result = await chore_service.approve_chore_with_next_instance(
                 uow,
                 chore_id=chore.id,
@@ -349,7 +358,7 @@ class TestUnitOfWorkServiceMethods:
         assert result["next_instance"] is None
     
     @pytest.mark.asyncio
-    async def test_bulk_assign_validation_error(self, db_session: AsyncSession):
+    async def test_bulk_assign_validation_error(self, db_session: AsyncSession, test_uow_factory):
         """Test bulk assignment with validation errors."""
         user_service = UserService()
         chore_service = ChoreService()
@@ -391,7 +400,7 @@ class TestUnitOfWorkServiceMethods:
         
         # Should fail with validation error
         with pytest.raises(Exception) as exc_info:
-            async with UnitOfWork() as uow:
+            async with UnitOfWork(session_factory=test_uow_factory) as uow:
                 await chore_service.bulk_assign_chores(
                     uow,
                     creator_id=parent1.id,

@@ -45,6 +45,12 @@ Chores Tracker is a web application designed to help families manage household c
 - **HTML Endpoints**: Documented HTMX endpoints for approve/edit forms
 - **Deprecation Fixes**: Updated to Pydantic v2 field validators and json_schema_extra
 
+### Latest CI Fixes (December 24, 2024) ✅
+- **Rate Limiting Decorators**: Added missing `request: Request` parameter to `@limit_update` and `@limit_delete` decorated endpoints
+- **Test Error Handling**: Fixed validation error response handling in tests (supporting both string and list error messages)
+- **Unit of Work Tests**: Modified to use test database session factory instead of production MySQL connection
+- **Schema Validation**: Added missing description field in test data to satisfy NOT NULL constraint
+
 ### Current Test Status
 - **Total**: 223 tests
 - **Passing**: 223 (100%) ✅

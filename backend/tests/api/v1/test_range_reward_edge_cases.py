@@ -37,7 +37,12 @@ async def test_approve_range_reward_below_minimum(
         assert "minimum" in error_message.lower() or str(min_reward) in error_message
     elif response.status_code == 400:
         # If it rejects with bad request
-        error_message = response.json()["detail"].lower()
+        error_detail = response.json()["detail"]
+        # Handle both string and list error messages
+        if isinstance(error_detail, list):
+            error_message = " ".join([str(err).lower() for err in error_detail])
+        else:
+            error_message = error_detail.lower()
         # Check for the specific error message format
         assert "between" in error_message or str(min_reward).lower() in error_message
     else:
@@ -111,8 +116,17 @@ async def test_approve_range_reward_with_negative_value(
     )
     # The API should reject this (rewards should not be negative)
     assert response.status_code in [400, 422]
-    error_message = response.json()["detail"]
-    assert "negative" in error_message.lower() or "invalid" in error_message.lower() or "value" in error_message.lower()
+    error_detail = response.json()["detail"]
+    
+    # Handle both string and list error messages
+    if isinstance(error_detail, list):
+        # For validation errors, check all error messages
+        error_messages = [str(err).lower() for err in error_detail]
+        error_message = " ".join(error_messages)
+    else:
+        error_message = error_detail.lower()
+    
+    assert "negative" in error_message or "invalid" in error_message or "value" in error_message or "greater" in error_message
 
 @pytest.mark.asyncio
 async def test_zero_reward_for_range_chore(
