@@ -617,6 +617,7 @@ async def read_chore(
 )
 @limit_update
 async def update_chore(
+    request: Request,
     chore_id: int = Path(..., description="The ID of the chore to update"),
     chore_in: ChoreUpdate = Body(..., description="Updated chore data"),
     db: AsyncSession = Depends(get_db),
@@ -671,6 +672,7 @@ async def update_chore(
 )
 @limit_delete
 async def delete_chore(
+    request: Request,
     chore_id: int = Path(..., description="The ID of the chore to delete"),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),

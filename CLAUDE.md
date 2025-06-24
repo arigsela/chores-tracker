@@ -60,6 +60,17 @@ Chores Tracker is a web application designed to help families manage household c
 - **Development**: Docker Compose, Tilt for hot-reloading
 - **Testing**: pytest with async support and coverage reporting
 
+## Local Testing
+
+For comprehensive local testing instructions, including:
+- Docker-based setup (recommended)
+- Direct Python setup for faster iteration
+- API testing with curl/HTTPie examples
+- Accessing the enhanced API documentation
+- Troubleshooting common issues
+
+**See [LOCAL_TESTING.md](./LOCAL_TESTING.md) for the complete guide.**
+
 ## Development Commands
 
 ### Initial Setup
