@@ -23,10 +23,24 @@ Chores Tracker is a web application designed to help families manage household c
 - **Schema Validation**: Made `assignee_id` optional in `ChoreResponse` schema
 - **CI Environment**: Added `TESTING=true` to GitHub Actions workflow
 
+### Missing HTML Endpoints Implemented ✅
+- **GET /chores/{id}/approve-form**: Returns approval form for parents
+- **GET /chores/{id}/edit-form**: Returns edit form for parents
+- **PUT /chores/{id}**: Updates chore details (JSON API)
+- Created corresponding HTML templates (approve-form.html, edit-form.html)
+- All previously skipped tests now passing
+
+### Unit of Work Pattern ✅
+- **Implementation**: Already exists in `app/core/unit_of_work.py`
+- **Features**: Async context manager for transactional operations
+- **Repository Access**: Lazy-loaded user and chore repositories
+- **Usage**: Used in `bulk_assign_chores` and `approve_chore_with_next_instance` methods
+- **Tests**: Comprehensive edge case testing in place
+
 ### Current Test Status
-- **Total**: 217 tests
-- **Passing**: 217 (100%) ✅
-- **Skipped**: 21 ✅
+- **Total**: 223 tests
+- **Passing**: 223 (100%) ✅
+- **Skipped**: 15 ✅ (reduced from 21)
 - **Coverage**: 43% overall (but >75% for critical business logic)
 
 ## Tech Stack
