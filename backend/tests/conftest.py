@@ -7,12 +7,16 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 import httpx
 
+# Set testing flag before importing app
+os.environ["TESTING"] = "true"
+
 from backend.app.main import app
 from backend.app.db.base import Base, get_db
 from backend.app.models.user import User
 from backend.app.models.chore import Chore
 from backend.app.core.security.password import get_password_hash
 from backend.app.core.security.jwt import create_access_token
+from backend.app.middleware.rate_limit import reset_limiter
 
 # Use an in-memory SQLite database for testing
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
@@ -20,14 +24,6 @@ TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
 # Create async engine for testing
 test_engine = create_async_engine(TEST_DATABASE_URL, echo=False)
 TestingSessionLocal = sessionmaker(test_engine, expire_on_commit=False, class_=AsyncSession)
-
-
-@pytest.fixture(scope="session")
-def event_loop():
-    """Create an instance of the default event loop for each test case."""
-    loop = asyncio.get_event_loop_policy().new_event_loop()
-    yield loop
-    loop.close()
 
 
 @pytest_asyncio.fixture(scope="function")
@@ -46,6 +42,9 @@ async def db_session():
 @pytest_asyncio.fixture(scope="function")
 async def client(db_session):
     """Return a FastAPI test client with overridden dependencies."""
+    # Reset rate limiter before each test
+    reset_limiter()
+    
     async def override_get_db():
         yield db_session
 
