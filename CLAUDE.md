@@ -37,6 +37,14 @@ Chores Tracker is a web application designed to help families manage household c
 - **Usage**: Used in `bulk_assign_chores` and `approve_chore_with_next_instance` methods
 - **Tests**: Comprehensive edge case testing in place
 
+### API Documentation Enhanced ✅
+- **OpenAPI Metadata**: Added comprehensive app-level documentation
+- **Endpoint Documentation**: All REST endpoints now have detailed descriptions, examples, and response codes
+- **Schema Documentation**: Pydantic models enhanced with field descriptions and examples
+- **Authentication Flow**: Documented complete auth flow in OpenAPI description
+- **HTML Endpoints**: Documented HTMX endpoints for approve/edit forms
+- **Deprecation Fixes**: Updated to Pydantic v2 field validators and json_schema_extra
+
 ### Current Test Status
 - **Total**: 223 tests
 - **Passing**: 223 (100%) ✅
@@ -230,16 +238,19 @@ Required variables (see `.env.sample`):
 
 ## Future Development - Pending Phases
 
-### Phase 2: Medium Priority Items ⏳
+### Phase 2: Medium Priority Items ✅
+1. ~~**Unit of Work Pattern** - Transaction management (COMPLETED)~~
+2. ~~**API Documentation** - Enhanced OpenAPI specs (COMPLETED)~~
+
+### Remaining Phase 2 Items ⏳
 1. **Refresh Tokens** - Enhanced security with token rotation
-2. **Rate Limiting** - Prevent API abuse
+2. **Rate Limiting** - Already implemented, needs testing
 3. **Database Optimization** - Add indexes, query caching
-4. **Transaction Management** - Unit of Work pattern
 
 ### Phase 3: Low Priority Items ⏳
 1. **Extract HTML Templates** - Move inline HTML to files
-2. **API Documentation** - Enhance OpenAPI specs
-3. **Monitoring** - Add OpenTelemetry
-4. **Performance** - Add Redis caching
+2. **Monitoring** - Add OpenTelemetry
+3. **Performance** - Add Redis caching
+4. **WebSocket Support** - Real-time updates for chore completions
 
 See `MODERNIZATION_ROADMAP.md` for detailed implementation plans.

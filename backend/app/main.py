@@ -24,7 +24,115 @@ from .api.api_v1.api import api_router
 
 app = FastAPI(
     title=settings.APP_NAME,
-    openapi_url=f"{settings.API_V1_STR}/openapi.json"
+    description="""
+# Chores Tracker API
+
+A comprehensive API for managing household chores, rewards, and family task assignments.
+
+## Features
+
+* **User Management** - Register and authenticate parents and children
+* **Chore Management** - Create, assign, and track household chores
+* **Reward System** - Set fixed or range-based rewards for completed tasks
+* **Approval Workflow** - Children complete chores, parents approve and set rewards
+* **Recurring Tasks** - Support for daily, weekly, or custom recurring chores
+
+## Authentication Flow
+
+### 1. Registration
+Parents can self-register at `/api/v1/users/register`:
+```json
+{
+  "username": "parent_user",
+  "password": "SecurePassword123",
+  "email": "parent@example.com",
+  "is_parent": true
+}
+```
+
+Children must be registered by their parent (requires parent authentication).
+
+### 2. Login
+Obtain a JWT token at `/api/v1/users/login`:
+```
+POST /api/v1/users/login
+Content-Type: application/x-www-form-urlencoded
+
+username=parent_user&password=SecurePassword123
+```
+
+Response:
+```json
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "token_type": "bearer"
+}
+```
+
+### 3. Using the Token
+Include the token in subsequent requests:
+```
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+Tokens expire after 8 days by default.
+
+## User Roles
+
+### Parents Can:
+- Create and manage child accounts
+- Create, update, and delete chores
+- Approve completed chores and set final rewards
+- View all chores they created
+- Reset child passwords
+
+### Children Can:
+- View chores assigned to them
+- Mark chores as completed
+- View their completion history
+- Cannot create or modify chores
+
+## Rate Limiting
+
+API endpoints are rate-limited to prevent abuse:
+- Login: 5 requests per minute per IP
+- Registration: 3 requests per minute per IP
+- API endpoints: 100 requests per minute per IP
+- Create operations: 30 requests per minute per IP
+- Update operations: 60 requests per minute per IP
+- Delete operations: 20 requests per minute per IP
+    """,
+    version="1.0.0",
+    openapi_url=f"{settings.API_V1_STR}/openapi.json",
+    docs_url="/docs",
+    redoc_url="/redoc",
+    terms_of_service="https://chores-tracker.example.com/terms/",
+    contact={
+        "name": "Chores Tracker Support",
+        "email": "support@chores-tracker.example.com",
+    },
+    license_info={
+        "name": "MIT",
+        "url": "https://opensource.org/licenses/MIT",
+    },
+    openapi_tags=[
+        {
+            "name": "users",
+            "description": "User registration, authentication, and management",
+        },
+        {
+            "name": "chores",
+            "description": "Chore creation, assignment, completion, and approval",
+        },
+        {
+            "name": "auth",
+            "description": "Authentication endpoints",
+        },
+        {
+            "name": "html",
+            "description": "HTML/HTMX endpoints for dynamic UI updates",
+        }
+    ]
 )
 
 # Set up CORS
@@ -541,14 +649,34 @@ async def disable_chore_html(
         {"request": request, "chore": updated_chore, "current_user": current_user}
     )
 
-@app.get("/chores/{chore_id}/approve-form", response_class=HTMLResponse)
+@app.get(
+    "/chores/{chore_id}/approve-form",
+    response_class=HTMLResponse,
+    summary="Get chore approval form",
+    description="""
+    Returns an HTML form for approving a completed chore.
+    
+    **Access**: Parents only (must be the chore creator)
+    
+    **Use case**: HTMX endpoint for displaying the approval modal/form
+    when a parent clicks 'Approve' on a completed chore.
+    
+    For range-based rewards, the form includes min/max inputs.
+    For fixed rewards, displays the preset amount.
+    """,
+    tags=["html"]
+)
 async def get_approve_chore_form(
     request: Request,
     chore_id: int,
     db: AsyncSession = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ):
-    """Get approve chore form - only accessible by parents."""
+    """
+    Get HTML form for approving a chore.
+    
+    Returns a form component that can be injected into a modal for chore approval.
+    """
     if not current_user.is_parent:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -579,14 +707,34 @@ async def get_approve_chore_form(
         {"request": request, "chore": chore, "current_user": current_user}
     )
 
-@app.get("/chores/{chore_id}/edit-form", response_class=HTMLResponse)
+@app.get(
+    "/chores/{chore_id}/edit-form",
+    response_class=HTMLResponse,
+    summary="Get chore edit form",
+    description="""
+    Returns an HTML form for editing an existing chore.
+    
+    **Access**: Parents only (must be the chore creator)
+    
+    **Use case**: HTMX endpoint for displaying the edit modal/form
+    when a parent clicks 'Edit' on a chore.
+    
+    Includes all editable fields and a dropdown of available children
+    for reassignment.
+    """,
+    tags=["html"]
+)
 async def get_edit_chore_form(
     request: Request,
     chore_id: int,
     db: AsyncSession = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ):
-    """Get edit chore form - only accessible by parents."""
+    """
+    Get HTML form for editing a chore.
+    
+    Returns a form component with current chore values pre-filled.
+    """
     if not current_user.is_parent:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -622,14 +770,33 @@ async def get_edit_chore_form(
         {"request": request, "chore": chore, "children": children, "current_user": current_user}
     )
 
-@app.put("/chores/{chore_id}")
+@app.put(
+    "/chores/{chore_id}",
+    summary="Update chore (form submission)",
+    description="""
+    Update a chore from the edit form submission.
+    
+    **Access**: Parents only (must be the chore creator)
+    
+    **Note**: This endpoint is at the app level (not under /api/v1)
+    to support the HTMX form submission from the edit modal.
+    
+    Returns updated chore data or error response.
+    """,
+    tags=["html"],
+    response_model=schemas.ChoreResponse
+)
 async def update_chore(
     chore_id: int,
     chore_update: schemas.ChoreUpdate,
     db: AsyncSession = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ):
-    """Update a chore - only accessible by parents."""
+    """
+    Update a chore from form submission.
+    
+    Processes the edit form data and updates the chore.
+    """
     if not current_user.is_parent:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

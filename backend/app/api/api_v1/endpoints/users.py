@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Form, Body, Header, Response, Request
+from fastapi import APIRouter, Depends, HTTPException, status, Form, Body, Header, Response, Request, Query, Path
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
 from fastapi.security import OAuth2PasswordRequestForm
@@ -24,20 +24,79 @@ templates = Jinja2Templates(directory=settings.TEMPLATES_DIR)
 # Simple email validation pattern
 EMAIL_PATTERN = re.compile(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$")
 
-@router.post("/register", status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/register",
+    status_code=status.HTTP_201_CREATED,
+    summary="Register a new user",
+    description="""
+    Register a new parent or child user account.
+    
+    **Parent accounts** require:
+    - Valid email address
+    - Unique username
+    - Strong password
+    
+    **Child accounts** require:
+    - Unique username  
+    - Password
+    - Parent ID (must be authenticated as the parent)
+    
+    Rate limited to 3 requests per minute.
+    """,
+    response_description="User successfully created",
+    responses={
+        201: {
+            "description": "User successfully created",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "id": 1,
+                        "username": "john_doe",
+                        "email": "john@example.com",
+                        "is_parent": True,
+                        "is_active": True,
+                        "parent_id": None
+                    }
+                }
+            }
+        },
+        422: {
+            "description": "Validation error",
+            "content": {
+                "application/json": {
+                    "example": {"detail": "Email is required for parent accounts"}
+                }
+            }
+        },
+        400: {
+            "description": "User already exists",
+            "content": {
+                "application/json": {
+                    "example": {"detail": "Username already registered"}
+                }
+            }
+        }
+    }
+)
 @limit_register
 async def register_user(
     request: Request,
-    username: str = Form(...),
-    password: str = Form(...),
-    is_parent: str = Form(...),
-    email: Optional[str] = Form(None),
-    parent_id: Optional[str] = Form(None),
+    username: str = Form(..., description="Unique username for the account"),
+    password: str = Form(..., description="Strong password (min 8 characters)"),
+    is_parent: str = Form(..., description="'true' for parent, 'false' for child"),
+    email: Optional[str] = Form(None, description="Email address (required for parents)"),
+    parent_id: Optional[str] = Form(None, description="Parent's user ID (required for children)"),
     db: AsyncSession = Depends(get_db),
-    authorization: Optional[str] = Header(None),
+    authorization: Optional[str] = Header(None, description="Bearer token if registering a child"),
     user_service: UserServiceDep = None
 ):
-    """Register a new user."""
+    """
+    Register a new user account.
+    
+    This endpoint handles both parent and child registration:
+    - Parents can self-register with email
+    - Children must be registered by their parent (requires authentication)
+    """
     # Convert form data to the right types
     is_parent_bool = is_parent.lower() == "true"
     
@@ -149,16 +208,61 @@ async def register_user(
     return user
 
 # Keep the JSON-based endpoint for backward compatibility and API clients
-@router.post("/", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/",
+    response_model=UserResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a new user (JSON)",
+    description="""
+    Create a new user account using JSON payload.
+    
+    **Access**: Parents only
+    
+    **Use cases**:
+    - Parents creating child accounts programmatically
+    - API integrations
+    
+    For form-based registration, use the `/register` endpoint.
+    
+    Rate limited to 3 requests per minute.
+    """,
+    responses={
+        201: {
+            "description": "User created successfully",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "id": 3,
+                        "username": "new_child",
+                        "email": None,
+                        "is_parent": False,
+                        "is_active": True,
+                        "parent_id": 1
+                    }
+                }
+            }
+        },
+        403: {
+            "description": "Only parents can create users"
+        },
+        422: {
+            "description": "Validation error"
+        }
+    }
+)
 @limit_register
 async def create_user(
     request: Request,
-    user_in: UserCreate, 
+    user_in: UserCreate = Body(..., description="User creation data"),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
     user_service: UserServiceDep = None
 ):
-    """Create a new user (JSON endpoint)."""
+    """
+    Create a new user via JSON API.
+    
+    Only authenticated parents can create new users (typically their children).
+    """
     # Check if current user is a parent (only parents can create users)
     if not current_user.is_parent:
         raise HTTPException(
@@ -204,7 +308,51 @@ async def create_user(
             detail=str(e)
         )
 
-@router.post("/login", response_model=Token)
+@router.post(
+    "/login",
+    response_model=Token,
+    summary="Login to get access token",
+    description="""
+    Authenticate with username and password to receive a JWT access token.
+    
+    The token should be included in subsequent requests as:
+    ```
+    Authorization: Bearer <token>
+    ```
+    
+    Rate limited to 5 requests per minute.
+    """,
+    responses={
+        200: {
+            "description": "Login successful",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                        "token_type": "bearer"
+                    }
+                }
+            }
+        },
+        401: {
+            "description": "Invalid credentials or inactive user",
+            "content": {
+                "application/json": {
+                    "example": {"detail": "Invalid username or password"}
+                }
+            }
+        },
+        429: {
+            "description": "Too many login attempts",
+            "content": {
+                "application/json": {
+                    "example": {"detail": "Too Many Requests"}
+                }
+            }
+        }
+    },
+    tags=["auth", "users"]
+)
 @limit_login
 async def login(
     request: Request,
@@ -212,7 +360,11 @@ async def login(
     db: AsyncSession = Depends(get_db),
     user_service: UserServiceDep = None
 ) -> dict:
-    """Login a user."""
+    """
+    Authenticate user and return JWT access token.
+    
+    Uses OAuth2 password flow with username and password.
+    """
     # Log the login attempt
     print(f"Login attempt for username: {form_data.username}")
     
@@ -239,38 +391,167 @@ async def login(
         print(f"Exception during login: {str(e)}")
         raise
 
-@router.get("/", response_model=List[UserResponse])
+@router.get(
+    "/",
+    response_model=List[UserResponse],
+    summary="Get all users",
+    description="""
+    Retrieve a paginated list of all users in the system.
+    
+    **Access**: Authenticated users only
+    
+    **Note**: In production, this endpoint should be restricted to admin users only.
+    Currently returns all users for development purposes.
+    
+    Rate limited to 100 requests per minute.
+    """,
+    responses={
+        200: {
+            "description": "List of users",
+            "content": {
+                "application/json": {
+                    "example": [
+                        {
+                            "id": 1,
+                            "username": "parent_user",
+                            "email": "parent@example.com",
+                            "is_parent": True,
+                            "is_active": True,
+                            "parent_id": None
+                        },
+                        {
+                            "id": 2,
+                            "username": "child_user",
+                            "email": None,
+                            "is_parent": False,
+                            "is_active": True,
+                            "parent_id": 1
+                        }
+                    ]
+                }
+            }
+        }
+    }
+)
 @limit_api_endpoint_default
 async def read_users(
     request: Request,
-    skip: int = 0, 
-    limit: int = 100, 
+    skip: int = Query(0, description="Number of records to skip"),
+    limit: int = Query(100, description="Maximum number of records to return"),
     db: AsyncSession = Depends(get_db),
     user_service: UserServiceDep = None
 ):
-    """Get all users."""
+    """
+    Get a list of all users with pagination support.
+    """
     users = await user_service.get_multi(db, skip=skip, limit=limit)
     return users
 
-@router.get("/children/{parent_id}", response_model=List[UserResponse])
+@router.get(
+    "/children/{parent_id}",
+    response_model=List[UserResponse],
+    summary="Get children for a parent",
+    description="""
+    Get all child accounts associated with a specific parent.
+    
+    **Access**: Currently open, should be restricted to the parent or admin users.
+    
+    **Returns**: List of child user accounts linked to the parent_id.
+    """,
+    responses={
+        200: {
+            "description": "List of child accounts",
+            "content": {
+                "application/json": {
+                    "example": [
+                        {
+                            "id": 2,
+                            "username": "alice_smith",
+                            "email": None,
+                            "is_parent": False,
+                            "is_active": True,
+                            "parent_id": 1
+                        },
+                        {
+                            "id": 3,
+                            "username": "bob_smith",
+                            "email": None,
+                            "is_parent": False,
+                            "is_active": True,
+                            "parent_id": 1
+                        }
+                    ]
+                }
+            }
+        }
+    }
+)
 async def read_children(
-    parent_id: int, 
+    parent_id: int = Path(..., description="The parent's user ID"),
     db: AsyncSession = Depends(get_db),
     user_service: UserServiceDep = None
 ):
-    """Get all children for a parent."""
+    """
+    Get all child accounts for a specific parent.
+    """
     children = await user_service.repository.get_children(db, parent_id=parent_id)
     return children
 
-@router.post("/children/{child_id}/reset-password", response_model=UserResponse)
+@router.post(
+    "/children/{child_id}/reset-password",
+    response_model=UserResponse,
+    summary="Reset child's password",
+    description="""
+    Reset the password for a child account.
+    
+    **Access**: Parents only (must be the child's parent)
+    
+    **Security**:
+    - Parent must be authenticated
+    - Child must belong to the parent
+    - New password must meet minimum requirements
+    
+    This endpoint is for JSON API clients. For HTMX/form submissions,
+    use the `/html/children/{child_id}/reset-password` endpoint.
+    """,
+    responses={
+        200: {
+            "description": "Password reset successfully",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "id": 2,
+                        "username": "child_user",
+                        "is_parent": False,
+                        "parent_id": 1,
+                        "is_active": True
+                    }
+                }
+            }
+        },
+        403: {
+            "description": "Not authorized to reset this child's password"
+        },
+        404: {
+            "description": "Child not found"
+        },
+        422: {
+            "description": "Password does not meet requirements"
+        }
+    }
+)
 async def reset_child_password(
-    child_id: int,
-    new_password: str = Body(...),
+    child_id: int = Path(..., description="The child's user ID"),
+    new_password: str = Body(..., description="New password (min 4 characters)", min_length=4),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
     user_service: UserServiceDep = None
 ):
-    """Reset a child's password (JSON endpoint)."""
+    """
+    Reset a child's password.
+    
+    Only the child's parent can reset their password.
+    """
     # Ensure the current user is a parent
     if not current_user.is_parent:
         raise HTTPException(
