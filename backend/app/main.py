@@ -541,6 +541,126 @@ async def disable_chore_html(
         {"request": request, "chore": updated_chore, "current_user": current_user}
     )
 
+@app.get("/chores/{chore_id}/approve-form", response_class=HTMLResponse)
+async def get_approve_chore_form(
+    request: Request,
+    chore_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """Get approve chore form - only accessible by parents."""
+    if not current_user.is_parent:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only parents can access approve form"
+        )
+    
+    from .repositories.chore import ChoreRepository
+    chore_repo = ChoreRepository()
+    
+    # Get the chore with relations
+    chore = await chore_repo.get(db, id=chore_id, eager_load_relations=["assignee", "creator"])
+    if not chore:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Chore not found"
+        )
+    
+    # Check if the parent is the creator
+    if chore.creator_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only the creator can approve chores"
+        )
+    
+    # Render approve form
+    return templates.TemplateResponse(
+        "components/approve-form.html",
+        {"request": request, "chore": chore, "current_user": current_user}
+    )
+
+@app.get("/chores/{chore_id}/edit-form", response_class=HTMLResponse)
+async def get_edit_chore_form(
+    request: Request,
+    chore_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """Get edit chore form - only accessible by parents."""
+    if not current_user.is_parent:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only parents can access edit form"
+        )
+    
+    from .repositories.chore import ChoreRepository
+    chore_repo = ChoreRepository()
+    
+    # Get the chore with relations
+    chore = await chore_repo.get(db, id=chore_id, eager_load_relations=["assignee", "creator"])
+    if not chore:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Chore not found"
+        )
+    
+    # Check if the parent is the creator
+    if chore.creator_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only the creator can edit chores"
+        )
+    
+    # Get list of children for assignment dropdown
+    from .repositories.user import UserRepository
+    user_repo = UserRepository()
+    children = await user_repo.get_children_by_parent(db, parent_id=current_user.id)
+    
+    # Render edit form
+    return templates.TemplateResponse(
+        "components/edit-form.html",
+        {"request": request, "chore": chore, "children": children, "current_user": current_user}
+    )
+
+@app.put("/chores/{chore_id}")
+async def update_chore(
+    chore_id: int,
+    chore_update: schemas.ChoreUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """Update a chore - only accessible by parents."""
+    if not current_user.is_parent:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only parents can update chores"
+        )
+    
+    from .services.chore_service import ChoreService
+    from .dependencies.services import get_chore_service
+    
+    chore_service = get_chore_service()
+    
+    # Get the chore first to verify ownership
+    chore = await chore_service.get(db, id=chore_id)
+    if not chore:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Chore not found"
+        )
+    
+    # Check if the parent is the creator
+    if chore.creator_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only the creator can update chores"
+        )
+    
+    # Update the chore
+    updated_chore = await chore_service.update(db, id=chore_id, obj_in=chore_update)
+    
+    return updated_chore
+
 @app.delete("/api/v1/chores/{chore_id}", response_class=HTMLResponse)
 async def delete_chore_html(
     request: Request,

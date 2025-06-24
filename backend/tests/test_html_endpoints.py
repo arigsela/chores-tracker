@@ -91,14 +91,12 @@ class TestHTMLEndpoints:
         )
         assert response.status_code == 403
     
-    @pytest.mark.skip(reason="Endpoint /chores/1/approve-form does not exist")
     @pytest.mark.asyncio
     async def test_approve_chore_form_unauthorized(self, client: AsyncClient):
         """Test approve chore form without authentication."""
         response = await client.get("/chores/1/approve-form")
         assert response.status_code == 401
     
-    @pytest.mark.skip(reason="Endpoint /chores/1/approve-form does not exist")
     @pytest.mark.asyncio
     async def test_approve_chore_form_child_forbidden(self, client: AsyncClient, db_session: AsyncSession):
         """Test approve chore form as child."""
@@ -133,14 +131,12 @@ class TestHTMLEndpoints:
         )
         assert response.status_code == 403
     
-    @pytest.mark.skip(reason="Endpoint /chores/1/edit-form does not exist")
     @pytest.mark.asyncio
     async def test_edit_chore_form_unauthorized(self, client: AsyncClient):
         """Test edit chore form without authentication."""
         response = await client.get("/chores/1/edit-form")
         assert response.status_code == 401
     
-    @pytest.mark.skip(reason="Endpoint /chores/1/edit-form does not exist")
     @pytest.mark.asyncio
     async def test_edit_chore_form_child_forbidden(self, client: AsyncClient, db_session: AsyncSession):
         """Test edit chore form as child."""
@@ -173,7 +169,6 @@ class TestHTMLEndpoints:
         )
         assert response.status_code == 403
     
-    @pytest.mark.skip(reason="Endpoint PUT /chores/1 does not exist")
     @pytest.mark.asyncio
     async def test_update_chore_unauthorized(self, client: AsyncClient):
         """Test update chore endpoint without authentication."""
@@ -183,7 +178,6 @@ class TestHTMLEndpoints:
         )
         assert response.status_code == 401
     
-    @pytest.mark.skip(reason="Endpoint PUT /chores/1 does not exist")
     @pytest.mark.asyncio
     async def test_update_chore_child_forbidden(self, client: AsyncClient, db_session: AsyncSession):
         """Test update chore endpoint as child."""
