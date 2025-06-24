@@ -25,7 +25,7 @@ async def create_test_user_with_token(db_session: AsyncSession, username: str = 
     await db_session.commit()
     await db_session.refresh(user)
     
-    token = create_access_token(data={"sub": str(user.id)})
+    token = create_access_token(subject=str(user.id))
     return user, token
 
 
@@ -125,7 +125,7 @@ class TestHTMLEndpoints:
         await db_session.commit()
         
         # Get child token
-        child_token = create_access_token(data={"sub": str(child.id)})
+        child_token = create_access_token(subject=str(child.id))
         
         response = await client.get(
             "/chores/1/approve-form",
@@ -165,7 +165,7 @@ class TestHTMLEndpoints:
         db_session.add(child)
         await db_session.commit()
         
-        child_token = create_access_token(data={"sub": str(child.id)})
+        child_token = create_access_token(subject=str(child.id))
         
         response = await client.get(
             "/chores/1/edit-form",
@@ -208,7 +208,7 @@ class TestHTMLEndpoints:
         db_session.add(child)
         await db_session.commit()
         
-        child_token = create_access_token(data={"sub": str(child.id)})
+        child_token = create_access_token(subject=str(child.id))
         
         response = await client.put(
             "/chores/1",
@@ -247,7 +247,7 @@ class TestHTMLEndpoints:
         db_session.add(child)
         await db_session.commit()
         
-        child_token = create_access_token(data={"sub": str(child.id)})
+        child_token = create_access_token(subject=str(child.id))
         
         response = await client.get(
             f"/api/v1/html/children/{child.id}/reset-password-form",
@@ -313,7 +313,7 @@ class TestHTMLEndpoints:
         db_session.add(child)
         await db_session.commit()
         
-        child_token = create_access_token(data={"sub": str(child.id)})
+        child_token = create_access_token(subject=str(child.id))
         
         response = await client.get(
             "/api/v1/html/chores/pending-approval",

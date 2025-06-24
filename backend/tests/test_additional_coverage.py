@@ -129,8 +129,8 @@ class TestAdditionalCoverage:
         # Get chores for child
         chores = await chore_service.get_child_chores(
             db_session,
-            child_id=child.id,
-            current_user_id=child.id
+            parent_id=parent.id,
+            child_id=child.id
         )
         assert len(chores) == 2
         assert {c.title for c in chores} == {"Assignee Test 1", "Assignee Test 2"}

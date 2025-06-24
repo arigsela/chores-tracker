@@ -34,7 +34,7 @@ class ChoreResponse(ChoreBase):
     model_config = ConfigDict(from_attributes=True)
     
     id: int
-    assignee_id: int
+    assignee_id: Optional[int]
     creator_id: int
     is_completed: bool = False
     is_approved: bool = False

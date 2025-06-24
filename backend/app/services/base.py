@@ -1,7 +1,7 @@
 """
 Base service class with common functionality.
 """
-from typing import Generic, TypeVar, Type
+from typing import Generic, TypeVar, Type, Union, List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..db.base_class import Base
@@ -18,13 +18,13 @@ class BaseService(Generic[ModelType, RepositoryType]):
         """Initialize service with repository."""
         self.repository = repository
     
-    async def get(self, db: AsyncSession, *, id: int) -> ModelType | None:
+    async def get(self, db: AsyncSession, *, id: int) -> Optional[ModelType]:
         """Get a single record by ID."""
         return await self.repository.get(db, id=id)
     
     async def get_multi(
         self, db: AsyncSession, *, skip: int = 0, limit: int = 100
-    ) -> list[ModelType]:
+    ) -> List[ModelType]:
         """Get multiple records."""
         return await self.repository.get_multi(db, skip=skip, limit=limit)
     
@@ -34,7 +34,7 @@ class BaseService(Generic[ModelType, RepositoryType]):
     
     async def update(
         self, db: AsyncSession, *, id: int, obj_in: dict
-    ) -> ModelType | None:
+    ) -> Optional[ModelType]:
         """Update a record."""
         return await self.repository.update(db, id=id, obj_in=obj_in)
     

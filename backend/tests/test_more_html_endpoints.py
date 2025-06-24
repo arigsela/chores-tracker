@@ -306,8 +306,9 @@ class TestMainHTMLEndpoints:
         parent_token = create_access_token(subject=str(parent.id))
         
         response = await client.post(
-            f"/api/v1/chores/{chore.id}/approve?reward_value=5.0",
-            headers={"Authorization": f"Bearer {parent_token}"}
+            f"/api/v1/chores/{chore.id}/approve",
+            headers={"Authorization": f"Bearer {parent_token}"},
+            json={"is_approved": True, "reward_value": 5.0}
         )
         if response.status_code != 200:
             print(f"Response status: {response.status_code}")
@@ -354,4 +355,7 @@ class TestMainHTMLEndpoints:
             f"/api/v1/chores/{chore.id}/disable",
             headers={"Authorization": f"Bearer {parent_token}"}
         )
+        if response.status_code != 200:
+            print(f"Response status: {response.status_code}")
+            print(f"Response body: {response.text}")
         assert response.status_code == 200
