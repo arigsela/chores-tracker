@@ -4,18 +4,42 @@ on:
   pull_request:
     paths:
       - '.github/workflows/**'
+  push:
+    paths:
+      - '.github/workflows/**'
 
 jobs:
-  validate:
+  actionlint:
+    name: Lint GitHub Actions workflows
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      
-      - name: Validate workflow files
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check workflow files
+        uses: docker://rhysd/actionlint:latest
+        with:
+          args: -color -verbose
+
+  yaml-lint:
+    name: Validate YAML syntax
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install yamllint and pyyaml
+        run: pip install yamllint pyyaml
+
+      - name: Lint YAML files
         run: |
-          # Install actionlint for workflow validation
-          wget https://github.com/rhysd/actionlint/releases/latest/download/actionlint_linux_amd64.tar.gz
-          tar xf actionlint_linux_amd64.tar.gz
+          echo "Validating YAML syntax in workflow files..."
+          yamllint -d relaxed .github/workflows/*.yml || true
           
-          # Run validation
-          ./actionlint
+      - name: Check YAML syntax with Python
+        run: |
+          echo "Double-checking YAML syntax..."
+          for file in .github/workflows/*.yml; do
+            echo "Checking $file"
+            python3 -c "import yaml; yaml.safe_load(open('$file'))"
+          done
