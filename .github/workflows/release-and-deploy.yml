@@ -112,15 +112,18 @@ jobs:
           fi
           
           echo "New version: $NEW_VERSION"
-          echo "new_version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
-          echo "new_version_number=${NEW_VERSION#v}" >> "$GITHUB_OUTPUT"
           
           # Extract version components for Docker tags
           VERSION_NUMBER=${NEW_VERSION#v}
           IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION_NUMBER"
-          echo "major=$MAJOR" >> "$GITHUB_OUTPUT"
-          echo "minor=$MINOR" >> "$GITHUB_OUTPUT"
-          echo "patch=$PATCH" >> "$GITHUB_OUTPUT"
+          
+          {
+            echo "new_version=$NEW_VERSION"
+            echo "new_version_number=${NEW_VERSION#v}"
+            echo "major=$MAJOR"
+            echo "minor=$MINOR"
+            echo "patch=$PATCH"
+          } >> "$GITHUB_OUTPUT"
           
           if git rev-parse "$NEW_VERSION" >/dev/null 2>&1; then
             echo "::error::Tag $NEW_VERSION already exists"
@@ -203,7 +206,7 @@ jobs:
             ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:sha-${{ github.sha }}
           build-args: |
             BUILD_VERSION=${{ steps.calc_version.outputs.new_version }}
-            BUILD_DATE=${{ github.event.head_commit.timestamp }}
+            BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 
       - name: Create and push tag
         run: |
