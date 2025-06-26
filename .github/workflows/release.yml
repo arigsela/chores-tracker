@@ -1,0 +1,177 @@
+name: Create Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., 1.0.0)'
+        required: true
+        type: string
+      release_type:
+        description: 'Release type'
+        required: true
+        default: 'minor'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+          - custom
+      release_notes:
+        description: 'Release notes (optional - will auto-generate if empty)'
+        required: false
+        type: string
+
+permissions:
+  contents: write
+  issues: read
+  pull-requests: read
+
+jobs:
+  create-release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for changelog generation
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Validate version format
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          if [[ "${{ github.event.inputs.release_type }}" != "custom" ]]; then
+            echo "::error::Version should be 'auto' when release type is not 'custom'"
+            exit 1
+          fi
+          
+          # Validate semantic version format for custom version
+          if [[ "${{ github.event.inputs.release_type }}" == "custom" ]]; then
+            if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              echo "::error::Version must be in format X.Y.Z (e.g., 1.0.0)"
+              exit 1
+            fi
+          fi
+          
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+
+      - name: Get latest tag
+        id: get_latest_tag
+        run: |
+          # Get the latest tag
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          echo "Latest tag: $LATEST_TAG"
+          echo "latest_tag=$LATEST_TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Calculate next version
+        id: calc_version
+        run: |
+          if [[ "${{ github.event.inputs.release_type }}" == "custom" ]]; then
+            NEW_VERSION="v${{ github.event.inputs.version }}"
+          else
+            # Extract version numbers from latest tag
+            LATEST_TAG="${{ steps.get_latest_tag.outputs.latest_tag }}"
+            LATEST_TAG=${LATEST_TAG#v}  # Remove 'v' prefix
+            
+            IFS='.' read -r MAJOR MINOR PATCH <<< "$LATEST_TAG"
+            MAJOR=${MAJOR:-0}
+            MINOR=${MINOR:-0}
+            PATCH=${PATCH:-0}
+            
+            # Calculate new version based on release type
+            case "${{ github.event.inputs.release_type }}" in
+              major)
+                NEW_VERSION="v$((MAJOR + 1)).0.0"
+                ;;
+              minor)
+                NEW_VERSION="v${MAJOR}.$((MINOR + 1)).0"
+                ;;
+              patch)
+                NEW_VERSION="v${MAJOR}.${MINOR}.$((PATCH + 1))"
+                ;;
+            esac
+          fi
+          
+          echo "New version: $NEW_VERSION"
+          echo "new_version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
+          
+          # Check if tag already exists
+          if git rev-parse "$NEW_VERSION" >/dev/null 2>&1; then
+            echo "::error::Tag $NEW_VERSION already exists"
+            exit 1
+          fi
+
+      - name: Generate release notes
+        id: generate_notes
+        run: |
+          NEW_VERSION="${{ steps.calc_version.outputs.new_version }}"
+          LATEST_TAG="${{ steps.get_latest_tag.outputs.latest_tag }}"
+          
+          # Use provided notes or generate them
+          if [[ -n "${{ github.event.inputs.release_notes }}" ]]; then
+            NOTES="${{ github.event.inputs.release_notes }}"
+          else
+            echo "## What's Changed" > release_notes.md
+            echo "" >> release_notes.md
+            
+            # Get commit messages since last tag
+            if [[ "$LATEST_TAG" != "v0.0.0" ]]; then
+              git log --pretty=format:"* %s (%an)" "$LATEST_TAG"..HEAD >> release_notes.md
+            else
+              git log --pretty=format:"* %s (%an)" >> release_notes.md
+            fi
+            
+            echo "" >> release_notes.md
+            echo "" >> release_notes.md
+            echo "**Full Changelog**: https://github.com/${{ github.repository }}/compare/$LATEST_TAG...$NEW_VERSION" >> release_notes.md
+            
+            NOTES=$(cat release_notes.md)
+          fi
+          
+          # Save notes for later use
+          echo "$NOTES" > release_notes_final.md
+
+      - name: Create and push tag
+        run: |
+          NEW_VERSION="${{ steps.calc_version.outputs.new_version }}"
+          
+          # Configure git
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Create annotated tag
+          git tag -a "$NEW_VERSION" -m "Release $NEW_VERSION"
+          
+          # Push tag
+          git push origin "$NEW_VERSION"
+
+      - name: Create GitHub Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.calc_version.outputs.new_version }}
+          release_name: Release ${{ steps.calc_version.outputs.new_version }}
+          body_path: release_notes_final.md
+          draft: false
+          prerelease: false
+
+      - name: Summary
+        run: |
+          NEW_VERSION="${{ steps.calc_version.outputs.new_version }}"
+          echo "## Release Created Successfully! 🎉" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Version:** $NEW_VERSION" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Release URL:** https://github.com/${{ github.repository }}/releases/tag/$NEW_VERSION" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "### Docker Image Tags" >> "$GITHUB_STEP_SUMMARY"
+          echo "The ECR deployment workflow will automatically create the following tags:" >> "$GITHUB_STEP_SUMMARY"
+          echo "- \`${NEW_VERSION#v}\` (full version)" >> "$GITHUB_STEP_SUMMARY"
+          echo "- \`${NEW_VERSION#v%.*}\` (major.minor)" >> "$GITHUB_STEP_SUMMARY"
+          echo "- \`${NEW_VERSION#v%%.*}\` (major only)" >> "$GITHUB_STEP_SUMMARY"
+          echo "- \`latest\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- \`sha-${GITHUB_SHA:0:7}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "The ECR deployment will start automatically."
