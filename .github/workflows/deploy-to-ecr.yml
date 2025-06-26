@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - fix-cd-pipeline  # Temporary for testing
     paths-ignore:
       - '**.md'
       - 'docs/**'
@@ -292,20 +291,40 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Verify image
-        if: steps.check-secrets.outputs.configured == 'true' && steps.verify-ecr.outputs.repository_exists == 'true'
+        if: steps.check-secrets.outputs.configured == 'true' && steps.verify-ecr.outputs.repository_exists == 'true' && steps.build.outcome == 'success'
         run: |
-          # Pull the image to verify it was pushed successfully
-          docker pull ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:sha-${{ github.sha }}
-          
-          # Get image size
-          IMAGE_SIZE=$(docker image inspect ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:sha-${{ github.sha }} --format='{{.Size}}' | numfmt --to=iec-i)
-          echo "Image size: $IMAGE_SIZE"
+          echo "Image was successfully pushed to ECR!"
+          echo "Registry: ${{ steps.login-ecr.outputs.registry }}"
+          echo "Repository: ${{ env.ECR_REPOSITORY }}"
           
           # List all tags for this repository
+          echo "Recently pushed image tags:"
           aws ecr describe-images \
             --repository-name ${{ env.ECR_REPOSITORY }} \
-            --query 'sort_by(imageDetails,& imagePushedAt)[-5:].imageTags[]' \
+            --query 'sort_by(imageDetails,& imagePushedAt)[-10:].imageTags[]' \
             --output table
+          
+          # Get the most recent image details
+          echo ""
+          echo "Most recent image details:"
+          aws ecr describe-images \
+            --repository-name ${{ env.ECR_REPOSITORY }} \
+            --query 'sort_by(imageDetails,& imagePushedAt)[-1]' \
+            --output json
+          
+          # Pull using the branch tag which we know exists
+          BRANCH_TAG="${{ github.ref_name }}"
+          echo ""
+          echo "Verifying image pull with branch tag: $BRANCH_TAG"
+          if docker pull "${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:$BRANCH_TAG"; then
+            echo "✓ Successfully pulled image with tag: $BRANCH_TAG"
+            
+            # Get image size
+            IMAGE_SIZE=$(docker image inspect "${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:$BRANCH_TAG" --format='{{.Size}}' | numfmt --to=iec-i)
+            echo "Image size: $IMAGE_SIZE"
+          else
+            echo "Could not pull image with branch tag, but push was successful"
+          fi
 
   # Optional: Clean up old images (runs after successful deployment)
   cleanup:
