@@ -135,26 +135,27 @@ jobs:
           rm -rf /tmp/.buildx-cache
           mv /tmp/.buildx-cache-new /tmp/.buildx-cache
 
-      - name: Security scan with Trivy
-        if: steps.check-secrets.outputs.configured == 'true' && success()
-        uses: aquasecurity/trivy-action@master
-        continue-on-error: true
-        with:
-          image-ref: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:sha-${{ github.sha }}
-          format: 'sarif'
-          output: 'trivy-results.sarif'
-          severity: 'CRITICAL,HIGH'
-          exit-code: '0'  # Don't fail the build, just report
-          vuln-type: 'os,library'
-          ignore-unfixed: true
+      # Security scanning temporarily disabled - can be re-enabled once ECR is set up
+      # - name: Security scan with Trivy
+      #   if: steps.check-secrets.outputs.configured == 'true' && success()
+      #   uses: aquasecurity/trivy-action@master
+      #   continue-on-error: true
+      #   with:
+      #     image-ref: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:sha-${{ github.sha }}
+      #     format: 'sarif'
+      #     output: 'trivy-results.sarif'
+      #     severity: 'CRITICAL,HIGH'
+      #     exit-code: '0'
+      #     vuln-type: 'os,library'
+      #     ignore-unfixed: true
 
-      - name: Upload Trivy scan results to GitHub Security
-        if: steps.check-secrets.outputs.configured == 'true' && success()
-        uses: github/codeql-action/upload-sarif@v3
-        continue-on-error: true
-        with:
-          sarif_file: 'trivy-results.sarif'
-          category: 'trivy'
+      # - name: Upload Trivy scan results to GitHub Security
+      #   if: steps.check-secrets.outputs.configured == 'true' && success()
+      #   uses: github/codeql-action/upload-sarif@v3
+      #   continue-on-error: true
+      #   with:
+      #     sarif_file: 'trivy-results.sarif'
+      #     category: 'trivy'
 
       - name: Image digest and tags
         run: |
