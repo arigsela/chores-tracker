@@ -54,6 +54,12 @@ Chores Tracker is a web application designed to help families manage household c
   - Skipped rollback test that requires isolated sessions (architectural limitation in test environment)
 - **Schema Validation**: Added missing description field in test data to satisfy NOT NULL constraint
 
+### CI/CD Enhancements (December 26, 2024) ✅
+- **ECR Deployment Workflow**: Created automated Docker image deployment to Amazon ECR
+- **Release Workflow**: Implemented semantic versioning with automated GitHub releases
+- **Multi-Tag Strategy**: Docker images tagged with version, SHA, timestamp, and latest
+- **Documentation**: Added comprehensive RELEASING.md and ECR_DEPLOYMENT_GUIDE.md
+
 ### Current Test Status
 - **Total**: 223 tests
 - **Passing**: 223 (100%) ✅

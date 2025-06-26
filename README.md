@@ -22,12 +22,18 @@ A modern web application for families to manage household chores, built with Fas
 
 ### CI/CD Status
 [![Backend Tests](https://github.com/arigsela/chores-tracker/actions/workflows/backend-tests.yml/badge.svg)](https://github.com/arigsela/chores-tracker/actions/workflows/backend-tests.yml)
+[![Deploy to ECR](https://github.com/arigsela/chores-tracker/actions/workflows/deploy-to-ecr.yml/badge.svg)](https://github.com/arigsela/chores-tracker/actions/workflows/deploy-to-ecr.yml)
 
 **Test Summary:**
 - Total tests: 130 (126 + 4 rate limit tests)
 - Passing: 130 (100%) ✅
 - Skipped: 0 ✅
 - Failing: 0 ✅
+
+**Versioning:**
+- This project follows [Semantic Versioning](https://semver.org/)
+- Releases are created using GitHub Actions workflow
+- Docker images are automatically tagged with version numbers
 
 ## 📋 Features
 
@@ -126,6 +132,9 @@ docker compose exec api python -m pytest backend/tests/test_repositories.py -v
 - [`MODERNIZATION_ROADMAP.md`](MODERNIZATION_ROADMAP.md) - Detailed modernization plan and progress
 - [`GITHUB_ACTIONS_COMPATIBILITY.md`](GITHUB_ACTIONS_COMPATIBILITY.md) - CI/CD setup details
 - [`API_TEST_FIX_SUMMARY.md`](API_TEST_FIX_SUMMARY.md) - Notes on test improvements
+- [`LOCAL_TESTING.md`](LOCAL_TESTING.md) - Local development and testing guide
+- [`ECR_DEPLOYMENT_GUIDE.md`](ECR_DEPLOYMENT_GUIDE.md) - AWS ECR deployment setup
+- [`RELEASING.md`](RELEASING.md) - Release process and versioning guide
 
 ### API Documentation
 When running locally, visit http://localhost:8000/docs for interactive API documentation.
@@ -181,6 +190,18 @@ docker compose exec api python -m backend.app.scripts.reset_password
 - Add performance metrics
 
 See [`MODERNIZATION_ROADMAP.md`](MODERNIZATION_ROADMAP.md) for detailed plans.
+
+## 🚀 Deployment
+
+### Docker Image Versioning
+The project automatically builds and tags Docker images on release:
+- **Semantic version tags**: `1.0.0`, `1.0`, `1` 
+- **Latest tag**: Always points to the most recent release
+- **SHA tags**: `sha-abc1234` for specific commits
+- **Timestamp tags**: `build-20240626-123456` for build tracking
+
+### Creating a Release
+See [`RELEASING.md`](RELEASING.md) for detailed instructions on creating releases.
 
 ## 🤝 Contributing
 
