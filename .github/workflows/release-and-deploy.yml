@@ -1,4 +1,4 @@
-name: Create Release
+name: Release and Deploy
 
 on:
   workflow_dispatch:
@@ -21,22 +21,33 @@ on:
         description: 'Release notes (optional - will auto-generate if empty)'
         required: false
         type: string
+      skip_deploy:
+        description: 'Skip Docker build and ECR deployment'
+        required: false
+        type: boolean
+        default: false
+
+env:
+  AWS_REGION: ${{ secrets.AWS_REGION }}
+  ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
 
 permissions:
   contents: write
   issues: read
   pull-requests: read
+  id-token: write
 
 jobs:
-  create-release:
-    name: Create Release
+  release-and-deploy:
+    name: Create Release and Deploy to ECR
     runs-on: ubuntu-latest
+    environment: production
     
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Full history for changelog generation
+          fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Validate inputs
@@ -46,21 +57,18 @@ jobs:
           
           echo "Release type: $RELEASE_TYPE"
           
-          # For custom release type, version is required
           if [[ "$RELEASE_TYPE" == "custom" ]]; then
             if [[ -z "$VERSION" ]]; then
               echo "::error::Version is required when release type is 'custom'"
               exit 1
             fi
             
-            # Validate semantic version format
             if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
               echo "::error::Version must be in format X.Y.Z (e.g., 1.0.0)"
               exit 1
             fi
             echo "Custom version provided: $VERSION"
           else
-            # For non-custom types, version should not be provided
             if [[ -n "$VERSION" ]]; then
               echo "::warning::Version input is ignored for $RELEASE_TYPE release type"
             fi
@@ -72,7 +80,6 @@ jobs:
       - name: Get latest tag
         id: get_latest_tag
         run: |
-          # Get the latest tag
           LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
           echo "Latest tag: $LATEST_TAG"
           echo "latest_tag=$LATEST_TAG" >> "$GITHUB_OUTPUT"
@@ -83,16 +90,14 @@ jobs:
           if [[ "${{ github.event.inputs.release_type }}" == "custom" ]]; then
             NEW_VERSION="v${{ github.event.inputs.version }}"
           else
-            # Extract version numbers from latest tag
             LATEST_TAG="${{ steps.get_latest_tag.outputs.latest_tag }}"
-            LATEST_TAG=${LATEST_TAG#v}  # Remove 'v' prefix
+            LATEST_TAG=${LATEST_TAG#v}
             
             IFS='.' read -r MAJOR MINOR PATCH <<< "$LATEST_TAG"
             MAJOR=${MAJOR:-0}
             MINOR=${MINOR:-0}
             PATCH=${PATCH:-0}
             
-            # Calculate new version based on release type
             case "${{ github.event.inputs.release_type }}" in
               major)
                 NEW_VERSION="v$((MAJOR + 1)).0.0"
@@ -107,9 +112,19 @@ jobs:
           fi
           
           echo "New version: $NEW_VERSION"
-          echo "new_version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
           
-          # Check if tag already exists
+          # Extract version components for Docker tags
+          VERSION_NUMBER=${NEW_VERSION#v}
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION_NUMBER"
+          
+          {
+            echo "new_version=$NEW_VERSION"
+            echo "new_version_number=${NEW_VERSION#v}"
+            echo "major=$MAJOR"
+            echo "minor=$MINOR"
+            echo "patch=$PATCH"
+          } >> "$GITHUB_OUTPUT"
+          
           if git rev-parse "$NEW_VERSION" >/dev/null 2>&1; then
             echo "::error::Tag $NEW_VERSION already exists"
             exit 1
@@ -121,7 +136,6 @@ jobs:
           NEW_VERSION="${{ steps.calc_version.outputs.new_version }}"
           LATEST_TAG="${{ steps.get_latest_tag.outputs.latest_tag }}"
           
-          # Use provided notes or generate them
           if [[ -n "${{ github.event.inputs.release_notes }}" ]]; then
             NOTES="${{ github.event.inputs.release_notes }}"
           else
@@ -129,7 +143,6 @@ jobs:
               echo "## What's Changed"
               echo ""
               
-              # Get commit messages since last tag
               if [[ "$LATEST_TAG" != "v0.0.0" ]]; then
                 git log --pretty=format:"* %s (%an)" "$LATEST_TAG"..HEAD
               else
@@ -144,21 +157,65 @@ jobs:
             NOTES=$(cat release_notes.md)
           fi
           
-          # Save notes for later use
           echo "$NOTES" > release_notes_final.md
+
+      - name: Check if AWS secrets are configured
+        id: check-secrets
+        if: ${{ github.event.inputs.skip_deploy != 'true' }}
+        run: |
+          if [[ -z "${{ secrets.AWS_ACCESS_KEY_ID }}" ]] || [[ -z "${{ secrets.AWS_SECRET_ACCESS_KEY }}" ]] || [[ -z "${{ secrets.ECR_REPOSITORY }}" ]]; then
+            echo "::warning::AWS secrets not configured. Skipping ECR deployment."
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Configure AWS credentials
+        if: steps.check-secrets.outputs.configured == 'true' && github.event.inputs.skip_deploy != 'true'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        if: steps.check-secrets.outputs.configured == 'true' && github.event.inputs.skip_deploy != 'true'
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+        with:
+          mask-password: true
+
+      - name: Set up Docker Buildx
+        if: steps.check-secrets.outputs.configured == 'true' && github.event.inputs.skip_deploy != 'true'
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push Docker image
+        if: steps.check-secrets.outputs.configured == 'true' && github.event.inputs.skip_deploy != 'true'
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ steps.calc_version.outputs.new_version_number }}
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ steps.calc_version.outputs.major }}.${{ steps.calc_version.outputs.minor }}
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ steps.calc_version.outputs.major }}
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:latest
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:sha-${{ github.sha }}
+          build-args: |
+            BUILD_VERSION=${{ steps.calc_version.outputs.new_version }}
+            BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 
       - name: Create and push tag
         run: |
           NEW_VERSION="${{ steps.calc_version.outputs.new_version }}"
           
-          # Configure git
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           
-          # Create annotated tag
           git tag -a "$NEW_VERSION" -m "Release $NEW_VERSION"
-          
-          # Push tag
           git push origin "$NEW_VERSION"
 
       - name: Create GitHub Release
@@ -181,13 +238,24 @@ jobs:
             echo "**Version:** $NEW_VERSION"
             echo "**Release URL:** https://github.com/${{ github.repository }}/releases/tag/$NEW_VERSION"
             echo ""
-            echo "### Docker Image Tags"
-            echo "The ECR deployment workflow will automatically create the following tags:"
-            echo "- \`${NEW_VERSION#v}\` (full version)"
-            echo "- \`${NEW_VERSION#v%.*}\` (major.minor)"
-            echo "- \`${NEW_VERSION#v%%.*}\` (major only)"
-            echo "- \`latest\`"
-            echo "- \`sha-${GITHUB_SHA:0:7}\`"
-            echo ""
-            echo "The ECR deployment will start automatically."
+            
+            if [[ "${{ steps.check-secrets.outputs.configured }}" == "true" ]] && [[ "${{ github.event.inputs.skip_deploy }}" != "true" ]]; then
+              echo "### Docker Image Tags Created"
+              echo "- \`${{ steps.calc_version.outputs.new_version_number }}\` (full version)"
+              echo "- \`${{ steps.calc_version.outputs.major }}.${{ steps.calc_version.outputs.minor }}\` (major.minor)"
+              echo "- \`${{ steps.calc_version.outputs.major }}\` (major only)"
+              echo "- \`latest\`"
+              echo "- \`sha-${{ github.sha }}\`"
+              echo ""
+              echo "**Registry:** \`${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}\`"
+              echo "**Image Digest:** \`${{ steps.build.outputs.digest }}\`"
+            else
+              echo "### Docker Deployment"
+              echo "⚠️ Docker image deployment was skipped"
+              if [[ "${{ github.event.inputs.skip_deploy }}" == "true" ]]; then
+                echo "Reason: Manually skipped via workflow input"
+              else
+                echo "Reason: AWS credentials not configured"
+              fi
+            fi
           } >> "$GITHUB_STEP_SUMMARY"

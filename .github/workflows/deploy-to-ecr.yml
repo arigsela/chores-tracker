@@ -13,6 +13,9 @@ on:
       - '.github/workflows/**'
       - '!.github/workflows/deploy-to-ecr.yml'
   
+  release:
+    types: [published]
+  
   workflow_dispatch:
     inputs:
       environment:
