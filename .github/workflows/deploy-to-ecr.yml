@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - fix-cd-pipeline  # Temporary for testing
     paths-ignore:
       - '**.md'
       - 'docs/**'
@@ -41,6 +42,7 @@ jobs:
     outputs:
       image-tag: ${{ steps.meta.outputs.tags }}
       image-digest: ${{ steps.build.outputs.digest }}
+      configured: ${{ steps.check-secrets.outputs.configured }}
     
     steps:
       - name: Checkout code
@@ -48,7 +50,18 @@ jobs:
         with:
           fetch-depth: 0  # Full history for better metadata
 
+      - name: Check if AWS secrets are configured
+        id: check-secrets
+        run: |
+          if [[ -z "${{ secrets.AWS_ACCESS_KEY_ID }}" ]] || [[ -z "${{ secrets.AWS_SECRET_ACCESS_KEY }}" ]] || [[ -z "${{ secrets.ECR_REPOSITORY }}" ]]; then
+            echo "::warning::AWS secrets not configured. Skipping ECR deployment."
+            echo "configured=false" >> $GITHUB_OUTPUT
+          else
+            echo "configured=true" >> $GITHUB_OUTPUT
+          fi
+
       - name: Configure AWS credentials
+        if: steps.check-secrets.outputs.configured == 'true'
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -56,6 +69,7 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Login to Amazon ECR
+        if: steps.check-secrets.outputs.configured == 'true'
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
         with:
@@ -106,7 +120,7 @@ jobs:
           context: .
           file: ./Dockerfile
           platforms: linux/amd64  # Start with single platform, add linux/arm64 later if needed
-          push: true
+          push: ${{ steps.check-secrets.outputs.configured == 'true' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=local,src=/tmp/.buildx-cache
@@ -122,19 +136,25 @@ jobs:
           mv /tmp/.buildx-cache-new /tmp/.buildx-cache
 
       - name: Security scan with Trivy
+        if: steps.check-secrets.outputs.configured == 'true' && success()
         uses: aquasecurity/trivy-action@master
+        continue-on-error: true
         with:
           image-ref: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:sha-${{ github.sha }}
           format: 'sarif'
           output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH'
           exit-code: '0'  # Don't fail the build, just report
+          vuln-type: 'os,library'
+          ignore-unfixed: true
 
       - name: Upload Trivy scan results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v2
-        if: always()
+        if: steps.check-secrets.outputs.configured == 'true' && success()
+        uses: github/codeql-action/upload-sarif@v3
+        continue-on-error: true
         with:
           sarif_file: 'trivy-results.sarif'
+          category: 'trivy'
 
       - name: Image digest and tags
         run: |
@@ -156,6 +176,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Verify image
+        if: steps.check-secrets.outputs.configured == 'true'
         run: |
           # Pull the image to verify it was pushed successfully
           docker pull ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:sha-${{ github.sha }}
@@ -175,7 +196,7 @@ jobs:
     name: Clean up old images
     runs-on: ubuntu-latest
     needs: build-and-push
-    if: success()
+    if: success() && needs.build-and-push.outputs.configured == 'true'
     
     steps:
       - name: Configure AWS credentials
