@@ -3,10 +3,6 @@ name: Create Release
 on:
   workflow_dispatch:
     inputs:
-      version:
-        description: 'Release version (e.g., 1.0.0)'
-        required: true
-        type: string
       release_type:
         description: 'Release type'
         required: true
@@ -17,6 +13,10 @@ on:
           - minor
           - major
           - custom
+      version:
+        description: 'Version (only required for custom release type)'
+        required: false
+        type: string
       release_notes:
         description: 'Release notes (optional - will auto-generate if empty)'
         required: false
@@ -39,23 +39,35 @@ jobs:
           fetch-depth: 0  # Full history for changelog generation
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Validate version format
+      - name: Validate inputs
         run: |
+          RELEASE_TYPE="${{ github.event.inputs.release_type }}"
           VERSION="${{ github.event.inputs.version }}"
-          if [[ "${{ github.event.inputs.release_type }}" != "custom" ]]; then
-            echo "::error::Version should be 'auto' when release type is not 'custom'"
-            exit 1
-          fi
           
-          # Validate semantic version format for custom version
-          if [[ "${{ github.event.inputs.release_type }}" == "custom" ]]; then
+          echo "Release type: $RELEASE_TYPE"
+          
+          # For custom release type, version is required
+          if [[ "$RELEASE_TYPE" == "custom" ]]; then
+            if [[ -z "$VERSION" ]]; then
+              echo "::error::Version is required when release type is 'custom'"
+              exit 1
+            fi
+            
+            # Validate semantic version format
             if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
               echo "::error::Version must be in format X.Y.Z (e.g., 1.0.0)"
               exit 1
             fi
+            echo "Custom version provided: $VERSION"
+          else
+            # For non-custom types, version should not be provided
+            if [[ -n "$VERSION" ]]; then
+              echo "::warning::Version input is ignored for $RELEASE_TYPE release type"
+            fi
+            echo "Version will be calculated automatically based on $RELEASE_TYPE"
           fi
           
-          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "RELEASE_TYPE=$RELEASE_TYPE" >> "$GITHUB_ENV"
 
       - name: Get latest tag
         id: get_latest_tag
