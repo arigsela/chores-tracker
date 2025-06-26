@@ -67,7 +67,7 @@ jobs:
           platforms: linux/amd64,linux/arm64  # Multi-arch support
 
       - name: Cache Docker layers
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: /tmp/.buildx-cache
           key: ${{ runner.os }}-buildx-${{ github.sha }}
@@ -138,20 +138,22 @@ jobs:
 
       - name: Image digest and tags
         run: |
-          echo "## Deployment Summary :rocket:" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Image Registry:** \`${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Image Digest:** \`${{ steps.build.outputs.digest }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Tags Created:" >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-          echo "${{ steps.meta.outputs.tags }}" >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Author:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Timestamp:** ${{ github.event.head_commit.timestamp }}" >> $GITHUB_STEP_SUMMARY
+          {
+            echo "## Deployment Summary :rocket:"
+            echo ""
+            echo "**Image Registry:** \`${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}\`"
+            echo ""
+            echo "**Image Digest:** \`${{ steps.build.outputs.digest }}\`"
+            echo ""
+            echo "### Tags Created:"
+            echo "\`\`\`"
+            echo "${{ steps.meta.outputs.tags }}"
+            echo "\`\`\`"
+            echo ""
+            echo "**Commit:** ${{ github.sha }}"
+            echo "**Author:** ${{ github.actor }}"
+            echo "**Timestamp:** ${{ github.event.head_commit.timestamp }}"
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Verify image
         run: |
