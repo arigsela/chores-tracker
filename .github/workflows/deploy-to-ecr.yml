@@ -1,0 +1,219 @@
+name: Deploy to Amazon ECR
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.gitignore'
+      - 'LICENSE'
+      - 'backend/tests/**'
+      - '.github/workflows/**'
+      - '!.github/workflows/deploy-to-ecr.yml'
+  
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - staging
+
+env:
+  AWS_REGION: ${{ secrets.AWS_REGION }}
+  ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
+
+permissions:
+  contents: read
+  id-token: write  # Required for OIDC authentication (if using)
+
+jobs:
+  build-and-push:
+    name: Build and Push Docker Image
+    runs-on: ubuntu-latest
+    environment: production
+    
+    outputs:
+      image-tag: ${{ steps.meta.outputs.tags }}
+      image-digest: ${{ steps.build.outputs.digest }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for better metadata
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+        with:
+          mask-password: true
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          platforms: linux/amd64,linux/arm64  # Multi-arch support
+
+      - name: Cache Docker layers
+        uses: actions/cache@v4
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}
+          tags: |
+            # Always update latest on main branch pushes
+            type=raw,value=latest,enable={{is_default_branch}}
+            # Git SHA for immutable reference
+            type=sha,prefix=sha-,format=short
+            # Timestamp for chronological ordering
+            type=raw,value={{date 'YYYYMMDD-HHmmss'}},prefix=build-
+            # Semantic versioning (if you create git tags)
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            # Branch name (sanitized)
+            type=ref,event=branch
+            # PR number (if triggered by PR)
+            type=ref,event=pr
+          labels: |
+            org.opencontainers.image.title=Chores Tracker
+            org.opencontainers.image.description=Family chores management application
+            org.opencontainers.image.vendor=Chores Tracker Team
+            maintainer=team@chorestracker.com
+
+      - name: Build and push Docker image
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64  # Start with single platform, add linux/arm64 later if needed
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
+          build-args: |
+            BUILDKIT_INLINE_CACHE=1
+            BUILD_VERSION=${{ github.sha }}
+            BUILD_DATE=${{ github.event.head_commit.timestamp }}
+
+      - name: Move cache
+        run: |
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+
+      - name: Security scan with Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:sha-${{ github.sha }}
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '0'  # Don't fail the build, just report
+
+      - name: Upload Trivy scan results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+      - name: Image digest and tags
+        run: |
+          {
+            echo "## Deployment Summary :rocket:"
+            echo ""
+            echo "**Image Registry:** \`${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}\`"
+            echo ""
+            echo "**Image Digest:** \`${{ steps.build.outputs.digest }}\`"
+            echo ""
+            echo "### Tags Created:"
+            echo "\`\`\`"
+            echo "${{ steps.meta.outputs.tags }}"
+            echo "\`\`\`"
+            echo ""
+            echo "**Commit:** ${{ github.sha }}"
+            echo "**Author:** ${{ github.actor }}"
+            echo "**Timestamp:** ${{ github.event.head_commit.timestamp }}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Verify image
+        run: |
+          # Pull the image to verify it was pushed successfully
+          docker pull ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:sha-${{ github.sha }}
+          
+          # Get image size
+          IMAGE_SIZE=$(docker image inspect ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:sha-${{ github.sha }} --format='{{.Size}}' | numfmt --to=iec-i)
+          echo "Image size: $IMAGE_SIZE"
+          
+          # List all tags for this repository
+          aws ecr describe-images \
+            --repository-name ${{ env.ECR_REPOSITORY }} \
+            --query 'sort_by(imageDetails,& imagePushedAt)[-5:].imageTags[]' \
+            --output table
+
+  # Optional: Clean up old images (runs after successful deployment)
+  cleanup:
+    name: Clean up old images
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    if: success()
+    
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Get untagged images count
+        run: |
+          UNTAGGED_COUNT=$(aws ecr list-images \
+            --repository-name ${{ env.ECR_REPOSITORY }} \
+            --filter tagStatus=UNTAGGED \
+            --query 'length(imageIds)' \
+            --output text)
+          
+          echo "Found $UNTAGGED_COUNT untagged images"
+          
+          if [ "$UNTAGGED_COUNT" -gt "0" ]; then
+            echo "Lifecycle policy should clean these up automatically"
+          fi
+
+  # Optional: Notification job
+  notify:
+    name: Send notification
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    if: always()
+    
+    steps:
+      - name: Send deployment status
+        run: |
+          if [ "${{ needs.build-and-push.result }}" == "success" ]; then
+            echo "✅ Deployment successful!"
+            echo "Image: ${{ needs.build-and-push.outputs.image-tag }}"
+            # Add Slack/Discord/Email notification here
+          else
+            echo "❌ Deployment failed!"
+            # Add failure notification here
+          fi
