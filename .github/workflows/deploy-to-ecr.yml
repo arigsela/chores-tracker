@@ -74,21 +74,41 @@ jobs:
         run: |
           echo "Verifying ECR repository access..."
           
+          # Get caller identity
+          echo "AWS Caller Identity:"
+          aws sts get-caller-identity
+          
           # Check if repository exists
           if aws ecr describe-repositories --repository-names "${{ env.ECR_REPOSITORY }}" 2>/dev/null; then
             echo "✓ Repository exists"
             echo "repository_exists=true" >> $GITHUB_OUTPUT
+            
+            # Get repository details
+            REPO_URI=$(aws ecr describe-repositories --repository-names "${{ env.ECR_REPOSITORY }}" --query 'repositories[0].repositoryUri' --output text)
+            echo "Repository URI: $REPO_URI"
+            echo "repository_uri=$REPO_URI" >> $GITHUB_OUTPUT
+            
+            # Test push permissions with a dry run
+            echo "Testing push permissions..."
+            if aws ecr get-authorization-token --query 'authorizationData[0].authorizationToken' --output text >/dev/null 2>&1; then
+              echo "✓ ECR authorization token obtained"
+            else
+              echo "✗ Failed to get ECR authorization token"
+              echo "::error::Cannot get ECR authorization token. Check IAM permissions."
+              echo "repository_exists=false" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+            
+            # Check repository policy
+            echo "Checking repository policy..."
+            aws ecr get-repository-policy --repository-name "${{ env.ECR_REPOSITORY }}" 2>/dev/null || echo "No repository policy found (using IAM permissions)"
+            
           else
             echo "✗ Repository does not exist or no access"
             echo "::error::ECR repository '${{ env.ECR_REPOSITORY }}' not found or access denied"
             echo "repository_exists=false" >> $GITHUB_OUTPUT
             exit 0
           fi
-          
-          # Get repository URI
-          REPO_URI=$(aws ecr describe-repositories --repository-names "${{ env.ECR_REPOSITORY }}" --query 'repositories[0].repositoryUri' --output text)
-          echo "Repository URI: $REPO_URI"
-          echo "repository_uri=$REPO_URI" >> $GITHUB_OUTPUT
           
       - name: Show required IAM policy
         if: steps.check-secrets.outputs.configured == 'true' && steps.verify-ecr.outputs.repository_exists == 'false'
@@ -123,14 +143,44 @@ jobs:
                   "ecr:UploadLayerPart",
                   "ecr:CompleteLayerUpload",
                   "ecr:DescribeRepositories",
+                  "ecr:GetRepositoryPolicy",
                   "ecr:ListImages",
                   "ecr:DescribeImages",
-                  "ecr:BatchGetImage"
+                  "ecr:BatchGetImage",
+                  "ecr:BatchDeleteImage",
+                  "ecr:PutLifecyclePolicy",
+                  "ecr:GetLifecyclePolicy",
+                  "ecr:GetLifecyclePolicyPreview"
                 ],
                 "Resource": "arn:aws:ecr:${{ env.AWS_REGION }}:*:repository/${{ env.ECR_REPOSITORY }}"
               }
             ]
           }
+          EOF
+          
+          echo ""
+          echo "3. If you still get 403 errors, you may need to add this repository policy:"
+          echo ""
+          cat << 'EOF'
+          aws ecr set-repository-policy --repository-name ${{ env.ECR_REPOSITORY }} --policy-text '{
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Sid": "AllowPush",
+                "Effect": "Allow",
+                "Principal": {
+                  "AWS": "arn:aws:iam::ACCOUNT_ID:user/YOUR_GITHUB_USER"
+                },
+                "Action": [
+                  "ecr:PutImage",
+                  "ecr:InitiateLayerUpload",
+                  "ecr:UploadLayerPart",
+                  "ecr:CompleteLayerUpload",
+                  "ecr:BatchCheckLayerAvailability"
+                ]
+              }
+            ]
+          }'
           EOF
 
       - name: Login to Amazon ECR
