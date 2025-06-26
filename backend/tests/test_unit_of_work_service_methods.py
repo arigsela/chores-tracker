@@ -16,9 +16,8 @@ from backend.app.models.chore import Chore
 @pytest.fixture
 def test_uow_factory(db_session):
     """Create a factory for UnitOfWork that uses the test session."""
-    async def factory():
-        return db_session
-    return factory
+    # Return a callable that returns the session directly (not async)
+    return lambda: db_session
 
 
 class TestUnitOfWorkServiceMethods:
