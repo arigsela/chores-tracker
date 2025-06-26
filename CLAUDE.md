@@ -50,6 +50,7 @@ Chores Tracker is a web application designed to help families manage household c
 - **Test Error Handling**: Fixed validation error response handling in tests (supporting both string and list error messages)
 - **Unit of Work Tests**: Modified to use test database session factory instead of production MySQL connection
   - Fixed async/sync mismatch by using lambda function instead of async factory
+  - Fixed DetachedInstanceError by storing IDs and re-fetching objects after UnitOfWork context
 - **Schema Validation**: Added missing description field in test data to satisfy NOT NULL constraint
 
 ### Current Test Status

@@ -123,6 +123,7 @@ class TestUnitOfWorkServiceMethods:
             email="bulk_error@example.com",
             is_parent=True
         )
+        parent_id = parent.id  # Store ID before potential session closure
         
         # Create one child
         child = await user_service.register_user(
@@ -130,14 +131,15 @@ class TestUnitOfWorkServiceMethods:
             username="bulk_error_child",
             password="password123",
             is_parent=False,
-            parent_id=parent.id
+            parent_id=parent_id
         )
+        child_id = child.id  # Store ID before potential session closure
         
         # Prepare assignments with one invalid (non-existent child)
         assignments = [
             {
                 "title": "Valid Chore",
-                "assignee_id": child.id,
+                "assignee_id": child_id,
                 "reward": 5.0
             },
             {
@@ -152,12 +154,14 @@ class TestUnitOfWorkServiceMethods:
             async with UnitOfWork(session_factory=test_uow_factory) as uow:
                 await chore_service.bulk_assign_chores(
                     uow,
-                    creator_id=parent.id,
+                    creator_id=parent_id,
                     assignments=assignments
                 )
                 await uow.commit()
         
         # Verify no chores were created (transaction rolled back)
+        # Re-fetch the parent to avoid detached instance error
+        parent = await user_service.get(db_session, id=parent_id)
         chores = await chore_service.get_chores_for_user(db_session, user=parent)
         assert len(chores) == 0
     

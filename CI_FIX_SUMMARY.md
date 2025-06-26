@@ -62,11 +62,34 @@ async with UnitOfWork(session_factory=test_uow_factory) as uow:
     # ... test code
 ```
 
+## Additional Fix - DetachedInstanceError
+
+### Issue
+`test_bulk_assign_chores_rollback_on_error` was failing with:
+```
+sqlalchemy.orm.exc.DetachedInstanceError: Instance <User at 0x...> is not bound to a Session
+```
+
+### Solution
+- Store entity IDs before the UnitOfWork context closes
+- Re-fetch entities from the database when needed after the context
+- This prevents accessing detached SQLAlchemy instances
+
+```python
+# Store IDs before potential session closure
+parent_id = parent.id
+child_id = child.id
+
+# Later, re-fetch if needed
+parent = await user_service.get(db_session, id=parent_id)
+```
+
 ## Result
-All 6 failing tests should now pass:
+All failing tests are now fixed:
 - ✅ test_approve_range_reward_with_negative_value
 - ✅ test_bulk_assign_chores_success  
 - ✅ test_approve_chore_with_next_instance
 - ✅ test_approve_range_chore_with_next_instance
 - ✅ test_approve_non_recurring_chore
 - ✅ test_bulk_assign_validation_error
+- ✅ test_bulk_assign_chores_rollback_on_error
