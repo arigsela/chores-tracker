@@ -1,0 +1,21 @@
+name: Validate Workflows
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/**'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Validate workflow files
+        run: |
+          # Install actionlint for workflow validation
+          wget https://github.com/rhysd/actionlint/releases/latest/download/actionlint_linux_amd64.tar.gz
+          tar xf actionlint_linux_amd64.tar.gz
+          
+          # Run validation
+          ./actionlint
