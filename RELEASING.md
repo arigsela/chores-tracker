@@ -71,12 +71,12 @@ Use for:
    - API documentation
    - CLAUDE.md
 
-### Using the Release Workflow
+### Using the Release and Deploy Workflow
 
 1. **Navigate to GitHub Actions**
    - Go to the repository on GitHub
    - Click on the "Actions" tab
-   - Select "Create Release" workflow
+   - Select "Release and Deploy" workflow
 
 2. **Run the Workflow**
    - Click "Run workflow"
@@ -87,6 +87,7 @@ Use for:
      - `major`: For breaking changes (1.0.0 → 2.0.0)
      - `custom`: For specific version (enter manually)
    - Optional: Add release notes (auto-generated if empty)
+   - Optional: Check "Skip Docker build and ECR deployment" for release-only
    - Click "Run workflow"
 
 3. **Monitor the Release**
@@ -121,7 +122,7 @@ git push origin v1.0.0
 
 ## Docker Image Tags
 
-When a release is created, the ECR deployment workflow automatically creates multiple Docker image tags:
+The combined release and deploy workflow automatically creates multiple Docker image tags:
 
 ### Version Tags
 - **Full version**: `1.2.3` (exact version)

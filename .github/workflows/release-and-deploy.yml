@@ -26,6 +26,16 @@ on:
         required: false
         type: boolean
         default: false
+      update_gitops:
+        description: 'Update GitOps repository with new version'
+        required: false
+        type: boolean
+        default: true
+      auto_merge:
+        description: 'Auto-merge GitOps PR (use with caution)'
+        required: false
+        type: boolean
+        default: false
 
 env:
   AWS_REGION: ${{ secrets.AWS_REGION }}
@@ -42,6 +52,11 @@ jobs:
     name: Create Release and Deploy to ECR
     runs-on: ubuntu-latest
     environment: production
+    outputs:
+      new_version: ${{ steps.calc_version.outputs.new_version }}
+      version_number: ${{ steps.calc_version.outputs.new_version_number }}
+      ecr_registry: ${{ steps.login-ecr.outputs.registry }}
+      image_pushed: ${{ steps.check-secrets.outputs.configured }}
     
     steps:
       - name: Checkout code
@@ -257,5 +272,156 @@ jobs:
               else
                 echo "Reason: AWS credentials not configured"
               fi
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  gitops-update:
+    name: Update GitOps Repository
+    needs: release-and-deploy
+    runs-on: ubuntu-latest
+    if: |
+      needs.release-and-deploy.result == 'success' && 
+      needs.release-and-deploy.outputs.image_pushed == 'true' &&
+      github.event.inputs.skip_deploy != 'true' &&
+      github.event.inputs.update_gitops != 'false'
+    
+    steps:
+      - name: Check GitOps PAT
+        id: check-gitops-pat
+        run: |
+          if [[ -z "${{ secrets.GITOPS_PAT }}" ]]; then
+            echo "::warning::GITOPS_PAT secret not configured. Skipping GitOps update."
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout GitOps repository
+        if: steps.check-gitops-pat.outputs.configured == 'true'
+        uses: actions/checkout@v4
+        with:
+          repository: arigsela/kubernetes
+          token: ${{ secrets.GITOPS_PAT }}
+          path: kubernetes
+
+      - name: Update deployment manifest
+        if: steps.check-gitops-pat.outputs.configured == 'true'
+        run: |
+          cd kubernetes
+          
+          # Install yq
+          sudo wget -qO /usr/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/bin/yq
+          
+          # Define the new image
+          NEW_IMAGE="${{ needs.release-and-deploy.outputs.ecr_registry }}/${{ env.ECR_REPOSITORY }}:${{ needs.release-and-deploy.outputs.version_number }}"
+          
+          # Update the image tag
+          yq -i '.spec.template.spec.containers[0].image = "'"$NEW_IMAGE"'"' \
+            base-apps/chores-tracker/deployments.yaml
+          
+          # Verify the change
+          UPDATED_IMAGE=$(yq '.spec.template.spec.containers[0].image' base-apps/chores-tracker/deployments.yaml)
+          echo "Updated image to: $UPDATED_IMAGE"
+          
+          # Validate it matches what we expect
+          if [[ "$UPDATED_IMAGE" != "$NEW_IMAGE" ]]; then
+            echo "::error::Image update failed. Expected: $NEW_IMAGE, Got: $UPDATED_IMAGE"
+            exit 1
+          fi
+
+      - name: Create Pull Request
+        if: steps.check-gitops-pat.outputs.configured == 'true'
+        id: create-pr
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITOPS_PAT }}
+          path: kubernetes
+          commit-message: |
+            chore: update chores-tracker to ${{ needs.release-and-deploy.outputs.new_version }}
+            
+            Updates the chores-tracker deployment to use image version ${{ needs.release-and-deploy.outputs.new_version }} from ECR.
+            
+            Release: https://github.com/${{ github.repository }}/releases/tag/${{ needs.release-and-deploy.outputs.new_version }}
+            Workflow: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          branch: update-chores-tracker-${{ needs.release-and-deploy.outputs.version_number }}
+          delete-branch: true
+          title: "chore: update chores-tracker to ${{ needs.release-and-deploy.outputs.new_version }}"
+          body: |
+            ## Deployment Update
+            
+            This PR updates the chores-tracker deployment to version **${{ needs.release-and-deploy.outputs.new_version }}**.
+            
+            ### Changes
+            - Updated container image from current to:
+              ```
+              ${{ needs.release-and-deploy.outputs.ecr_registry }}/${{ env.ECR_REPOSITORY }}:${{ needs.release-and-deploy.outputs.version_number }}
+              ```
+            
+            ### Release Information
+            - **Release URL**: https://github.com/${{ github.repository }}/releases/tag/${{ needs.release-and-deploy.outputs.new_version }}
+            - **Commit SHA**: ${{ github.sha }}
+            - **Workflow Run**: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            
+            ### Deployment Checklist
+            - [x] Image successfully pushed to ECR
+            - [ ] ArgoCD sync successful
+            - [ ] Health checks passing
+            - [ ] No breaking changes
+            
+            ### Notes
+            After merging this PR, ArgoCD will automatically sync and deploy the new version to the cluster.
+            
+            ---
+            *This PR was automatically generated by the release workflow.*
+          labels: |
+            deployment
+            automated
+            chores-tracker
+          assignees: arigsela
+
+      - name: Auto-merge PR
+        if: |
+          steps.check-gitops-pat.outputs.configured == 'true' &&
+          github.event.inputs.auto_merge == 'true' &&
+          steps.create-pr.outputs.pull-request-number
+        env:
+          GH_TOKEN: ${{ secrets.GITOPS_PAT }}
+        run: |
+          cd kubernetes
+          
+          # Wait a moment for PR to be fully created
+          sleep 5
+          
+          # Enable auto-merge
+          gh pr merge ${{ steps.create-pr.outputs.pull-request-number }} \
+            --auto \
+            --merge \
+            --delete-branch \
+            --subject "chore: auto-merge deployment update"
+          
+          echo "Auto-merge enabled for PR #${{ steps.create-pr.outputs.pull-request-number }}"
+
+      - name: GitOps Update Summary
+        if: steps.check-gitops-pat.outputs.configured == 'true'
+        run: |
+          {
+            echo "## GitOps Repository Update 🚀"
+            echo ""
+            
+            if [[ -n "${{ steps.create-pr.outputs.pull-request-number }}" ]]; then
+              echo "**Pull Request Created:** #${{ steps.create-pr.outputs.pull-request-number }}"
+              echo "**PR URL:** ${{ steps.create-pr.outputs.pull-request-url }}"
+              echo ""
+              echo "### Next Steps"
+              if [[ "${{ github.event.inputs.auto_merge }}" == "true" ]]; then
+                echo "- ✅ Auto-merge has been enabled"
+                echo "- 🔄 PR will merge automatically once checks pass"
+              else
+                echo "- 👀 Review and merge the PR to deploy"
+                echo "- 🔄 ArgoCD will sync automatically after merge"
+              fi
+            else
+              echo "⚠️ Failed to create pull request"
             fi
           } >> "$GITHUB_STEP_SUMMARY"
