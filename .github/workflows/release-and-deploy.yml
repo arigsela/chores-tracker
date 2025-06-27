@@ -284,6 +284,9 @@ jobs:
       needs.release-and-deploy.outputs.image_pushed == 'true' &&
       github.event.inputs.skip_deploy != 'true' &&
       github.event.inputs.update_gitops != 'false'
+    env:
+      AWS_REGION: ${{ secrets.AWS_REGION }}
+      ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
     
     steps:
       - name: Check GitOps PAT
@@ -314,12 +317,11 @@ jobs:
           sudo chmod +x /usr/bin/yq
           
           # Define the new image
-          ECR_REPO="${{ secrets.ECR_REPOSITORY || 'chores-tracker' }}"
-          NEW_IMAGE="${{ needs.release-and-deploy.outputs.ecr_registry }}/${ECR_REPO}:${{ needs.release-and-deploy.outputs.version_number }}"
+          NEW_IMAGE="${{ needs.release-and-deploy.outputs.ecr_registry }}/${{ env.ECR_REPOSITORY }}:${{ needs.release-and-deploy.outputs.version_number }}"
           
           # Debug: Print the image URL
           echo "ECR Registry: ${{ needs.release-and-deploy.outputs.ecr_registry }}"
-          echo "ECR Repository: ${ECR_REPO}"
+          echo "ECR Repository: ${{ env.ECR_REPOSITORY }}"
           echo "Version: ${{ needs.release-and-deploy.outputs.version_number }}"
           echo "Full image URL: $NEW_IMAGE"
           
@@ -362,7 +364,7 @@ jobs:
             ### Changes
             - Updated container image from current to:
               ```
-              ${{ needs.release-and-deploy.outputs.ecr_registry }}/${{ secrets.ECR_REPOSITORY || 'chores-tracker' }}:${{ needs.release-and-deploy.outputs.version_number }}
+              ${{ needs.release-and-deploy.outputs.ecr_registry }}/${{ env.ECR_REPOSITORY }}:${{ needs.release-and-deploy.outputs.version_number }}
               ```
             
             ### Release Information
