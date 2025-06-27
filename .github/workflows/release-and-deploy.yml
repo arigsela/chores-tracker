@@ -330,44 +330,10 @@ jobs:
           sudo wget -qO /usr/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
           sudo chmod +x /usr/bin/yq
           
-          # Debug: Show all variables before constructing image URL
-          echo "::group::Debug - Image URL Construction"
-          echo "=== GitHub Context Variables ==="
-          echo "ECR Registry (from outputs): '${{ needs.release-and-deploy.outputs.ecr_registry }}'"
-          echo "ECR Repository (from env): '${{ env.ECR_REPOSITORY }}'"
-          echo "ECR Repository (from secret): '${{ secrets.ECR_REPOSITORY }}'"
-          echo "Version (from outputs): '${{ needs.release-and-deploy.outputs.version_number }}'"
-          
-          echo ""
-          echo "=== Shell Environment Variables ==="
-          echo "AWS_REGION: '${AWS_REGION}'"
-          echo "ECR_REPOSITORY: '${ECR_REPOSITORY}'"
-          
-          echo ""
-          echo "=== Testing Different Approaches ==="
-          # Test 1: Using env variable
-          TEST1="${{ needs.release-and-deploy.outputs.ecr_registry }}/${{ env.ECR_REPOSITORY }}:${{ needs.release-and-deploy.outputs.version_number }}"
-          echo "Test 1 (using env): '$TEST1'"
-          
-          # Test 2: Using secret directly
-          TEST2="${{ needs.release-and-deploy.outputs.ecr_registry }}/${{ secrets.ECR_REPOSITORY }}:${{ needs.release-and-deploy.outputs.version_number }}"
-          echo "Test 2 (using secret): '$TEST2'"
-          
-          # Test 3: Using shell variable
-          TEST3="${{ needs.release-and-deploy.outputs.ecr_registry }}/${ECR_REPOSITORY}:${{ needs.release-and-deploy.outputs.version_number }}"
-          echo "Test 3 (using shell var): '$TEST3'"
-          
-          # Test 4: Hardcoded fallback
-          TEST4="${{ needs.release-and-deploy.outputs.ecr_registry }}/${ECR_REPOSITORY:-chores-tracker}:${{ needs.release-and-deploy.outputs.version_number }}"
-          echo "Test 4 (with fallback): '$TEST4'"
+          echo "::group::Debug - Image URL Update"
+          echo "=== Version Information ==="
+          echo "New version: ${{ needs.release-and-deploy.outputs.version_number }}"
           echo "::endgroup::"
-          
-          # Define the new image
-          NEW_IMAGE="${{ needs.release-and-deploy.outputs.ecr_registry }}/${{ env.ECR_REPOSITORY }}:${{ needs.release-and-deploy.outputs.version_number }}"
-          
-          echo ""
-          echo "=== Final Image URL ==="
-          echo "NEW_IMAGE: '$NEW_IMAGE'"
           
           # Update the image tag
           # Get the current image and update only the tag
@@ -387,48 +353,46 @@ jobs:
           echo "::group::Debug - Verify Update"
           echo "=== Before and After ==="
           UPDATED_IMAGE=$(yq '.spec.template.spec.containers[0].image' base-apps/chores-tracker/deployments.yaml)
-          echo "Expected image: '$NEW_IMAGE'"
-          echo "Actual image in file: '$UPDATED_IMAGE'"
+          echo "Previous image: $CURRENT_IMAGE"
+          echo "Updated image: $UPDATED_IMAGE"
           
-          # Show the actual container spec
+          # Verify the tag was updated correctly
+          CURRENT_TAG=$(echo "$CURRENT_IMAGE" | cut -d':' -f2)
+          UPDATED_TAG=$(echo "$UPDATED_IMAGE" | cut -d':' -f2)
+          EXPECTED_TAG="${{ needs.release-and-deploy.outputs.version_number }}"
+          
           echo ""
-          echo "=== Container Spec from File ==="
-          yq '.spec.template.spec.containers[0]' base-apps/chores-tracker/deployments.yaml
+          echo "=== Tag Validation ==="
+          echo "Previous tag: $CURRENT_TAG"
+          echo "Updated tag: $UPDATED_TAG"
+          echo "Expected tag: $EXPECTED_TAG"
           
-          # Check for common issues
-          echo ""
-          echo "=== Validation Checks ==="
-          if [[ -z "$NEW_IMAGE" ]]; then
-            echo "❌ NEW_IMAGE is empty!"
-          fi
-          
-          if [[ "$NEW_IMAGE" == *"/:"* ]]; then
-            echo "❌ NEW_IMAGE is missing repository name (contains '/:')!"
-          fi
-          
-          if [[ "$NEW_IMAGE" == "/:${{ needs.release-and-deploy.outputs.version_number }}" ]]; then
-            echo "❌ Both registry and repository are empty!"
-          fi
-          
-          if [[ "$UPDATED_IMAGE" != "$NEW_IMAGE" ]]; then
-            echo "❌ Image update mismatch!"
-            echo "   Expected: '$NEW_IMAGE'"
-            echo "   Got: '$UPDATED_IMAGE'"
-            
-            # Try to diagnose the issue
-            if [[ "$UPDATED_IMAGE" == *"/:"* ]]; then
-              echo "   Issue: Repository name is missing in the updated image"
-            fi
+          if [[ "$UPDATED_TAG" == "$EXPECTED_TAG" ]]; then
+            echo "✅ Tag update successful!"
           else
-            echo "✅ Image update successful!"
-          fi
-          echo "::endgroup::"
-          
-          # Validate it matches what we expect
-          if [[ "$UPDATED_IMAGE" != "$NEW_IMAGE" ]]; then
-            echo "::error::Image update failed. Expected: $NEW_IMAGE, Got: $UPDATED_IMAGE"
+            echo "❌ Tag update failed!"
+            echo "   Expected: $EXPECTED_TAG"
+            echo "   Got: $UPDATED_TAG"
             exit 1
           fi
+          
+          # Verify the base image URL is preserved
+          CURRENT_BASE=$(echo "$CURRENT_IMAGE" | cut -d':' -f1)
+          UPDATED_BASE=$(echo "$UPDATED_IMAGE" | cut -d':' -f1)
+          
+          echo ""
+          echo "=== Base Image Validation ==="
+          echo "Previous base: $CURRENT_BASE"
+          echo "Updated base: $UPDATED_BASE"
+          
+          if [[ "$CURRENT_BASE" == "$UPDATED_BASE" ]]; then
+            echo "✅ Base image URL preserved!"
+          else
+            echo "❌ Base image URL changed!"
+            echo "   This should not happen with sed update"
+            exit 1
+          fi
+          echo "::endgroup::"
 
       - name: Create Pull Request
         if: steps.check-gitops-pat.outputs.configured == 'true'
@@ -453,10 +417,8 @@ jobs:
             This PR updates the chores-tracker deployment to version **${{ needs.release-and-deploy.outputs.new_version }}**.
             
             ### Changes
-            - Updated container image from current to:
-              ```
-              ${{ needs.release-and-deploy.outputs.ecr_registry }}/${{ env.ECR_REPOSITORY }}:${{ needs.release-and-deploy.outputs.version_number }}
-              ```
+            - Updated container image tag to version **${{ needs.release-and-deploy.outputs.version_number }}**
+            - Image registry and repository name remain unchanged
             
             ### Release Information
             - **Release URL**: https://github.com/${{ github.repository }}/releases/tag/${{ needs.release-and-deploy.outputs.new_version }}
