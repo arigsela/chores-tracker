@@ -370,9 +370,16 @@ jobs:
           echo "NEW_IMAGE: '$NEW_IMAGE'"
           
           # Update the image tag
-          # Using environment variable approach for yq
-          export NEW_IMAGE
-          yq -i '.spec.template.spec.containers[0].image = env(NEW_IMAGE)' \
+          # Get the current image and update only the tag
+          CURRENT_IMAGE=$(yq '.spec.template.spec.containers[0].image' base-apps/chores-tracker/deployments.yaml)
+          echo "Current image: $CURRENT_IMAGE"
+          
+          # Extract the base image URL (everything before the colon)
+          BASE_IMAGE=$(echo "$CURRENT_IMAGE" | cut -d':' -f1)
+          echo "Base image: $BASE_IMAGE"
+          
+          # Use sed to update just the tag in the file
+          sed -i "s|image: ${BASE_IMAGE}:[^[:space:]]*|image: ${BASE_IMAGE}:${{ needs.release-and-deploy.outputs.version_number }}|" \
             base-apps/chores-tracker/deployments.yaml
           
           # Verify the change
