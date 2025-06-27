@@ -55,7 +55,7 @@ jobs:
     outputs:
       new_version: ${{ steps.calc_version.outputs.new_version }}
       version_number: ${{ steps.calc_version.outputs.new_version_number }}
-      ecr_registry: ${{ steps.login-ecr.outputs.registry }}
+      ecr_registry: ${{ steps.login-ecr.outputs.registry || '852893458518.dkr.ecr.us-east-2.amazonaws.com' }}
       image_pushed: ${{ steps.check-secrets.outputs.configured }}
     
     steps:
@@ -315,6 +315,12 @@ jobs:
           
           # Define the new image
           NEW_IMAGE="${{ needs.release-and-deploy.outputs.ecr_registry }}/${{ env.ECR_REPOSITORY }}:${{ needs.release-and-deploy.outputs.version_number }}"
+          
+          # Debug: Print the image URL
+          echo "ECR Registry: ${{ needs.release-and-deploy.outputs.ecr_registry }}"
+          echo "ECR Repository: ${{ env.ECR_REPOSITORY }}"
+          echo "Version: ${{ needs.release-and-deploy.outputs.version_number }}"
+          echo "Full image URL: $NEW_IMAGE"
           
           # Update the image tag
           yq -i '.spec.template.spec.containers[0].image = "'"$NEW_IMAGE"'"' \
