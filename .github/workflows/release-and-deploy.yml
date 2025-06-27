@@ -370,7 +370,9 @@ jobs:
           echo "NEW_IMAGE: '$NEW_IMAGE'"
           
           # Update the image tag
-          yq -i '.spec.template.spec.containers[0].image = "'"$NEW_IMAGE"'"' \
+          # Using environment variable approach for yq
+          export NEW_IMAGE
+          yq -i '.spec.template.spec.containers[0].image = env(NEW_IMAGE)' \
             base-apps/chores-tracker/deployments.yaml
           
           # Verify the change
