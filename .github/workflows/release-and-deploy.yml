@@ -292,6 +292,20 @@ jobs:
       - name: Check GitOps PAT
         id: check-gitops-pat
         run: |
+          echo "::group::Debug - Environment and Secrets Check"
+          echo "AWS_REGION env var: '${{ env.AWS_REGION }}'"
+          echo "ECR_REPOSITORY env var: '${{ env.ECR_REPOSITORY }}'"
+          echo "ECR_REPOSITORY secret (masked): '${{ secrets.ECR_REPOSITORY }}'"
+          echo "ECR Registry from previous job: '${{ needs.release-and-deploy.outputs.ecr_registry }}'"
+          echo "Version from previous job: '${{ needs.release-and-deploy.outputs.version_number }}'"
+          
+          # Test if env vars are actually available
+          echo ""
+          echo "Shell variable test:"
+          echo "AWS_REGION from env: '${AWS_REGION}'"
+          echo "ECR_REPOSITORY from env: '${ECR_REPOSITORY}'"
+          echo "::endgroup::"
+          
           if [[ -z "${{ secrets.GITOPS_PAT }}" ]]; then
             echo "::warning::GITOPS_PAT secret not configured. Skipping GitOps update."
             echo "configured=false" >> "$GITHUB_OUTPUT"
@@ -316,22 +330,90 @@ jobs:
           sudo wget -qO /usr/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
           sudo chmod +x /usr/bin/yq
           
+          # Debug: Show all variables before constructing image URL
+          echo "::group::Debug - Image URL Construction"
+          echo "=== GitHub Context Variables ==="
+          echo "ECR Registry (from outputs): '${{ needs.release-and-deploy.outputs.ecr_registry }}'"
+          echo "ECR Repository (from env): '${{ env.ECR_REPOSITORY }}'"
+          echo "ECR Repository (from secret): '${{ secrets.ECR_REPOSITORY }}'"
+          echo "Version (from outputs): '${{ needs.release-and-deploy.outputs.version_number }}'"
+          
+          echo ""
+          echo "=== Shell Environment Variables ==="
+          echo "AWS_REGION: '${AWS_REGION}'"
+          echo "ECR_REPOSITORY: '${ECR_REPOSITORY}'"
+          
+          echo ""
+          echo "=== Testing Different Approaches ==="
+          # Test 1: Using env variable
+          TEST1="${{ needs.release-and-deploy.outputs.ecr_registry }}/${{ env.ECR_REPOSITORY }}:${{ needs.release-and-deploy.outputs.version_number }}"
+          echo "Test 1 (using env): '$TEST1'"
+          
+          # Test 2: Using secret directly
+          TEST2="${{ needs.release-and-deploy.outputs.ecr_registry }}/${{ secrets.ECR_REPOSITORY }}:${{ needs.release-and-deploy.outputs.version_number }}"
+          echo "Test 2 (using secret): '$TEST2'"
+          
+          # Test 3: Using shell variable
+          TEST3="${{ needs.release-and-deploy.outputs.ecr_registry }}/${ECR_REPOSITORY}:${{ needs.release-and-deploy.outputs.version_number }}"
+          echo "Test 3 (using shell var): '$TEST3'"
+          
+          # Test 4: Hardcoded fallback
+          TEST4="${{ needs.release-and-deploy.outputs.ecr_registry }}/${ECR_REPOSITORY:-chores-tracker}:${{ needs.release-and-deploy.outputs.version_number }}"
+          echo "Test 4 (with fallback): '$TEST4'"
+          echo "::endgroup::"
+          
           # Define the new image
           NEW_IMAGE="${{ needs.release-and-deploy.outputs.ecr_registry }}/${{ env.ECR_REPOSITORY }}:${{ needs.release-and-deploy.outputs.version_number }}"
           
-          # Debug: Print the image URL
-          echo "ECR Registry: ${{ needs.release-and-deploy.outputs.ecr_registry }}"
-          echo "ECR Repository: ${{ env.ECR_REPOSITORY }}"
-          echo "Version: ${{ needs.release-and-deploy.outputs.version_number }}"
-          echo "Full image URL: $NEW_IMAGE"
+          echo ""
+          echo "=== Final Image URL ==="
+          echo "NEW_IMAGE: '$NEW_IMAGE'"
           
           # Update the image tag
           yq -i '.spec.template.spec.containers[0].image = "'"$NEW_IMAGE"'"' \
             base-apps/chores-tracker/deployments.yaml
           
           # Verify the change
+          echo ""
+          echo "::group::Debug - Verify Update"
+          echo "=== Before and After ==="
           UPDATED_IMAGE=$(yq '.spec.template.spec.containers[0].image' base-apps/chores-tracker/deployments.yaml)
-          echo "Updated image to: $UPDATED_IMAGE"
+          echo "Expected image: '$NEW_IMAGE'"
+          echo "Actual image in file: '$UPDATED_IMAGE'"
+          
+          # Show the actual container spec
+          echo ""
+          echo "=== Container Spec from File ==="
+          yq '.spec.template.spec.containers[0]' base-apps/chores-tracker/deployments.yaml
+          
+          # Check for common issues
+          echo ""
+          echo "=== Validation Checks ==="
+          if [[ -z "$NEW_IMAGE" ]]; then
+            echo "❌ NEW_IMAGE is empty!"
+          fi
+          
+          if [[ "$NEW_IMAGE" == *"/:"* ]]; then
+            echo "❌ NEW_IMAGE is missing repository name (contains '/:')!"
+          fi
+          
+          if [[ "$NEW_IMAGE" == "/:${{ needs.release-and-deploy.outputs.version_number }}" ]]; then
+            echo "❌ Both registry and repository are empty!"
+          fi
+          
+          if [[ "$UPDATED_IMAGE" != "$NEW_IMAGE" ]]; then
+            echo "❌ Image update mismatch!"
+            echo "   Expected: '$NEW_IMAGE'"
+            echo "   Got: '$UPDATED_IMAGE'"
+            
+            # Try to diagnose the issue
+            if [[ "$UPDATED_IMAGE" == *"/:"* ]]; then
+              echo "   Issue: Repository name is missing in the updated image"
+            fi
+          else
+            echo "✅ Image update successful!"
+          fi
+          echo "::endgroup::"
           
           # Validate it matches what we expect
           if [[ "$UPDATED_IMAGE" != "$NEW_IMAGE" ]]; then
