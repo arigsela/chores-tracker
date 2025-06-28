@@ -4,7 +4,7 @@ This document serves as the living implementation guide for the Chores Tracker R
 
 ## Implementation Status
 
-### Current Phase: **Phase 1 - Core Infrastructure and Authentication** 🚀
+### Current Phase: **Phase 2 - Chore Management Features** 📋
 
 ### Completed Phases: 
 - ✅ **Phase 0 - Project Setup** (December 28, 2024)
@@ -15,6 +15,16 @@ This document serves as the living implementation guide for the Chores Tracker R
   - [x] All dependencies installed
   - [x] iOS build configuration completed
   - [x] Successfully running on physical device
+
+- ✅ **Phase 1 - Core Infrastructure and Authentication** (December 28, 2024)
+  - [x] API client setup with Axios interceptors
+  - [x] Storage service with AsyncStorage
+  - [x] Authentication service with JWT and biometrics
+  - [x] Auth context for state management
+  - [x] Login screen with Face ID support
+  - [x] Navigation structure (AppNavigator, MainNavigator)
+  - [x] App.tsx using authentication system
+  - [x] Fixed auth endpoint issue (/users/login instead of /auth/token)
 
 ---
 
@@ -928,5 +938,55 @@ npm run ios -- --device
 5. Set up navigation and auth context
 
 **API Configuration**:
+- Backend URL: `http://192.168.0.250:8000` (Mac's IP for physical device)
+- Auth endpoint: `/api/v1/users/login` (OAuth2 password flow)
+- Content-Type: `application/x-www-form-urlencoded` for login
+
+---
+
+## Phase 1 Completion Notes (December 28, 2024)
+
+### Authentication Implementation Complete ✅
+
+**Key Components Implemented:**
+1. **API Client** (`src/api/client.js`)
+   - Axios instance with interceptors
+   - Automatic token attachment
+   - 401 handling for expired tokens
+   - Changed localhost to Mac IP for device testing
+
+2. **Storage Service** (`src/services/storageService.js`)
+   - AsyncStorage wrapper for persistent data
+   - Secure token storage
+   - User data caching
+
+3. **Auth Service** (`src/services/authService.js`)
+   - Login with OAuth2 password flow
+   - Biometric authentication (Face ID/Touch ID)
+   - User profile fetching
+
+4. **Auth Context** (`src/store/authContext.js`)
+   - Global auth state management
+   - Auto-check auth on app start
+   - Login/logout methods
+
+5. **Navigation** 
+   - AppNavigator with auth flow
+   - Protected routes for authenticated users
+   - Automatic redirect on logout
+
+6. **Login Screen**
+   - Clean UI with logo
+   - Username/password form
+   - Face ID option after first login
+   - Error handling
+
+### Authentication Fix:
+- **Issue**: Initial endpoint `/api/v1/auth/token` returned 404
+- **Solution**: Changed to `/api/v1/users/login` after checking OpenAPI spec
+- **Test User**: Reset password for "asela" user to enable testing
+
+### Next Steps - Phase 2:
+Ready to implement chore management features with working authentication!
 - Local: http://localhost:8000/api/v1
 - Production: Will be configured later

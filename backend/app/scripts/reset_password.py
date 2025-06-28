@@ -8,17 +8,17 @@ from backend.app.core.security.password import get_password_hash
 async def reset_user_password(username, new_password):
     """Reset a user's password."""
     async with AsyncSessionLocal() as session:
-        # Find the user
-        result = await session.execute(update(User).where(User.username == username).values(
-            hashed_password=get_password_hash(new_password)
-        ).returning(User))
-        
+        # First find the user
+        from sqlalchemy import select
+        result = await session.execute(select(User).where(User.username == username))
         user = result.scalars().first()
         
         if not user:
             print(f"User '{username}' not found in the database.")
             return False
         
+        # Update the password
+        user.hashed_password = get_password_hash(new_password)
         await session.commit()
         
         print(f"Password for user '{username}' (ID: {user.id}) has been reset.")

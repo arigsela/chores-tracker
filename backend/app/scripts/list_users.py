@@ -1,6 +1,10 @@
 import asyncio
-from app.db.base import AsyncSessionLocal
-from app.models.user import User
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+
+from backend.app.db.base import AsyncSessionLocal
+from backend.app.models.user import User
 from sqlalchemy import select
 
 async def list_users():
