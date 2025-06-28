@@ -1,74 +1,60 @@
 import { Platform } from 'react-native';
 
-const fontFamily = Platform.select({
-  ios: {
-    regular: 'System',
-    medium: 'System',
-    semibold: 'System',
-    bold: 'System',
-  },
-  android: {
-    regular: 'Roboto',
-    medium: 'Roboto-Medium',
-    semibold: 'Roboto-Medium',
-    bold: 'Roboto-Bold',
-  },
-});
-
 export const typography = {
   // Headers
   h1: {
-    fontFamily: fontFamily.bold,
-    fontSize: 34,
-    lineHeight: 41,
+    fontSize: 32,
     fontWeight: '700',
+    lineHeight: 40,
+    fontFamily: Platform.OS === 'ios' ? 'System' : 'Roboto',
   },
   h2: {
-    fontFamily: fontFamily.semibold,
-    fontSize: 28,
-    lineHeight: 34,
+    fontSize: 24,
     fontWeight: '600',
+    lineHeight: 32,
+    fontFamily: Platform.OS === 'ios' ? 'System' : 'Roboto',
   },
   h3: {
-    fontFamily: fontFamily.semibold,
-    fontSize: 22,
-    lineHeight: 28,
-    fontWeight: '600',
-  },
-  h4: {
-    fontFamily: fontFamily.medium,
     fontSize: 20,
-    lineHeight: 25,
-    fontWeight: '500',
+    fontWeight: '600',
+    lineHeight: 28,
+    fontFamily: Platform.OS === 'ios' ? 'System' : 'Roboto',
   },
   
-  // Body text
+  // Body
   body: {
-    fontFamily: fontFamily.regular,
-    fontSize: 17,
-    lineHeight: 22,
+    fontSize: 16,
     fontWeight: '400',
+    lineHeight: 24,
+    fontFamily: Platform.OS === 'ios' ? 'System' : 'Roboto',
   },
   bodySmall: {
-    fontFamily: fontFamily.regular,
-    fontSize: 15,
-    lineHeight: 20,
+    fontSize: 14,
     fontWeight: '400',
+    lineHeight: 20,
+    fontFamily: Platform.OS === 'ios' ? 'System' : 'Roboto',
   },
   
-  // Captions
+  // Labels
+  label: {
+    fontSize: 14,
+    fontWeight: '500',
+    lineHeight: 20,
+    fontFamily: Platform.OS === 'ios' ? 'System' : 'Roboto',
+  },
   caption: {
-    fontFamily: fontFamily.regular,
     fontSize: 12,
-    lineHeight: 16,
     fontWeight: '400',
+    lineHeight: 16,
+    fontFamily: Platform.OS === 'ios' ? 'System' : 'Roboto',
   },
   
   // Buttons
   button: {
-    fontFamily: fontFamily.medium,
-    fontSize: 17,
-    lineHeight: 22,
-    fontWeight: '500',
+    fontSize: 16,
+    fontWeight: '600',
+    lineHeight: 24,
+    fontFamily: Platform.OS === 'ios' ? 'System' : 'Roboto',
+    textTransform: 'uppercase',
   },
 };

@@ -1,30 +1,30 @@
 export const colors = {
   // Primary colors
-  primary: '#007AFF',
-  primaryDark: '#0051D5',
-  primaryLight: '#5AC8FA',
+  primary: '#2196F3',        // Blue
+  primaryDark: '#1976D2',
+  primaryLight: '#64B5F6',
   
   // Secondary colors
-  secondary: '#FF9500',
-  secondaryDark: '#FF6200',
-  secondaryLight: '#FFCC00',
-  
-  // Semantic colors
-  success: '#34C759',
-  warning: '#FF9500',
-  error: '#FF3B30',
-  info: '#5856D6',
-  
-  // Neutral colors
-  background: '#F2F2F7',
-  surface: '#FFFFFF',
-  text: '#000000',
-  textSecondary: '#8E8E93',
-  border: '#C6C6C8',
+  secondary: '#4CAF50',      // Green
+  secondaryDark: '#388E3C',
+  secondaryLight: '#81C784',
   
   // Status colors
-  pending: '#FF9500',
-  approved: '#34C759',
-  disabled: '#C7C7CC',
-  cooldown: '#5856D6',
+  success: '#4CAF50',        // Green
+  warning: '#FF9800',        // Orange
+  error: '#F44336',          // Red
+  info: '#2196F3',           // Blue
+  disabled: '#9E9E9E',       // Gray
+  
+  // Neutral colors
+  background: '#F5F5F5',
+  surface: '#FFFFFF',
+  text: '#212121',
+  textSecondary: '#757575',
+  border: '#E0E0E0',
+  
+  // Specific colors
+  pending: '#FF9800',
+  approved: '#4CAF50',
+  created: '#2196F3',
 };

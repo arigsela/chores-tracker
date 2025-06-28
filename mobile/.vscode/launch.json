@@ -1,0 +1,26 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug iOS Simulator",
+      "type": "reactnative",
+      "request": "launch",
+      "platform": "ios",
+      "target": "simulator",
+      "runArguments": ["--simulator", "iPhone 16 Pro"]
+    },
+    {
+      "name": "Debug iOS Device",
+      "type": "reactnative",
+      "request": "launch",
+      "platform": "ios",
+      "target": "device"
+    },
+    {
+      "name": "Debug Android",
+      "type": "reactnative",
+      "request": "launch",
+      "platform": "android"
+    }
+  ]
+}

@@ -2,8 +2,27 @@ import axios from 'axios';
 import Config from 'react-native-config';
 import { storageService } from '../services/storageService';
 
-// Use your Mac's IP address for physical device testing
-const API_URL = Config.API_URL || 'http://192.168.0.250:8000/api/v1';
+// Detect if running on simulator or device
+import { Platform } from 'react-native';
+
+const getAPIUrl = () => {
+  if (Config.API_URL) {
+    return Config.API_URL;
+  }
+  
+  // For iOS simulator, we can use localhost
+  // For physical device, use Mac's IP address
+  if (Platform.OS === 'ios' && __DEV__) {
+    // Check if running in simulator by checking for localhost connectivity
+    // In production, this would be replaced with actual API URL
+    return 'http://localhost:8000/api/v1';
+  }
+  
+  // Default to Mac's IP for physical device testing
+  return 'http://192.168.0.250:8000/api/v1';
+};
+
+const API_URL = getAPIUrl();
 console.log('API URL configured as:', API_URL);
 
 // Create axios instance

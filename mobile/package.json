@@ -5,12 +5,19 @@
   "scripts": {
     "android": "react-native run-android",
     "ios": "react-native run-ios",
-    "lint": "eslint .",
+    "ios:simulator": "react-native run-ios --simulator='iPhone 16 Pro'",
+    "ios:device": "react-native run-ios --device",
     "start": "react-native start",
-    "test": "jest"
+    "start:clean": "react-native start --reset-cache",
+    "lint": "eslint .",
+    "test": "jest",
+    "backend": "cd .. && docker compose up",
+    "dev:simulator": "API_URL=http://localhost:8000/api/v1 npm run ios:simulator",
+    "dev:device": "npm run ios:device"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "^2.2.0",
+    "@react-native-picker/picker": "^2.11.1",
     "@react-native/new-app-screen": "0.80.0",
     "@react-navigation/bottom-tabs": "^7.4.2",
     "@react-navigation/native": "^7.1.14",
@@ -21,6 +28,7 @@
     "react-native": "0.80.0",
     "react-native-biometrics": "^3.0.1",
     "react-native-config": "^1.5.5",
+    "react-native-device-info": "^14.0.4",
     "react-native-elements": "^3.4.3",
     "react-native-gesture-handler": "^2.26.0",
     "react-native-keyboard-aware-scroll-view": "^0.9.5",
