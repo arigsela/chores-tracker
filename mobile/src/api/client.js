@@ -1,26 +1,6 @@
 import axios from 'axios';
-import Config from 'react-native-config';
 import { storageService } from '../services/storageService';
-
-// Detect if running on simulator or device
-import { Platform } from 'react-native';
-
-const getAPIUrl = () => {
-  if (Config.API_URL) {
-    return Config.API_URL;
-  }
-  
-  // For iOS simulator, we can use localhost
-  // For physical device, use Mac's IP address
-  if (Platform.OS === 'ios' && __DEV__) {
-    // Check if running in simulator by checking for localhost connectivity
-    // In production, this would be replaced with actual API URL
-    return 'http://localhost:8000/api/v1';
-  }
-  
-  // Default to Mac's IP for physical device testing
-  return 'http://192.168.0.250:8000/api/v1';
-};
+import { getAPIUrl } from '../config/api';
 
 const API_URL = getAPIUrl();
 console.log('API URL configured as:', API_URL);
@@ -62,6 +42,16 @@ apiClient.interceptors.response.use(
       await storageService.clearAll();
       // Navigate to login (will be handled by auth context)
     }
+    
+    // Better error logging
+    if (error.code === 'ECONNABORTED') {
+      console.error('Request timeout');
+    } else if (error.message === 'Network Error') {
+      console.error('Network Error - Cannot reach server at:', error.config?.baseURL);
+      console.error('Full URL attempted:', error.config?.url);
+      console.error('Make sure backend is running and accessible from device');
+    }
+    
     console.error('Response Error:', error.response?.data || error.message);
     return Promise.reject(error);
   }
