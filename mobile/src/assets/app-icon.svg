@@ -1,0 +1,32 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="1024" height="1024" rx="224" fill="#2196F3"/>
+  
+  <!-- Checklist Icon -->
+  <g transform="translate(256, 256)">
+    <!-- Paper/Board -->
+    <rect x="0" y="0" width="512" height="640" rx="32" fill="white" opacity="0.95"/>
+    
+    <!-- Checkmarks -->
+    <g stroke="#4CAF50" stroke-width="48" stroke-linecap="round" stroke-linejoin="round">
+      <!-- First checkbox and checkmark -->
+      <rect x="64" y="96" width="64" height="64" rx="8" fill="none" stroke="#E0E0E0" stroke-width="32"/>
+      <path d="M80 128 L96 144 L128 112" fill="none"/>
+      <rect x="192" y="104" width="224" height="16" rx="8" fill="#E0E0E0"/>
+      
+      <!-- Second checkbox and checkmark -->
+      <rect x="64" y="224" width="64" height="64" rx="8" fill="none" stroke="#E0E0E0" stroke-width="32"/>
+      <path d="M80 256 L96 272 L128 240" fill="none"/>
+      <rect x="192" y="232" width="224" height="16" rx="8" fill="#E0E0E0"/>
+      
+      <!-- Third checkbox (unchecked) -->
+      <rect x="64" y="352" width="64" height="64" rx="8" fill="none" stroke="#E0E0E0" stroke-width="32"/>
+      <rect x="192" y="360" width="224" height="16" rx="8" fill="#E0E0E0"/>
+    </g>
+    
+    <!-- Star reward icon -->
+    <g transform="translate(320, 480)">
+      <path d="M64 0 L80 48 L128 48 L88 80 L104 128 L64 96 L24 128 L40 80 L0 48 L48 48 Z" fill="#FFD700"/>
+    </g>
+  </g>
+</svg>

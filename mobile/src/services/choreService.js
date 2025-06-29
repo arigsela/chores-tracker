@@ -11,7 +11,8 @@ const mapChoreFromBackend = (chore) => {
     reward_type: chore.is_range_reward ? 'range' : 'fixed',
     recurrence: chore.is_recurring ? 'recurring' : 'once',
     // Map status based on backend boolean flags
-    status: chore.is_approved ? 'approved' : 
+    status: chore.is_disabled ? 'disabled' :
+            chore.is_approved ? 'approved' : 
             chore.is_completed ? 'pending' : 
             'created',
     // For approved chores, use the actual approved amount or fallback to reward
@@ -77,6 +78,21 @@ export const choreService = {
       return {
         success: false,
         error: error.response?.data?.detail || 'Failed to delete chore',
+      };
+    }
+  },
+
+  async disableChore(choreId) {
+    try {
+      const response = await apiClient.post(API_ENDPOINTS.CHORES.DISABLE(choreId), {});
+      return {
+        success: true,
+        data: mapChoreFromBackend(response.data),
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.response?.data?.detail || 'Failed to disable chore',
       };
     }
   },
@@ -154,6 +170,25 @@ export const choreService = {
       return {
         success: true,
         data: response.data.map(mapChoreFromBackend),
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.response?.data?.detail || 'Failed to fetch completed chores',
+      };
+    }
+  },
+
+  // Get completed chores for all children (parent view)
+  async getAllChildrenCompletedChores() {
+    try {
+      const response = await apiClient.get('/chores/');
+      const allChores = response.data.map(mapChoreFromBackend);
+      // Filter for completed chores
+      const completedChores = allChores.filter(chore => chore.is_completed);
+      return {
+        success: true,
+        data: completedChores,
       };
     } catch (error) {
       return {

@@ -13,15 +13,11 @@ const Stack = createStackNavigator();
 import ParentHomeScreen from '../screens/parent/ParentHomeScreen';
 import ChildHomeScreen from '../screens/child/ChildHomeScreen';
 import CreateChoreScreen from '../screens/parent/CreateChoreScreen';
+import EditChoreScreen from '../screens/parent/EditChoreScreen';
 import ApprovalQueueScreen from '../screens/parent/ApprovalQueueScreen';
-
-const ChildManagementScreen = () => (
-  <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-    <Text>Child Management Screen</Text>
-  </View>
-);
-
+import ChildManagementScreen from '../screens/parent/ChildManagementScreen';
 import RewardsScreen from '../screens/child/RewardsScreen';
+import RewardHistoryScreen from '../screens/rewards/RewardHistoryScreen';
 
 const ProfileScreen = () => {
   const { user, logout } = useAuth();
@@ -57,6 +53,13 @@ const HomeStackScreen = ({ isParent }) => (
       component={isParent ? ParentHomeScreen : ChildHomeScreen}
       options={{ title: 'Chores' }}
     />
+    {isParent && (
+      <HomeStack.Screen
+        name="EditChore"
+        component={EditChoreScreen}
+        options={{ title: 'Edit Chore' }}
+      />
+    )}
   </HomeStack.Navigator>
 );
 
@@ -101,6 +104,11 @@ const RewardsStackScreen = () => (
       component={RewardsScreen}
       options={{ title: 'My Rewards' }}
     />
+    <RewardsStack.Screen
+      name="RewardHistory"
+      component={RewardHistoryScreen}
+      options={{ title: 'Reward History' }}
+    />
   </RewardsStack.Navigator>
 );
 
@@ -123,6 +131,9 @@ const ParentNavigator = () => (
           case 'Family':
             iconName = 'people';
             break;
+          case 'Rewards':
+            iconName = 'star';
+            break;
           case 'Profile':
             iconName = 'person';
             break;
@@ -142,6 +153,7 @@ const ParentNavigator = () => (
     <Tab.Screen name="Create" component={CreateStackScreen} />
     <Tab.Screen name="Approvals" component={ApprovalsStackScreen} />
     <Tab.Screen name="Family" component={FamilyStackScreen} />
+    <Tab.Screen name="Rewards" component={RewardsStackScreen} />
     <Tab.Screen name="Profile" component={ProfileScreen} />
   </Tab.Navigator>
 );

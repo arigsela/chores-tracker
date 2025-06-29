@@ -1,30 +1,53 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   SafeAreaView,
   Alert,
+  Animated,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../../store/authContext';
+import { useError } from '../../contexts/ErrorContext';
+import { useToast } from '../../contexts/ToastContext';
 import { choreService } from '../../services/choreService';
 import ChoreList from '../../components/chores/ChoreList';
+import { SkeletonList } from '../../components/common/SkeletonPlaceholder';
+import ErrorView from '../../components/common/ErrorView';
 import { colors } from '../../styles/colors';
 import { typography } from '../../styles/typography';
 
 const ChildHomeScreen = () => {
   const navigation = useNavigation();
   const { user } = useAuth();
+  const { showError } = useError();
+  const { showSuccess, showError: showToastError } = useToast();
   const [chores, setChores] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [error, setError] = useState(null);
+  
+  // Animations
+  const headerOpacity = useRef(new Animated.Value(1)).current;
+  const rewardScale = useRef(new Animated.Value(1)).current;
+  
+  useEffect(() => {
+    // Simple fade in on mount
+    headerOpacity.setValue(0);
+    Animated.timing(headerOpacity, {
+      toValue: 1,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+  }, []);
 
   const loadChores = useCallback(async (showRefresh = false) => {
     try {
       if (showRefresh) setIsRefreshing(true);
       else setIsLoading(true);
-
+      
+      setError(null);
       const result = await choreService.getChildChores(user?.id);
       
       if (result.success) {
@@ -32,15 +55,29 @@ const ChildHomeScreen = () => {
         const activeChores = result.data.filter(chore => chore.status === 'created');
         setChores(activeChores);
       } else {
-        Alert.alert('Error', result.error);
+        const errorMsg = result.error || 'Failed to load chores';
+        setError(errorMsg);
+        if (!showRefresh) {
+          showError(errorMsg, {
+            key: 'loadChores',
+            retryCallback: () => loadChores(false),
+          });
+        }
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to load chores');
+      const errorMsg = error.message || 'Failed to load chores';
+      setError(errorMsg);
+      if (!showRefresh) {
+        showError(error, {
+          key: 'loadChores',
+          retryCallback: () => loadChores(false),
+        });
+      }
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }, [user?.id]);
+  }, [user?.id, showError]);
 
   useEffect(() => {
     if (user?.id) {
@@ -68,16 +105,31 @@ const ChildHomeScreen = () => {
     try {
       const result = await choreService.completeChore(choreId);
       if (result.success) {
-        Alert.alert(
-          'Success',
-          'Great job! Your chore has been submitted for approval.',
-          [{ text: 'OK', onPress: () => loadChores(true) }]
-        );
+        // Animate reward box
+        Animated.sequence([
+          Animated.spring(rewardScale, {
+            toValue: 1.1,
+            tension: 100,
+            friction: 5,
+            useNativeDriver: true,
+          }),
+          Animated.spring(rewardScale, {
+            toValue: 1,
+            tension: 100,
+            friction: 5,
+            useNativeDriver: true,
+          }),
+        ]).start();
+        
+        showSuccess('Great job! Your chore has been submitted for approval.');
+        setTimeout(() => {
+          loadChores(true);
+        }, 500);
       } else {
-        Alert.alert('Error', result.error);
+        showToastError(result.error || 'Failed to complete chore');
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to complete chore');
+      showToastError('Failed to complete chore');
     }
   };
 
@@ -93,16 +145,21 @@ const ChildHomeScreen = () => {
   };
 
   const renderHeader = () => (
-    <View style={styles.header}>
+    <Animated.View style={[styles.header, { opacity: headerOpacity }]}>
       <Text style={styles.greeting}>Hi {user?.username}! 👋</Text>
       <Text style={styles.subtitle}>Ready to complete some chores?</Text>
       
-      <View style={styles.rewardBox}>
+      <Animated.View 
+        style={[
+          styles.rewardBox,
+          { transform: [{ scale: rewardScale }] }
+        ]}
+      >
         <Text style={styles.rewardLabel}>Potential Rewards Today</Text>
         <Text style={styles.rewardAmount}>
           ${calculateTotalPotentialReward().toFixed(2)}
         </Text>
-      </View>
+      </Animated.View>
 
       <View style={styles.statsContainer}>
         <View style={styles.statBox}>
@@ -110,8 +167,31 @@ const ChildHomeScreen = () => {
           <Text style={styles.statLabel}>To Do</Text>
         </View>
       </View>
-    </View>
+    </Animated.View>
   );
+
+  if (isLoading && !isRefreshing) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.greeting}>Hi {user?.username}! 👋</Text>
+          <Text style={styles.subtitle}>Loading your chores...</Text>
+        </View>
+        <SkeletonList count={4} />
+      </SafeAreaView>
+    );
+  }
+
+  if (error && !isRefreshing && chores.length === 0) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <ErrorView 
+          error={error}
+          onRetry={() => loadChores(false)}
+        />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>

@@ -11,7 +11,7 @@ import { colors } from '../../styles/colors';
 import { typography } from '../../styles/typography';
 import { choreService } from '../../services/choreService';
 
-const ChoreCard = ({ chore, onPress, showActions = false, onComplete, onApprove }) => {
+const ChoreCard = ({ chore, onPress, showActions = false, onComplete, onApprove, onEdit, showEditButton = false }) => {
   const statusColor = choreService.getStatusColor(chore.status);
   const statusLabel = choreService.getStatusLabel(chore.status);
   const rewardText = choreService.formatReward(
@@ -19,6 +19,7 @@ const ChoreCard = ({ chore, onPress, showActions = false, onComplete, onApprove 
     chore.reward_amount,
     chore.max_reward_amount
   );
+  const isDisabled = chore.status === 'disabled';
 
   const renderRecurrence = () => {
     if (chore.recurrence === 'once') return null;
@@ -42,7 +43,7 @@ const ChoreCard = ({ chore, onPress, showActions = false, onComplete, onApprove 
   };
 
   const renderActions = () => {
-    if (!showActions) return null;
+    if (!showActions || isDisabled) return null;
 
     return (
       <View style={styles.actionsContainer}>
@@ -64,18 +65,28 @@ const ChoreCard = ({ chore, onPress, showActions = false, onComplete, onApprove 
             <Text style={styles.actionButtonText}>Approve</Text>
           </TouchableOpacity>
         )}
+        {showEditButton && onEdit && (
+          <TouchableOpacity
+            style={[styles.actionButton, styles.editButton]}
+            onPress={() => onEdit(chore)}
+          >
+            <Icon name="edit" size={20} color="white" />
+            <Text style={styles.actionButtonText}>Edit</Text>
+          </TouchableOpacity>
+        )}
       </View>
     );
   };
 
   return (
     <TouchableOpacity
-      style={[styles.container, { borderLeftColor: statusColor }]}
-      onPress={onPress}
-      activeOpacity={0.7}
+      style={[styles.container, { borderLeftColor: statusColor }, isDisabled && styles.disabledContainer]}
+      onPress={isDisabled ? null : onPress}
+      activeOpacity={isDisabled ? 1 : 0.7}
+      disabled={isDisabled}
     >
       <View style={styles.header}>
-        <Text style={styles.title} numberOfLines={1}>
+        <Text style={[styles.title, isDisabled && styles.disabledText]} numberOfLines={1}>
           {chore.title}
         </Text>
         <View style={[styles.statusBadge, { backgroundColor: statusColor }]}>
@@ -83,7 +94,7 @@ const ChoreCard = ({ chore, onPress, showActions = false, onComplete, onApprove 
         </View>
       </View>
 
-      <Text style={styles.description} numberOfLines={2}>
+      <Text style={[styles.description, isDisabled && styles.disabledText]} numberOfLines={2}>
         {chore.description}
       </Text>
 
@@ -217,11 +228,21 @@ const styles = StyleSheet.create({
   approveButton: {
     backgroundColor: colors.secondary,
   },
+  editButton: {
+    backgroundColor: colors.info,
+  },
   actionButtonText: {
     ...typography.label,
     color: 'white',
     marginLeft: 4,
     fontWeight: '600',
+  },
+  disabledContainer: {
+    opacity: 0.6,
+  },
+  disabledText: {
+    textDecorationLine: 'line-through',
+    textDecorationStyle: 'solid',
   },
 });
 

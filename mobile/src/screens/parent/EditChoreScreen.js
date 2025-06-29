@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -12,95 +12,70 @@ import {
   Switch,
   ActivityIndicator,
   Modal,
-  Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { Picker } from '@react-native-picker/picker';
 import { choreService } from '../../services/choreService';
 import { userService } from '../../services/userService';
-import { useToast } from '../../contexts/ToastContext';
 import { colors } from '../../styles/colors';
 import { typography } from '../../styles/typography';
-import AnimatedButton from '../../components/common/AnimatedButton';
 
-const CreateChoreScreen = () => {
+const EditChoreScreen = () => {
   const navigation = useNavigation();
-  const { showSuccess, showError } = useToast();
+  const route = useRoute();
+  const { chore } = route.params;
+  
   const [isLoading, setIsLoading] = useState(false);
   const [children, setChildren] = useState([]);
   const [showChildPicker, setShowChildPicker] = useState(false);
   
-  // Form animations
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const formTranslate = useRef(new Animated.Value(30)).current;
-  
-  // Form fields
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [assigneeId, setAssigneeId] = useState('');
-  const [recurrence, setRecurrence] = useState('once');
-  const [rewardType, setRewardType] = useState('fixed');
-  const [rewardAmount, setRewardAmount] = useState('');
-  const [maxRewardAmount, setMaxRewardAmount] = useState('');
-  const [cooldownDays, setCooldownDays] = useState('7');
+  // Form fields - initialize with chore data
+  const [title, setTitle] = useState(chore.title);
+  const [description, setDescription] = useState(chore.description || '');
+  const [assigneeId, setAssigneeId] = useState(chore.assignee_id?.toString() || '');
+  const [recurrence, setRecurrence] = useState(chore.recurrence);
+  const [rewardType, setRewardType] = useState(chore.reward_type);
+  const [rewardAmount, setRewardAmount] = useState(chore.reward_amount?.toString() || '');
+  const [maxRewardAmount, setMaxRewardAmount] = useState(chore.max_reward_amount?.toString() || '');
+  const [cooldownDays, setCooldownDays] = useState(chore.cooldown_days?.toString() || '7');
 
   useEffect(() => {
     loadChildren();
-    
-    // Animate form on mount
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 400,
-        useNativeDriver: true,
-      }),
-      Animated.spring(formTranslate, {
-        toValue: 0,
-        tension: 50,
-        friction: 8,
-        useNativeDriver: true,
-      }),
-    ]).start();
   }, []);
 
   const loadChildren = async () => {
     const result = await userService.getChildren();
-    console.log('Loading children:', result);
     if (result.success) {
       setChildren(result.data);
-      // Don't auto-select, let user choose
-      // if (result.data.length > 0) {
-      //   setAssigneeId(result.data[0].id.toString());
-      // }
     }
   };
 
   const validateForm = () => {
     if (!title.trim()) {
-      showError('Please enter a chore title');
+      Alert.alert('Error', 'Please enter a chore title');
       return false;
     }
     if (!description.trim()) {
-      showError('Please enter a description');
+      Alert.alert('Error', 'Please enter a description');
       return false;
     }
     if (!assigneeId) {
-      showError('Please select who will do this chore');
+      Alert.alert('Error', 'Please select who will do this chore');
       return false;
     }
     
     const amount = parseFloat(rewardAmount);
     if (isNaN(amount) || amount < 0) {
-      showError('Please enter a valid reward amount');
+      Alert.alert('Error', 'Please enter a valid reward amount');
       return false;
     }
     
     if (rewardType === 'range') {
       const maxAmount = parseFloat(maxRewardAmount);
       if (isNaN(maxAmount) || maxAmount <= amount) {
-        showError('Maximum reward must be greater than minimum reward');
+        Alert.alert('Error', 'Maximum reward must be greater than minimum reward');
         return false;
       }
     }
@@ -108,7 +83,7 @@ const CreateChoreScreen = () => {
     return true;
   };
 
-  const handleCreate = async () => {
+  const handleUpdate = async () => {
     if (!validateForm()) return;
 
     setIsLoading(true);
@@ -133,31 +108,111 @@ const CreateChoreScreen = () => {
     }
 
     try {
-      const result = await choreService.createChore(choreData);
+      const result = await choreService.updateChore(chore.id, choreData);
       
       if (result.success) {
-        showSuccess('Chore created successfully!');
-        setTimeout(() => {
-          navigation.goBack();
-        }, 500);
+        Alert.alert(
+          'Success',
+          'Chore updated successfully!',
+          [
+            {
+              text: 'OK',
+              onPress: () => navigation.goBack(),
+            },
+          ]
+        );
       } else {
-        showError(result.error || 'Failed to create chore');
+        Alert.alert('Error', result.error || 'Failed to update chore');
       }
     } catch (error) {
-      showError('Failed to create chore');
+      Alert.alert('Error', 'An unexpected error occurred');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const renderRewardInputs = () => {
+  const handleDisable = async () => {
+    Alert.alert(
+      'Disable Chore',
+      'Are you sure you want to disable this chore? It will no longer be visible to children.',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Disable',
+          style: 'destructive',
+          onPress: async () => {
+            setIsLoading(true);
+            try {
+              const result = await choreService.disableChore(chore.id);
+              if (result.success) {
+                Alert.alert(
+                  'Success',
+                  'Chore disabled successfully!',
+                  [
+                    {
+                      text: 'OK',
+                      onPress: () => navigation.goBack(),
+                    },
+                  ]
+                );
+              } else {
+                Alert.alert('Error', result.error || 'Failed to disable chore');
+              }
+            } catch (error) {
+              Alert.alert('Error', 'An unexpected error occurred');
+            } finally {
+              setIsLoading(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const renderRecurrenceToggle = () => (
+    <View style={styles.toggleContainer}>
+      <TouchableOpacity
+        style={[
+          styles.toggleButton,
+          { borderTopLeftRadius: 8, borderBottomLeftRadius: 8 },
+          recurrence === 'once' && styles.toggleActive,
+        ]}
+        onPress={() => setRecurrence('once')}
+      >
+        <Text style={[styles.toggleText, recurrence === 'once' && styles.toggleTextActive]}>
+          One Time
+        </Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={[
+          styles.toggleButton,
+          { borderTopRightRadius: 8, borderBottomRightRadius: 8 },
+          recurrence === 'recurring' && styles.toggleActive,
+        ]}
+        onPress={() => setRecurrence('recurring')}
+      >
+        <Text style={[styles.toggleText, recurrence === 'recurring' && styles.toggleTextActive]}>
+          Recurring
+        </Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  const renderRewardSection = () => {
     return (
       <View>
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Reward Type</Text>
           <View style={styles.toggleContainer}>
             <TouchableOpacity
-              style={[styles.toggleButton, rewardType === 'fixed' && styles.toggleActive]}
+              style={[
+                styles.toggleButton,
+                { borderTopLeftRadius: 8, borderBottomLeftRadius: 8 },
+                rewardType === 'fixed' && styles.toggleActive,
+              ]}
               onPress={() => setRewardType('fixed')}
             >
               <Text style={[styles.toggleText, rewardType === 'fixed' && styles.toggleTextActive]}>
@@ -165,7 +220,11 @@ const CreateChoreScreen = () => {
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.toggleButton, rewardType === 'range' && styles.toggleActive]}
+              style={[
+                styles.toggleButton,
+                { borderTopRightRadius: 8, borderBottomRightRadius: 8 },
+                rewardType === 'range' && styles.toggleActive,
+              ]}
               onPress={() => setRewardType('range')}
             >
               <Text style={[styles.toggleText, rewardType === 'range' && styles.toggleTextActive]}>
@@ -214,6 +273,14 @@ const CreateChoreScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Icon name="arrow-back" size={24} color={colors.text} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Edit Chore</Text>
+        <View style={{ width: 24 }} />
+      </View>
+
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
@@ -222,15 +289,7 @@ const CreateChoreScreen = () => {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          <Animated.View 
-            style={[
-              styles.form,
-              {
-                opacity: fadeAnim,
-                transform: [{ translateY: formTranslate }],
-              },
-            ]}
-          >
+          <View style={styles.form}>
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Chore Title</Text>
               <TextInput
@@ -337,32 +396,7 @@ const CreateChoreScreen = () => {
 
             <View style={styles.inputGroup}>
               <Text style={styles.label}>How Often?</Text>
-              <View style={styles.toggleContainer}>
-                <TouchableOpacity
-                  style={[
-                    styles.toggleButton,
-                    { borderTopLeftRadius: 8, borderBottomLeftRadius: 8 },
-                    recurrence === 'once' && styles.toggleActive,
-                  ]}
-                  onPress={() => setRecurrence('once')}
-                >
-                  <Text style={[styles.toggleText, recurrence === 'once' && styles.toggleTextActive]}>
-                    One Time
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    styles.toggleButton,
-                    { borderTopRightRadius: 8, borderBottomRightRadius: 8 },
-                    recurrence === 'recurring' && styles.toggleActive,
-                  ]}
-                  onPress={() => setRecurrence('recurring')}
-                >
-                  <Text style={[styles.toggleText, recurrence === 'recurring' && styles.toggleTextActive]}>
-                    Recurring
-                  </Text>
-                </TouchableOpacity>
-              </View>
+              {renderRecurrenceToggle()}
             </View>
 
             {recurrence === 'recurring' && (
@@ -406,19 +440,32 @@ const CreateChoreScreen = () => {
               </View>
             )}
 
-            {renderRewardInputs()}
+            {renderRewardSection()}
 
-            <AnimatedButton
-              title="Create Chore"
-              onPress={handleCreate}
-              variant="primary"
-              size="large"
-              icon="add-circle"
-              disabled={isLoading || children.length === 0}
-              showLoader={isLoading}
-              style={styles.createButton}
-            />
-          </Animated.View>
+            <TouchableOpacity
+              style={[styles.updateButton, isLoading && styles.buttonDisabled]}
+              onPress={handleUpdate}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <ActivityIndicator color="white" />
+              ) : (
+                <>
+                  <Icon name="save" size={20} color="white" />
+                  <Text style={styles.updateButtonText}>Update Chore</Text>
+                </>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.disableButton, isLoading && styles.buttonDisabled]}
+              onPress={handleDisable}
+              disabled={isLoading || chore.status === 'disabled'}
+            >
+              <Icon name="block" size={20} color="white" />
+              <Text style={styles.disableButtonText}>Disable Chore</Text>
+            </TouchableOpacity>
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -429,6 +476,20 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    backgroundColor: colors.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  headerTitle: {
+    ...typography.h3,
+    color: colors.text,
   },
   keyboardView: {
     flex: 1,
@@ -458,53 +519,8 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   textArea: {
-    minHeight: 80,
+    height: 80,
     textAlignVertical: 'top',
-  },
-  pickerContainer: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 8,
-    overflow: 'hidden',
-  },
-  picker: {
-    height: 50,
-  },
-  noChildrenText: {
-    ...typography.body,
-    color: colors.textSecondary,
-    fontStyle: 'italic',
-    padding: 12,
-    backgroundColor: colors.surface,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  recurrenceContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  recurrenceButton: {
-    flex: 1,
-    paddingVertical: 12,
-    marginHorizontal: 4,
-    backgroundColor: colors.surface,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: 'center',
-  },
-  recurrenceActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  recurrenceText: {
-    ...typography.label,
-    color: colors.text,
-  },
-  recurrenceTextActive: {
-    color: 'white',
   },
   toggleContainer: {
     flexDirection: 'row',
@@ -548,15 +564,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.text,
   },
-  createButton: {
+  updateButton: {
     flexDirection: 'row',
     backgroundColor: colors.primary,
-    paddingVertical: 16,
-    paddingHorizontal: 24,
     borderRadius: 8,
+    paddingVertical: 16,
+    marginTop: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 20,
     ...Platform.select({
       ios: {
         shadowColor: '#000',
@@ -572,7 +587,7 @@ const styles = StyleSheet.create({
   buttonDisabled: {
     opacity: 0.6,
   },
-  createButtonText: {
+  updateButtonText: {
     ...typography.button,
     color: 'white',
     marginLeft: 8,
@@ -607,7 +622,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    opacity: 0, // Make picker invisible but still tappable
+    opacity: 0,
   },
   pickerItem: {
     fontSize: 18,
@@ -679,6 +694,31 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginTop: 2,
   },
+  disableButton: {
+    flexDirection: 'row',
+    backgroundColor: colors.error,
+    borderRadius: 8,
+    paddingVertical: 16,
+    marginTop: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 3,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
+  },
+  disableButtonText: {
+    ...typography.button,
+    color: 'white',
+    marginLeft: 8,
+  },
 });
 
-export default CreateChoreScreen;
+export default EditChoreScreen;

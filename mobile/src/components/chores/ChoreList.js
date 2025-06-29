@@ -6,8 +6,9 @@ import {
   Text,
   StyleSheet,
   ActivityIndicator,
+  Animated,
 } from 'react-native';
-import ChoreCard from './ChoreCard';
+import AnimatedChoreCard from './AnimatedChoreCard';
 import { colors } from '../../styles/colors';
 import { typography } from '../../styles/typography';
 
@@ -20,6 +21,9 @@ const ChoreList = ({
   showActions = false,
   onComplete,
   onApprove,
+  onEdit,
+  onDisable,
+  showEditButton = false,
   emptyMessage = 'No chores found',
   ListHeaderComponent,
 }) => {
@@ -39,15 +43,20 @@ const ChoreList = ({
     );
   };
 
-  const renderItem = ({ item }) => (
-    <ChoreCard
-      chore={item}
-      onPress={() => onChorePress && onChorePress(item)}
-      showActions={showActions}
-      onComplete={onComplete}
-      onApprove={onApprove}
-    />
-  );
+  const renderItem = ({ item, index }) => {
+    return (
+      <AnimatedChoreCard
+        chore={item}
+        onPress={() => onChorePress && onChorePress(item)}
+        showActions={showActions}
+        onComplete={onComplete}
+        onApprove={onApprove}
+        onEdit={onEdit}
+        onDisable={onDisable}
+        showEditButton={showEditButton}
+      />
+    );
+  };
 
   return (
     <FlatList

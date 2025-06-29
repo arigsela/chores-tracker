@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -9,19 +9,30 @@ import {
   Platform,
   Alert,
   ActivityIndicator,
+  Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../store/authContext';
 import { authService } from '../../services/authService';
+import { useToast } from '../../contexts/ToastContext';
 import { colors } from '../../styles/colors';
 import { typography } from '../../styles/typography';
+import AnimatedButton from '../../components/common/AnimatedButton';
+import Icon from 'react-native-vector-icons/MaterialIcons';
+import { useSimpleFadeIn, useSimpleSlideIn } from '../../hooks/useSimpleAnimation';
 
 const LoginScreen = ({ navigation }) => {
   const { login } = useAuth();
+  const { showSuccess, showError } = useToast();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [biometricAvailable, setBiometricAvailable] = useState(false);
+  
+  // Simple animations that won't cause re-render loops
+  const titleAnimation = useSimpleFadeIn(300, 0);
+  const formAnimation = useSimpleSlideIn(400, 200);
+  const buttonAnimation = useSimpleSlideIn(400, 400);
 
   useEffect(() => {
     checkBiometric();
@@ -33,6 +44,7 @@ const LoginScreen = ({ navigation }) => {
   };
 
   const handleLogin = async () => {
+    console.log('Login button pressed'); // Debug log
     if (!username.trim() || !password.trim()) {
       Alert.alert('Error', 'Please enter username and password');
       return;
@@ -40,12 +52,16 @@ const LoginScreen = ({ navigation }) => {
 
     setIsLoading(true);
     try {
+      console.log('Attempting login with:', username); // Debug log
       const result = await login(username, password);
       if (!result.success) {
-        Alert.alert('Login Failed', result.error);
+        showError(result.error || 'Login failed');
+      } else {
+        showSuccess('Welcome back!');
       }
       // Navigation will be handled by auth state change
     } catch (error) {
+      console.error('Login error:', error); // Debug log
       Alert.alert('Error', 'An unexpected error occurred');
     } finally {
       setIsLoading(false);
@@ -72,12 +88,15 @@ const LoginScreen = ({ navigation }) => {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.content}
       >
-        <View style={styles.header}>
+        <Animated.View style={[styles.header, titleAnimation]}>
+          <View style={styles.iconContainer}>
+            <Icon name="assignment-turned-in" size={80} color={colors.primary} />
+          </View>
           <Text style={styles.title}>Chores Tracker</Text>
           <Text style={styles.subtitle}>Login to continue</Text>
-        </View>
+        </Animated.View>
 
-        <View style={styles.form}>
+        <Animated.View style={[styles.form, formAnimation]}>
           <TextInput
             style={styles.input}
             placeholder="Username"
@@ -99,27 +118,28 @@ const LoginScreen = ({ navigation }) => {
             editable={!isLoading}
           />
 
-          <TouchableOpacity
-            style={[styles.button, isLoading && styles.buttonDisabled]}
-            onPress={handleLogin}
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <ActivityIndicator color="white" />
-            ) : (
-              <Text style={styles.buttonText}>Login</Text>
-            )}
-          </TouchableOpacity>
+          <Animated.View style={buttonAnimation}>
+            <AnimatedButton
+              title={isLoading ? 'Logging in...' : 'Login'}
+              onPress={handleLogin}
+              variant="primary"
+              disabled={isLoading}
+              showLoader={isLoading}
+            />
+          </Animated.View>
 
           {biometricAvailable && (
-            <TouchableOpacity
-              style={styles.biometricButton}
-              onPress={handleBiometricLogin}
-            >
-              <Text style={styles.biometricButtonText}>Login with Face ID</Text>
-            </TouchableOpacity>
+            <Animated.View style={buttonAnimation}>
+              <AnimatedButton
+                title="Login with Face ID"
+                onPress={handleBiometricLogin}
+                variant="outline"
+                icon="face"
+                style={styles.biometricButton}
+              />
+            </Animated.View>
           )}
-        </View>
+        </Animated.View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -138,6 +158,15 @@ const styles = StyleSheet.create({
   header: {
     alignItems: 'center',
     marginBottom: 40,
+  },
+  iconContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: colors.primaryLight,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
   },
   title: {
     ...typography.h1,
@@ -178,17 +207,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   biometricButton: {
-    height: 50,
-    borderWidth: 1,
-    borderColor: colors.primary,
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  biometricButtonText: {
-    color: colors.primary,
-    fontSize: 16,
-    fontWeight: '600',
+    marginTop: 16,
   },
 });
 
