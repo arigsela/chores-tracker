@@ -6,14 +6,17 @@ import {
   FlatList,
   RefreshControl,
   ActivityIndicator,
+  TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { choreService } from '../../services/choreService';
 import { colors } from '../../styles/colors';
 import { typography } from '../../styles/typography';
 
 const RewardsScreen = () => {
+  const navigation = useNavigation();
   const [rewards, setRewards] = useState([]);
   const [totalEarned, setTotalEarned] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -72,14 +75,25 @@ const RewardsScreen = () => {
   );
 
   const renderHeader = () => (
-    <View style={styles.summaryCard}>
-      <Icon name="account-balance-wallet" size={48} color={colors.primary} />
-      <Text style={styles.summaryLabel}>Total Earned</Text>
-      <Text style={styles.summaryAmount}>${totalEarned.toFixed(2)}</Text>
-      <Text style={styles.summarySubtext}>
-        From {rewards.length} completed chores
-      </Text>
-    </View>
+    <>
+      <View style={styles.summaryCard}>
+        <Icon name="account-balance-wallet" size={48} color={colors.primary} />
+        <Text style={styles.summaryLabel}>Total Earned</Text>
+        <Text style={styles.summaryAmount}>${totalEarned.toFixed(2)}</Text>
+        <Text style={styles.summarySubtext}>
+          From {rewards.length} completed chores
+        </Text>
+      </View>
+      
+      <TouchableOpacity
+        style={styles.historyButton}
+        onPress={() => navigation.navigate('RewardHistory')}
+      >
+        <Icon name="history" size={24} color={colors.primary} />
+        <Text style={styles.historyButtonText}>View Full History</Text>
+        <Icon name="chevron-right" size={24} color={colors.primary} />
+      </TouchableOpacity>
+    </>
   );
 
   const renderEmptyState = () => (
@@ -225,6 +239,27 @@ const styles = StyleSheet.create({
     ...typography.body1,
     color: colors.textSecondary,
     textAlign: 'center',
+  },
+  historyButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    marginHorizontal: 16,
+    marginBottom: 16,
+    padding: 16,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  historyButtonText: {
+    ...typography.body1,
+    color: colors.text,
+    flex: 1,
+    marginLeft: 12,
+    fontWeight: '500',
   },
 });
 

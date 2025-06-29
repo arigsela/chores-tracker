@@ -8,45 +8,64 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../../store/authContext';
+import { useError } from '../../contexts/ErrorContext';
 import { choreService } from '../../services/choreService';
 import ChoreList from '../../components/chores/ChoreList';
+import { SkeletonList } from '../../components/common/SkeletonPlaceholder';
+import ErrorView from '../../components/common/ErrorView';
 import { colors } from '../../styles/colors';
 import { typography } from '../../styles/typography';
 
 const ParentHomeScreen = () => {
   const navigation = useNavigation();
   const { user } = useAuth();
+  const { showError } = useError();
   const [chores, setChores] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [error, setError] = useState(null);
 
   const loadChores = useCallback(async (showRefresh = false) => {
     try {
       if (showRefresh) setIsRefreshing(true);
       else setIsLoading(true);
-
+      
+      setError(null);
       const result = await choreService.getAllChores();
       
       if (result.success) {
         setChores(result.data);
       } else {
-        Alert.alert('Error', result.error);
+        const errorMsg = result.error || 'Failed to load chores';
+        setError(errorMsg);
+        if (!showRefresh) {
+          showError(errorMsg, {
+            key: 'loadChores',
+            retryCallback: () => loadChores(false),
+          });
+        }
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to load chores');
+      const errorMsg = error.message || 'Failed to load chores';
+      setError(errorMsg);
+      if (!showRefresh) {
+        showError(error, {
+          key: 'loadChores',
+          retryCallback: () => loadChores(false),
+        });
+      }
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }, []);
+  }, [showError]);
 
   useEffect(() => {
     loadChores();
   }, [loadChores]);
 
   const handleChorePress = (chore) => {
-    // Navigate to chore detail screen (to be implemented)
-    Alert.alert('Chore Details', `You selected: ${chore.title}`);
+    navigation.navigate('EditChore', { chore });
   };
 
   const handleApprove = async (choreId) => {
@@ -107,6 +126,28 @@ const ParentHomeScreen = () => {
     </View>
   );
 
+  if (isLoading && !isRefreshing) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.greeting}>Welcome back, {user?.username}!</Text>
+        </View>
+        <SkeletonList count={5} />
+      </SafeAreaView>
+    );
+  }
+
+  if (error && !isRefreshing && chores.length === 0) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <ErrorView 
+          error={error}
+          onRetry={() => loadChores(false)}
+        />
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <ChoreList
@@ -117,6 +158,8 @@ const ParentHomeScreen = () => {
         onChorePress={handleChorePress}
         showActions={true}
         onApprove={handleApprove}
+        onEdit={handleChorePress}
+        showEditButton={true}
         emptyMessage="No chores created yet. Tap the + button to create your first chore!"
         ListHeaderComponent={renderHeader}
       />

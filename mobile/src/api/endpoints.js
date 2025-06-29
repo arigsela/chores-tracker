@@ -25,5 +25,6 @@ export const API_ENDPOINTS = {
     DELETE: (id) => `/chores/${id}`,
     COMPLETE: (id) => `/chores/${id}/complete`,
     APPROVE: (id) => `/chores/${id}/approve`,
+    DISABLE: (id) => `/chores/${id}/disable`,
   },
 };

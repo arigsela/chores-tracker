@@ -20,10 +20,18 @@ export const userService = {
 
   async createChild(childData) {
     try {
-      const response = await apiClient.post('/users/', {
-        ...childData,
-        is_parent: false,
+      // The register endpoint expects form data
+      const formData = new FormData();
+      formData.append('username', childData.username);
+      formData.append('password', childData.password);
+      formData.append('is_parent', 'false');
+      
+      const response = await apiClient.post('/users/register', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
       });
+      
       return {
         success: true,
         data: response.data,

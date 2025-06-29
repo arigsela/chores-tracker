@@ -11,6 +11,7 @@ export const colors = {
   
   // Status colors
   success: '#4CAF50',        // Green
+  successLight: '#C8E6C9',   // Light Green
   warning: '#FF9800',        // Orange
   error: '#F44336',          // Red
   info: '#2196F3',           // Blue
@@ -22,6 +23,7 @@ export const colors = {
   text: '#212121',
   textSecondary: '#757575',
   border: '#E0E0E0',
+  white: '#FFFFFF',
   
   // Specific colors
   pending: '#FF9800',
