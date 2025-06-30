@@ -52,6 +52,7 @@ jobs:
     name: Create Release and Deploy to ECR
     runs-on: ubuntu-latest
     environment: production
+    timeout-minutes: 30
     outputs:
       new_version: ${{ steps.calc_version.outputs.new_version }}
       version_number: ${{ steps.calc_version.outputs.new_version_number }}
@@ -204,15 +205,20 @@ jobs:
         if: steps.check-secrets.outputs.configured == 'true' && github.event.inputs.skip_deploy != 'true'
         uses: docker/setup-buildx-action@v3
 
-      - name: Build and push Docker image
+      - name: Build Docker image
         if: steps.check-secrets.outputs.configured == 'true' && github.event.inputs.skip_deploy != 'true'
         id: build
         uses: docker/build-push-action@v5
+        timeout-minutes: 15
         with:
           context: .
           file: ./Dockerfile
           platforms: linux/amd64
-          push: true
+          push: false
+          load: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: false
           tags: |
             ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ steps.calc_version.outputs.new_version_number }}
             ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ steps.calc_version.outputs.major }}.${{ steps.calc_version.outputs.minor }}
@@ -222,6 +228,45 @@ jobs:
           build-args: |
             BUILD_VERSION=${{ steps.calc_version.outputs.new_version }}
             BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+
+      - name: Push Docker images to ECR
+        if: steps.check-secrets.outputs.configured == 'true' && github.event.inputs.skip_deploy != 'true'
+        timeout-minutes: 10
+        run: |
+          # Function to retry docker push
+          retry_push() {
+            local tag=$1
+            local max_attempts=3
+            local attempt=1
+            
+            while [ $attempt -le $max_attempts ]; do
+              echo "Pushing $tag (attempt $attempt/$max_attempts)..."
+              if docker push "$tag"; then
+                echo "Successfully pushed $tag"
+                return 0
+              else
+                echo "Failed to push $tag"
+                if [ $attempt -lt $max_attempts ]; then
+                  echo "Retrying in 10 seconds..."
+                  sleep 10
+                fi
+              fi
+              attempt=$((attempt + 1))
+            done
+            
+            echo "Failed to push $tag after $max_attempts attempts"
+            return 1
+          }
+          
+          # Push all tags
+          REGISTRY="${{ steps.login-ecr.outputs.registry }}"
+          REPO="${{ env.ECR_REPOSITORY }}"
+          
+          retry_push "$REGISTRY/$REPO:${{ steps.calc_version.outputs.new_version_number }}"
+          retry_push "$REGISTRY/$REPO:${{ steps.calc_version.outputs.major }}.${{ steps.calc_version.outputs.minor }}"
+          retry_push "$REGISTRY/$REPO:${{ steps.calc_version.outputs.major }}"
+          retry_push "$REGISTRY/$REPO:latest"
+          retry_push "$REGISTRY/$REPO:sha-${{ github.sha }}"
 
       - name: Create and push tag
         run: |
