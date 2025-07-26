@@ -95,10 +95,30 @@
 <script>
     // Check if user is logged in
     document.addEventListener('DOMContentLoaded', function() {
-        const token = localStorage.getItem('token');
-        if (!token) {
-            window.location.href = '/pages/login';
+        console.log('[CHORES] DOMContentLoaded fired');
+        
+        // Debug: Check if localStorage is available
+        try {
+            const testStorage = 'test';
+            localStorage.setItem(testStorage, testStorage);
+            localStorage.removeItem(testStorage);
+            console.log('[CHORES] localStorage is available');
+        } catch(e) {
+            console.error('[CHORES] localStorage is NOT available:', e);
+            alert('Storage not available. Please enable cookies/storage.');
+            return;
         }
+        
+        const token = localStorage.getItem('token');
+        console.log('[CHORES] Token exists:', !!token);
+        
+        if (!token) {
+            console.log('[CHORES] No token, redirecting to login');
+            window.location.href = '/pages/login';
+            return;
+        }
+        
+        console.log('[CHORES] Starting user fetch...');
         
         // Determine if user is parent or child
         fetch('/api/v1/users/me', {
@@ -107,25 +127,31 @@
             }
         })
         .then(response => {
+            console.log('[CHORES] User fetch response status:', response.status);
             if (!response.ok) {
                 throw new Error('Failed to fetch user data: ' + response.status);
             }
             return response.json();
         })
         .then(user => {
+            console.log('[CHORES] User data received:', user);
             // Update page based on user role
             if (user.is_parent) {
+                console.log('[CHORES] Showing parent view');
                 document.getElementById('user-role-container').textContent = 'Parent View';
                 document.getElementById('parent-view').style.display = 'block';
                 document.getElementById('child-view').style.display = 'none';
             } else {
+                console.log('[CHORES] Showing child view');
                 document.getElementById('user-role-container').textContent = 'Child View';
                 document.getElementById('parent-view').style.display = 'none';
                 document.getElementById('child-view').style.display = 'block';
             }
+            console.log('[CHORES] View setup complete');
         })
         .catch(error => {
-            console.error('Error fetching user data:', error);
+            console.error('[CHORES] Error fetching user data:', error);
+            alert('Error loading user data: ' + error.message);
             // Fallback: show child view by default if fetch fails
             document.getElementById('user-role-container').textContent = 'Child View';
             document.getElementById('parent-view').style.display = 'none';
@@ -133,12 +159,30 @@
         });
     });
 
+    // Debug: Check if HTMX is loaded
+    console.log('[CHORES] HTMX loaded:', typeof htmx !== 'undefined');
+    
     // Add authentication headers to all HTMX requests
     document.addEventListener('htmx:configRequest', function(event) {
+        console.log('[CHORES] HTMX request config:', event.detail.path);
         const token = localStorage.getItem('token');
         if (token) {
             event.detail.headers['Authorization'] = 'Bearer ' + token;
+            console.log('[CHORES] Added auth header to HTMX request');
         }
+    });
+    
+    // Debug HTMX events
+    document.addEventListener('htmx:beforeRequest', function(event) {
+        console.log('[CHORES] HTMX before request:', event.detail.path);
+    });
+    
+    document.addEventListener('htmx:afterRequest', function(event) {
+        console.log('[CHORES] HTMX after request:', event.detail.path, 'Success:', event.detail.successful);
+    });
+    
+    document.addEventListener('htmx:responseError', function(event) {
+        console.error('[CHORES] HTMX response error:', event.detail);
     });
 
     // Handle refresh for chores lists
