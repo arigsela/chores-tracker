@@ -107,7 +107,12 @@
                 'Authorization': 'Bearer ' + token
             }
         })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Failed to fetch user data: ' + response.status);
+            }
+            return response.json();
+        })
         .then(user => {
             // Update page based on user role
             if (user.is_parent) {
@@ -143,7 +148,12 @@
                 'Authorization': 'Bearer ' + token
             }
         })
-        .then(response => response.text())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Failed to fetch children: ' + response.status);
+            }
+            return response.text();
+        })
         .then(html => {
             console.log('Children response:', html);
             // Extract child IDs and names from the HTML options
