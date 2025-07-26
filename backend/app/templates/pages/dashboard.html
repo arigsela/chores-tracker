@@ -144,7 +144,12 @@
                     'Authorization': 'Bearer ' + token
                 }
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to fetch user data: ' + response.status);
+                }
+                return response.json();
+            })
             .then(user => {
                 // Store user data
                 window.currentUser = user;
