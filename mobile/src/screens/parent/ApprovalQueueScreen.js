@@ -13,6 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { choreService } from '../../services/choreService';
 import ChoreCard from '../../components/chores/ChoreCard';
+import RewardAmountModal from '../../components/RewardAmountModal';
 import { colors } from '../../styles/colors';
 import { typography } from '../../styles/typography';
 
@@ -20,6 +21,8 @@ const ApprovalQueueScreen = () => {
   const [pendingChores, setPendingChores] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [rewardModalVisible, setRewardModalVisible] = useState(false);
+  const [selectedChore, setSelectedChore] = useState(null);
 
   const fetchPendingChores = useCallback(async () => {
     try {
@@ -51,39 +54,36 @@ const ApprovalQueueScreen = () => {
   }, [fetchPendingChores]);
 
   const handleApprove = useCallback(async (chore) => {
-    try {
-      let rewardAmount = chore.reward_amount;
-      
-      // For range rewards, use the max amount
-      if (chore.reward_type === 'range' && chore.max_reward_amount) {
-        rewardAmount = chore.max_reward_amount;
-        
-        Alert.alert(
-          'Approve Chore',
-          `Approving with maximum reward of $${rewardAmount}`,
-          [
-            { text: 'Cancel', style: 'cancel' },
-            {
-              text: 'Approve',
-              onPress: async () => {
-                await choreService.approveChore(chore.id, rewardAmount);
-                Alert.alert('Success', 'Chore approved successfully!');
-                fetchPendingChores();
-              },
-            },
-          ]
-        );
-      } else {
-        // Fixed reward - approve directly
-        await choreService.approveChore(chore.id, rewardAmount);
+    // For range rewards, show the modal
+    if (chore.reward_type === 'range' && chore.min_reward_amount && chore.max_reward_amount) {
+      setSelectedChore(chore);
+      setRewardModalVisible(true);
+    } else {
+      // Fixed reward - approve directly
+      try {
+        await choreService.approveChore(chore.id, chore.reward_amount);
         Alert.alert('Success', 'Chore approved successfully!');
         fetchPendingChores();
+      } catch (error) {
+        console.error('Error approving chore:', error);
+        Alert.alert('Error', 'Failed to approve chore');
       }
+    }
+  }, [fetchPendingChores]);
+
+  const handleRewardAmountConfirm = useCallback(async (amount) => {
+    if (!selectedChore) return;
+    
+    try {
+      await choreService.approveChore(selectedChore.id, amount);
+      Alert.alert('Success', 'Chore approved successfully!');
+      fetchPendingChores();
+      setSelectedChore(null);
     } catch (error) {
       console.error('Error approving chore:', error);
       Alert.alert('Error', 'Failed to approve chore');
     }
-  }, [fetchPendingChores]);
+  }, [selectedChore, fetchPendingChores]);
 
   const renderChore = ({ item }) => (
     <ChoreCard
@@ -135,6 +135,18 @@ const ApprovalQueueScreen = () => {
           />
         }
         ListEmptyComponent={renderEmptyState}
+      />
+
+      <RewardAmountModal
+        visible={rewardModalVisible}
+        onClose={() => {
+          setRewardModalVisible(false);
+          setSelectedChore(null);
+        }}
+        onConfirm={handleRewardAmountConfirm}
+        minAmount={selectedChore?.min_reward_amount || 0}
+        maxAmount={selectedChore?.max_reward_amount || 0}
+        defaultAmount={selectedChore?.min_reward_amount || 0}
       />
     </SafeAreaView>
   );
