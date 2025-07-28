@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, ConfigDict, Field
+from pydantic import BaseModel, EmailStr, ConfigDict, Field, field_validator
 from typing import Optional, List
 
 class UserBase(BaseModel):
@@ -47,6 +47,14 @@ class UserLogin(BaseModel):
         description="User password",
         json_schema_extra={"example": "SecurePassword123"}
     )
+
+class UserUpdate(BaseModel):
+    """Schema for updating user information."""
+    username: Optional[str] = Field(None, min_length=3, max_length=50)
+    email: Optional[EmailStr] = Field(None)
+    password: Optional[str] = Field(None, min_length=4)
+    is_active: Optional[bool] = None
+
 
 class Token(BaseModel):
     """JWT token response schema."""

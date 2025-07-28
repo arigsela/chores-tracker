@@ -207,6 +207,16 @@ class UserService(BaseService[User, UserRepository]):
         """Get all children for a parent."""
         return await self.repository.get_children(db, parent_id=parent_id)
     
+    async def get_children_for_parent(
+        self, db: AsyncSession, *, parent_id: int
+    ) -> list[User]:
+        """Get all children for a parent - alias for get_children."""
+        return await self.get_children(db, parent_id=parent_id)
+    
+    async def count(self, db: AsyncSession) -> int:
+        """Get total count of users."""
+        return await self.repository.count(db)
+    
     async def reset_child_password(
         self,
         db: AsyncSession,

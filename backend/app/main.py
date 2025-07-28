@@ -21,6 +21,7 @@ from .middleware.rate_limit import setup_rate_limiting
 from .core.logging import setup_query_logging, setup_connection_pool_logging
 
 from .api.api_v1.api import api_router
+from .api.api_v2.api import api_v2_router
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -159,6 +160,7 @@ if settings.DEBUG:
 
 # API routes
 app.include_router(api_router, prefix=settings.API_V1_STR)
+app.include_router(api_v2_router, prefix="/api/v2")
 
 # Static files
 static_dir = Path(__file__).parent / "static"

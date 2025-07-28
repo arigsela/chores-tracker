@@ -1,5 +1,5 @@
 from typing import Generic, TypeVar, Type, Optional, List, Any, Dict, Union
-from sqlalchemy import select, update, delete
+from sqlalchemy import select, update, delete, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 from ..db.base import Base
@@ -61,3 +61,8 @@ class BaseRepository(Generic[ModelType]):
         """Delete a record."""
         await db.execute(delete(self.model).where(self.model.id == id))
         await db.commit()
+    
+    async def count(self, db: AsyncSession) -> int:
+        """Get total count of records."""
+        result = await db.execute(select(func.count()).select_from(self.model))
+        return result.scalar() or 0
