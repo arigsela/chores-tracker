@@ -1,6 +1,15 @@
 from pydantic import BaseModel, ConfigDict, Field, field_validator
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
+from enum import Enum
+
+
+class RecurrenceType(str, Enum):
+    """Chore recurrence type options."""
+    NONE = "none"
+    DAILY = "daily"
+    WEEKLY = "weekly"
+    MONTHLY = "monthly"
 
 class ChoreBase(BaseModel):
     """Base chore schema with common fields."""
@@ -65,6 +74,18 @@ class ChoreBase(BaseModel):
         description="Whether the chore is disabled (soft delete)",
         json_schema_extra={"example": False}
     )
+    recurrence_type: RecurrenceType = Field(
+        RecurrenceType.NONE,
+        description="How often the chore recurs",
+        json_schema_extra={"example": "weekly"}
+    )
+    recurrence_value: Optional[int] = Field(
+        None,
+        description="Day of week (0-6) for weekly, day of month (1-31) for monthly",
+        ge=0,
+        le=31,
+        json_schema_extra={"example": 1}
+    )
     
     @field_validator('max_reward')
     @classmethod
@@ -76,10 +97,15 @@ class ChoreBase(BaseModel):
 
 class ChoreCreate(ChoreBase):
     """Schema for creating a new chore."""
-    assignee_id: int = Field(
-        ...,
-        description="ID of the child user who will be assigned this chore",
+    assignee_id: Optional[int] = Field(
+        None,
+        description="ID of the child user who will be assigned this chore (None for master pool chores)",
         json_schema_extra={"example": 2}
+    )
+    hidden_from_users: List[int] = Field(
+        default_factory=list,
+        description="List of user IDs who should not see this chore",
+        json_schema_extra={"example": [3, 4]}
     )
     
     model_config = ConfigDict(
@@ -167,11 +193,15 @@ class ChoreResponse(ChoreBase):
                 "is_range_reward": False,
                 "cooldown_days": 7,
                 "is_recurring": True,
+                "recurrence_type": "weekly",
+                "recurrence_value": 1,
                 "assignee_id": 2,
                 "creator_id": 1,
                 "is_completed": False,
                 "is_approved": False,
                 "is_disabled": False,
+                "last_completion_time": None,
+                "next_available_time": None,
                 "created_at": "2024-12-20T10:00:00",
                 "updated_at": "2024-12-20T10:00:00"
             }
@@ -210,6 +240,69 @@ class ChoreResponse(ChoreBase):
         None,
         description="When the chore was last updated"
     )
+    last_completion_time: Optional[datetime] = Field(
+        None,
+        description="When the chore was last completed (for recurrence tracking)"
+    )
+    next_available_time: Optional[datetime] = Field(
+        None,
+        description="When the chore will next be available (for recurring chores)"
+    )
+
+class ChoreWithAvailability(ChoreResponse):
+    """Schema for chore with availability information."""
+    is_available: bool = Field(
+        ...,
+        description="Whether the chore is currently available to be claimed"
+    )
+    availability_progress: int = Field(
+        0,
+        description="Progress percentage until chore is available again (0-100)",
+        ge=0,
+        le=100
+    )
+    is_hidden_from_current_user: bool = Field(
+        False,
+        description="Whether this chore is hidden from the current user"
+    )
+
+
+class ChoreListResponse(BaseModel):
+    """Response schema for chore list with availability information."""
+    model_config = ConfigDict(
+        from_attributes=True,
+        json_schema_extra={
+            "example": {
+                "available_chores": [
+                    {
+                        "id": 1,
+                        "title": "Clean Room",
+                        "is_available": True,
+                        "availability_progress": 100
+                    }
+                ],
+                "completed_chores": [
+                    {
+                        "id": 2,
+                        "title": "Take out trash",
+                        "is_available": False,
+                        "availability_progress": 25,
+                        "next_available_time": "2024-12-21T00:00:00"
+                    }
+                ]
+            }
+        }
+    )
+    
+    available_chores: List[ChoreWithAvailability] = Field(
+        default_factory=list,
+        description="List of chores that are available to be claimed"
+    )
+    completed_chores: List[ChoreWithAvailability] = Field(
+        default_factory=list,
+        description="List of completed chores waiting for reset"
+    )
+
 
 class ChoreComplete(BaseModel):
     """Schema for marking a chore as complete."""
