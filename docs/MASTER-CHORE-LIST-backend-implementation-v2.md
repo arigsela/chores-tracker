@@ -230,18 +230,20 @@ class TestChoreServiceV2:
 
 ### Phase 3: API Layer Implementation (1.5 days)
 
-#### Subphase 3.1: Visibility Management Endpoints (0.5 day)
+#### Subphase 3.1: Visibility Management Endpoints (0.5 day) ✅
 **Tasks:**
-- [ ] Implement PUT /chores/{id}/visibility
-- [ ] Implement GET /chores/{id}/visibility
-- [ ] Add authorization middleware
-- [ ] Add request validation
+- [x] Implement PUT /chores/{id}/visibility
+- [x] Implement GET /chores/{id}/visibility
+- [x] Add authorization middleware
+- [x] Add request validation
 
 **Testing:**
-- [ ] Test successful visibility updates
-- [ ] Test authorization (parent-only)
-- [ ] Test invalid requests
-- [ ] Test error responses
+- [x] Test successful visibility updates
+- [x] Test authorization (parent-only)
+- [x] Test invalid requests
+- [x] Test error responses
+
+**Completed:** Created visibility endpoints with 6 passing tests.
 
 **API Tests:**
 ```python
@@ -256,18 +258,20 @@ async def test_get_visibility_returns_current_settings():
     """Test retrieving current visibility settings"""
 ```
 
-#### Subphase 3.2: Enhanced Chore List Endpoints (0.5 day)
+#### Subphase 3.2: Enhanced Chore List Endpoints (0.5 day) ✅
 **Tasks:**
-- [ ] Update GET /chores/pool endpoint
-- [ ] Add visibility filtering
-- [ ] Include availability status
-- [ ] Add progress information
+- [x] Update GET /chores/pool endpoint
+- [x] Add visibility filtering
+- [x] Include availability status
+- [x] Add progress information
 
 **Testing:**
-- [ ] Test filtered responses
-- [ ] Test available/completed separation
-- [ ] Test progress data
-- [ ] Test performance
+- [x] Test filtered responses
+- [x] Test available/completed separation
+- [x] Test progress data
+- [x] Test performance
+
+**Completed:** Created enhanced chore endpoints including pool management with 9 passing tests.
 
 #### Subphase 3.3: HTMX HTML Endpoints (0.5 day)
 **Tasks:**

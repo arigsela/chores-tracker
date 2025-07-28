@@ -21,6 +21,7 @@ from .middleware.rate_limit import setup_rate_limiting
 from .core.logging import setup_query_logging, setup_connection_pool_logging
 
 from .api.api_v1.api import api_router
+from .api.api_v2.api import api_v2_router
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -131,6 +132,14 @@ API endpoints are rate-limited to prevent abuse:
         {
             "name": "html",
             "description": "HTML/HTMX endpoints for dynamic UI updates",
+        },
+        {
+            "name": "chores-v2",
+            "description": "V2 enhanced chore endpoints with master pool and visibility features",
+        },
+        {
+            "name": "visibility-v2",
+            "description": "V2 chore visibility management endpoints",
         }
     ]
 )
@@ -159,6 +168,7 @@ if settings.DEBUG:
 
 # API routes
 app.include_router(api_router, prefix=settings.API_V1_STR)
+app.include_router(api_v2_router, prefix="/api/v2")
 
 # Static files
 static_dir = Path(__file__).parent / "static"
