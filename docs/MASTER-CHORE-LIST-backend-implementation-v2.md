@@ -127,18 +127,20 @@ class ChoreVisibilityBulkUpdate(BaseModel):
 
 ### Phase 2: Service Layer Implementation (2 days)
 
-#### Subphase 2.1: ChoreVisibilityService (0.5 day)
+#### Subphase 2.1: ChoreVisibilityService (0.5 day) ✅
 **Tasks:**
-- [ ] Implement update_chore_visibility method
-- [ ] Implement get_hidden_chore_ids_for_user method
-- [ ] Add bulk operations support
-- [ ] Add error handling
+- [x] Implement update_chore_visibility method
+- [x] Implement get_hidden_chore_ids_for_user method
+- [x] Add bulk operations support
+- [x] Add error handling
 
 **Testing:**
-- [ ] Unit test each method
-- [ ] Test bulk updates
-- [ ] Test error scenarios
-- [ ] Test concurrent updates
+- [x] Unit test each method
+- [x] Test bulk updates
+- [x] Test error scenarios
+- [x] Test concurrent updates
+
+**Completed:** Created `ChoreVisibilityService` with full functionality and 10 passing tests.
 
 **Test Cases:**
 ```python
@@ -157,20 +159,22 @@ class TestChoreVisibilityService:
         """Test when user has no hidden chores"""
 ```
 
-#### Subphase 2.2: Recurrence Calculation Engine (0.75 day)
+#### Subphase 2.2: Recurrence Calculation Engine (0.75 day) ✅
 **Tasks:**
-- [ ] Implement _calculate_reset_time method
-- [ ] Handle daily recurrence
-- [ ] Handle weekly recurrence
-- [ ] Handle monthly recurrence with edge cases
-- [ ] Add timezone support
+- [x] Implement _calculate_reset_time method
+- [x] Handle daily recurrence
+- [x] Handle weekly recurrence
+- [x] Handle monthly recurrence with edge cases
+- [x] Add timezone support
 
 **Testing:**
-- [ ] Test daily recurrence calculations
-- [ ] Test weekly recurrence (each day)
-- [ ] Test monthly edge cases (31st, Feb 29)
-- [ ] Test timezone transitions
-- [ ] Test DST handling
+- [x] Test daily recurrence calculations
+- [x] Test weekly recurrence (each day)
+- [x] Test monthly edge cases (31st, Feb 29)
+- [x] Test timezone transitions
+- [x] Test DST handling
+
+**Completed:** Created `RecurrenceCalculator` with 20 passing tests covering all edge cases.
 
 **Test Cases:**
 ```python
@@ -190,20 +194,22 @@ class TestRecurrenceEngine:
         """Test monthly recurrence for Feb 29 in non-leap years"""
 ```
 
-#### Subphase 2.3: Enhanced ChoreService (0.75 day)
+#### Subphase 2.3: Enhanced ChoreService (0.75 day) ✅
 **Tasks:**
-- [ ] Update get_pool_chores with visibility filtering
-- [ ] Implement availability checking
-- [ ] Add progress calculation
-- [ ] Update complete_chore with recurrence
-- [ ] Add authorization checks
+- [x] Update get_pool_chores with visibility filtering
+- [x] Implement availability checking
+- [x] Add progress calculation
+- [x] Update complete_chore with recurrence
+- [x] Add authorization checks
 
 **Testing:**
-- [ ] Test visibility filtering
-- [ ] Test availability logic
-- [ ] Test progress calculations
-- [ ] Test authorization
-- [ ] Integration tests
+- [x] Test visibility filtering
+- [x] Test availability logic
+- [x] Test progress calculations
+- [x] Test authorization
+- [x] Integration tests
+
+**Completed:** Created `ChoreServiceV2` with 13 passing tests covering all enhanced functionality.
 
 **Test Cases:**
 ```python
