@@ -127,9 +127,9 @@ class UserService(BaseService[User, UserRepository]):
     
     async def authenticate(
         self, db: AsyncSession, *, username: str, password: str
-    ) -> tuple[User, str]:
+    ) -> User:
         """
-        Authenticate user and return user with access token.
+        Authenticate user and return user.
         
         Raises HTTPException if authentication fails.
         """

@@ -1,12 +1,12 @@
 """User management endpoints v2 - JSON-only responses."""
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List, Annotated
+from typing import List, Annotated, Optional
 
 from ....db.base import get_db
 from ....schemas.user import UserCreate, UserResponse, UserUpdate
 from ....schemas.api_response import ApiResponse, PaginatedResponse, SuccessResponse, ErrorResponse
-from ....dependencies.auth import get_current_user
+from ....dependencies.auth import get_current_user, get_current_user_optional
 from ....dependencies.services import UserServiceDep
 from ....models.user import User
 from ....middleware.rate_limit import limit_register, limit_api_endpoint_default
@@ -46,7 +46,7 @@ async def register_user(
     user_data: UserCreate,
     db: Annotated[AsyncSession, Depends(get_db)],
     user_service: UserServiceDep,
-    current_user: Annotated[User, Depends(get_current_user)] = None
+    current_user: Annotated[Optional[User], Depends(get_current_user_optional)] = None
 ) -> ApiResponse[UserResponse]:
     """Register a new user account."""
     try:

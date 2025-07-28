@@ -69,7 +69,7 @@ async def login(
             )
         
         # Create access token
-        access_token = create_access_token(data={"sub": str(user.id)})
+        access_token = create_access_token(subject=str(user.id))
         
         return ApiResponse(
             success=True,
@@ -84,8 +84,11 @@ async def login(
             data=None
         )
     except Exception as e:
+        import traceback
+        print(f"Login error: {str(e)}")
+        print(f"Traceback: {traceback.format_exc()}")
         return ApiResponse(
             success=False,
-            error="Authentication failed",
+            error=f"Authentication failed: {str(e)}",
             data=None
         )
