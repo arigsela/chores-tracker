@@ -14,15 +14,24 @@ class ApiResponse(BaseModel, Generic[DataT]):
     error: Optional[str] = Field(None, description="Error message if not successful")
     timestamp: datetime = Field(default_factory=datetime.utcnow, description="Response timestamp")
     
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "success": True,
-                "data": {"id": 1, "name": "Example"},
-                "error": None,
-                "timestamp": "2024-12-20T10:00:00Z"
-            }
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "success": True,
+                    "data": {"id": 1, "username": "john_doe", "is_parent": True},
+                    "error": None,
+                    "timestamp": "2024-01-28T10:00:00Z"
+                },
+                {
+                    "success": False,
+                    "data": None,
+                    "error": "User not found",
+                    "timestamp": "2024-01-28T10:00:00Z"
+                }
+            ]
         }
+    }
 
 
 class PaginatedResponse(BaseModel, Generic[DataT]):
@@ -36,19 +45,35 @@ class PaginatedResponse(BaseModel, Generic[DataT]):
     error: Optional[str] = Field(None, description="Error message if not successful")
     timestamp: datetime = Field(default_factory=datetime.utcnow, description="Response timestamp")
     
-    class Config:
-        json_schema_extra = {
+    model_config = {
+        "json_schema_extra": {
             "example": {
                 "success": True,
-                "data": [{"id": 1, "name": "Item 1"}, {"id": 2, "name": "Item 2"}],
+                "data": [
+                    {
+                        "id": 1,
+                        "title": "Clean Room",
+                        "reward": 5.0,
+                        "assignee_id": 2,
+                        "is_completed": False
+                    },
+                    {
+                        "id": 2,
+                        "title": "Take Out Trash",
+                        "reward": 3.0,
+                        "assignee_id": 2,
+                        "is_completed": True
+                    }
+                ],
                 "total": 50,
                 "page": 1,
                 "page_size": 10,
                 "total_pages": 5,
                 "error": None,
-                "timestamp": "2024-12-20T10:00:00Z"
+                "timestamp": "2024-01-28T10:00:00Z"
             }
         }
+    }
 
 
 class ErrorResponse(BaseModel):
@@ -59,16 +84,31 @@ class ErrorResponse(BaseModel):
     details: Optional[Any] = Field(None, description="Additional error details")
     timestamp: datetime = Field(default_factory=datetime.utcnow, description="Error timestamp")
     
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "success": False,
-                "error": "Resource not found",
-                "error_code": "NOT_FOUND",
-                "details": {"resource_id": 123},
-                "timestamp": "2024-12-20T10:00:00Z"
-            }
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "success": False,
+                    "error": "Authentication required",
+                    "error_code": "UNAUTHORIZED",
+                    "details": None,
+                    "timestamp": "2024-01-28T10:00:00Z"
+                },
+                {
+                    "success": False,
+                    "error": "Validation error",
+                    "error_code": "VALIDATION_ERROR", 
+                    "details": {
+                        "field_errors": [
+                            {"field": "email", "message": "Invalid email format"},
+                            {"field": "password", "message": "Password too short"}
+                        ]
+                    },
+                    "timestamp": "2024-01-28T10:00:00Z"
+                }
+            ]
         }
+    }
 
 
 class SuccessResponse(BaseModel):
@@ -77,11 +117,19 @@ class SuccessResponse(BaseModel):
     message: str = Field(..., description="Success message")
     timestamp: datetime = Field(default_factory=datetime.utcnow, description="Response timestamp")
     
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "success": True,
-                "message": "Operation completed successfully",
-                "timestamp": "2024-12-20T10:00:00Z"
-            }
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "success": True,
+                    "message": "Chore disabled successfully",
+                    "timestamp": "2024-01-28T10:00:00Z"
+                },
+                {
+                    "success": True,
+                    "message": "Password reset successfully",
+                    "timestamp": "2024-01-28T10:00:00Z"
+                }
+            ]
         }
+    }

@@ -22,6 +22,7 @@ from .core.logging import setup_query_logging, setup_connection_pool_logging
 
 from .api.api_v1.api import api_router
 from .api.api_v2.api import api_v2_router
+from .core.openapi import custom_openapi
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -29,6 +30,20 @@ app = FastAPI(
 # Chores Tracker API
 
 A comprehensive API for managing household chores, rewards, and family task assignments.
+
+## API Versions
+
+### API v2 (Recommended) 🆕
+- **Base URL**: `/api/v2/`
+- **Response Format**: Standardized JSON responses
+- **Authentication**: Bearer token in Authorization header
+- **Use Case**: For new frontend applications (React, Vue, etc.)
+
+### API v1 (Legacy)
+- **Base URL**: `/api/v1/`
+- **Response Format**: Mixed JSON/HTML responses
+- **Authentication**: Bearer token in Authorization header
+- **Use Case**: Existing HTMX frontend, backward compatibility
 
 ## Features
 
@@ -41,8 +56,12 @@ A comprehensive API for managing household chores, rewards, and family task assi
 ## Authentication Flow
 
 ### 1. Registration
-Parents can self-register at `/api/v1/users/register`:
-```json
+
+#### API v2 (JSON)
+```bash
+POST /api/v2/users/register
+Content-Type: application/json
+
 {
   "username": "parent_user",
   "password": "SecurePassword123",
@@ -51,12 +70,27 @@ Parents can self-register at `/api/v1/users/register`:
 }
 ```
 
-Children must be registered by their parent (requires parent authentication).
+Response:
+```json
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "username": "parent_user",
+    "email": "parent@example.com",
+    "is_parent": true,
+    "is_active": true
+  },
+  "error": null,
+  "timestamp": "2024-01-28T10:00:00Z"
+}
+```
 
 ### 2. Login
-Obtain a JWT token at `/api/v1/users/login`:
-```
-POST /api/v1/users/login
+
+#### API v2 (JSON)
+```bash
+POST /api/v2/auth/login
 Content-Type: application/x-www-form-urlencoded
 
 username=parent_user&password=SecurePassword123
@@ -65,8 +99,13 @@ username=parent_user&password=SecurePassword123
 Response:
 ```json
 {
-  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "token_type": "bearer"
+  "success": true,
+  "data": {
+    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "token_type": "bearer"
+  },
+  "error": null,
+  "timestamp": "2024-01-28T10:00:00Z"
 }
 ```
 
@@ -77,6 +116,42 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 
 Tokens expire after 8 days by default.
+
+## Standardized Response Format (v2)
+
+### Success Response
+```json
+{
+  "success": true,
+  "data": { ... },
+  "error": null,
+  "timestamp": "2024-01-28T10:00:00Z"
+}
+```
+
+### Error Response
+```json
+{
+  "success": false,
+  "data": null,
+  "error": "Detailed error message",
+  "timestamp": "2024-01-28T10:00:00Z"
+}
+```
+
+### Paginated Response
+```json
+{
+  "success": true,
+  "data": [ ... ],
+  "total": 100,
+  "page": 1,
+  "page_size": 10,
+  "total_pages": 10,
+  "error": null,
+  "timestamp": "2024-01-28T10:00:00Z"
+}
+```
 
 ## User Roles
 
@@ -103,7 +178,7 @@ API endpoints are rate-limited to prevent abuse:
 - Update operations: 60 requests per minute per IP
 - Delete operations: 20 requests per minute per IP
     """,
-    version="1.0.0",
+    version="2.0.0",
     openapi_url=f"{settings.API_V1_STR}/openapi.json",
     docs_url="/docs",
     redoc_url="/redoc",
@@ -118,16 +193,32 @@ API endpoints are rate-limited to prevent abuse:
     },
     openapi_tags=[
         {
+            "name": "auth-v2",
+            "description": "Authentication endpoints (v2 - JSON only)",
+            "externalDocs": {
+                "description": "Authentication guide",
+                "url": "https://chores-tracker.example.com/docs/auth"
+            }
+        },
+        {
+            "name": "users-v2",
+            "description": "User management endpoints (v2 - JSON only)",
+        },
+        {
+            "name": "chores-v2",
+            "description": "Chore management endpoints (v2 - JSON only)",
+        },
+        {
             "name": "users",
-            "description": "User registration, authentication, and management",
+            "description": "User registration, authentication, and management (v1)",
         },
         {
             "name": "chores",
-            "description": "Chore creation, assignment, completion, and approval",
+            "description": "Chore creation, assignment, completion, and approval (v1)",
         },
         {
             "name": "auth",
-            "description": "Authentication endpoints",
+            "description": "Authentication endpoints (v1)",
         },
         {
             "name": "html",
@@ -1387,3 +1478,7 @@ async def get_potential_earnings_report(
         "components/potential_earnings_report.html", 
         {"request": request, "children": report_data, "totals": totals}
     )
+
+
+# Apply custom OpenAPI schema
+app.openapi = lambda: custom_openapi(app)
