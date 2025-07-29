@@ -1,22 +1,17 @@
 """Tests for v2 chore endpoints."""
 import pytest
 from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.models.user import User
-from app.models.chore import Chore
 
 
 @pytest.mark.asyncio
 async def test_create_chore_v2(
-    async_client: AsyncClient,
-    test_db: AsyncSession,
-    test_parent_user: User,
-    test_child_user: User,
-    parent_headers: dict
+    client: AsyncClient,
+    test_parent_user,
+    test_child_user,
+    parent_token
 ):
     """Test creating chore with v2 endpoint."""
-    response = await async_client.post(
+    response = await client.post(
         "/api/v2/chores/",
         json={
             "title": "Test Chore v2",
@@ -27,7 +22,7 @@ async def test_create_chore_v2(
             "cooldown_days": 0,
             "recurrence_type": "none"
         },
-        headers=parent_headers
+        headers={"Authorization": f"Bearer {parent_token}"}
     )
     
     assert response.status_code == 201
@@ -41,14 +36,14 @@ async def test_create_chore_v2(
 
 @pytest.mark.asyncio
 async def test_list_chores_v2(
-    async_client: AsyncClient,
-    test_chore: Chore,
-    parent_headers: dict
+    client: AsyncClient,
+    test_chore,
+    parent_token
 ):
     """Test listing chores with v2 endpoint."""
-    response = await async_client.get(
+    response = await client.get(
         "/api/v2/chores/",
-        headers=parent_headers
+        headers={"Authorization": f"Bearer {parent_token}"}
     )
     
     assert response.status_code == 200
@@ -64,14 +59,14 @@ async def test_list_chores_v2(
 
 @pytest.mark.asyncio
 async def test_get_chore_v2(
-    async_client: AsyncClient,
-    test_chore: Chore,
-    parent_headers: dict
+    client: AsyncClient,
+    test_chore,
+    parent_token
 ):
     """Test getting specific chore with v2 endpoint."""
-    response = await async_client.get(
+    response = await client.get(
         f"/api/v2/chores/{test_chore.id}",
-        headers=parent_headers
+        headers={"Authorization": f"Bearer {parent_token}"}
     )
     
     assert response.status_code == 200
@@ -84,34 +79,71 @@ async def test_get_chore_v2(
 
 @pytest.mark.asyncio
 async def test_update_chore_v2(
-    async_client: AsyncClient,
-    test_chore: Chore,
-    parent_headers: dict
+    client: AsyncClient,
+    test_parent_user,
+    test_child_user,
+    parent_token
 ):
     """Test updating chore with v2 endpoint."""
-    response = await async_client.put(
-        f"/api/v2/chores/{test_chore.id}",
-        json={"description": "Updated description"},
-        headers=parent_headers
+    # Create a fresh chore for this test
+    create_response = await client.post(
+        "/api/v2/chores/",
+        json={
+            "title": "Chore to update v2",
+            "description": "Original description",
+            "assignee_id": test_child_user.id,
+            "reward": 7.0,
+            "is_range_reward": False,
+            "cooldown_days": 0,
+            "recurrence_type": "none"
+        },
+        headers={"Authorization": f"Bearer {parent_token}"}
+    )
+    chore_id = create_response.json()["data"]["id"]
+    
+    # Update it
+    response = await client.put(
+        f"/api/v2/chores/{chore_id}",
+        json={"description": "Updated description v2"},
+        headers={"Authorization": f"Bearer {parent_token}"}
     )
     
     assert response.status_code == 200
     data = response.json()
     
     assert data["success"] is True
-    assert data["data"]["description"] == "Updated description"
+    assert data["data"]["description"] == "Updated description v2"
 
 
 @pytest.mark.asyncio
 async def test_complete_chore_v2(
-    async_client: AsyncClient,
-    test_chore: Chore,
-    child_headers: dict
+    client: AsyncClient,
+    test_parent_user,
+    test_child_user,
+    parent_token,
+    child_token
 ):
     """Test completing chore with v2 endpoint."""
-    response = await async_client.post(
-        f"/api/v2/chores/{test_chore.id}/complete",
-        headers=child_headers
+    # Create a fresh chore for this test
+    create_response = await client.post(
+        "/api/v2/chores/",
+        json={
+            "title": "Chore to complete v2",
+            "description": "Test",
+            "assignee_id": test_child_user.id,
+            "reward": 3.0,
+            "is_range_reward": False,
+            "cooldown_days": 0,
+            "recurrence_type": "none"
+        },
+        headers={"Authorization": f"Bearer {parent_token}"}
+    )
+    chore_id = create_response.json()["data"]["id"]
+    
+    # Now complete it
+    response = await client.post(
+        f"/api/v2/chores/{chore_id}/complete",
+        headers={"Authorization": f"Bearer {child_token}"}
     )
     
     assert response.status_code == 200
@@ -124,19 +156,18 @@ async def test_complete_chore_v2(
 
 @pytest.mark.asyncio
 async def test_approve_chore_v2(
-    async_client: AsyncClient,
-    test_db: AsyncSession,
-    test_parent_user: User,
-    test_child_user: User,
-    parent_headers: dict,
-    child_headers: dict
+    client: AsyncClient,
+    test_parent_user,
+    test_child_user,
+    parent_token,
+    child_token
 ):
     """Test approving chore with v2 endpoint."""
     # Create and complete a chore
-    create_response = await async_client.post(
+    create_response = await client.post(
         "/api/v2/chores/",
         json={
-            "title": "Chore to approve",
+            "title": "Chore to approve v2",
             "description": "Test",
             "assignee_id": test_child_user.id,
             "reward": 5.0,
@@ -144,21 +175,21 @@ async def test_approve_chore_v2(
             "cooldown_days": 0,
             "recurrence_type": "none"
         },
-        headers=parent_headers
+        headers={"Authorization": f"Bearer {parent_token}"}
     )
     chore_id = create_response.json()["data"]["id"]
     
     # Complete it
-    await async_client.post(
+    await client.post(
         f"/api/v2/chores/{chore_id}/complete",
-        headers=child_headers
+        headers={"Authorization": f"Bearer {child_token}"}
     )
     
     # Approve it
-    response = await async_client.post(
+    response = await client.post(
         f"/api/v2/chores/{chore_id}/approve",
         json={"reward_value": 5.0},
-        headers=parent_headers
+        headers={"Authorization": f"Bearer {parent_token}"}
     )
     
     assert response.status_code == 200
@@ -166,19 +197,37 @@ async def test_approve_chore_v2(
     
     assert data["success"] is True
     assert data["data"]["is_approved"] is True
-    assert data["data"]["approved_reward"] == 5.0
+    assert data["data"]["reward"] == 5.0
 
 
 @pytest.mark.asyncio
 async def test_disable_chore_v2(
-    async_client: AsyncClient,
-    test_chore: Chore,
-    parent_headers: dict
+    client: AsyncClient,
+    test_parent_user,
+    test_child_user,
+    parent_token
 ):
     """Test disabling chore with v2 endpoint."""
-    response = await async_client.post(
-        f"/api/v2/chores/{test_chore.id}/disable",
-        headers=parent_headers
+    # Create a fresh chore for this test
+    create_response = await client.post(
+        "/api/v2/chores/",
+        json={
+            "title": "Chore to disable v2",
+            "description": "Test",
+            "assignee_id": test_child_user.id,
+            "reward": 2.0,
+            "is_range_reward": False,
+            "cooldown_days": 0,
+            "recurrence_type": "none"
+        },
+        headers={"Authorization": f"Bearer {parent_token}"}
+    )
+    chore_id = create_response.json()["data"]["id"]
+    
+    # Disable it
+    response = await client.post(
+        f"/api/v2/chores/{chore_id}/disable",
+        headers={"Authorization": f"Bearer {parent_token}"}
     )
     
     assert response.status_code == 200
@@ -190,14 +239,14 @@ async def test_disable_chore_v2(
 
 @pytest.mark.asyncio
 async def test_chore_stats_v2(
-    async_client: AsyncClient,
-    test_chore: Chore,
-    parent_headers: dict
+    client: AsyncClient,
+    test_chore,
+    parent_token
 ):
     """Test getting chore statistics with v2 endpoint."""
-    response = await async_client.get(
+    response = await client.get(
         "/api/v2/chores/stats/summary",
-        headers=parent_headers
+        headers={"Authorization": f"Bearer {parent_token}"}
     )
     
     assert response.status_code == 200

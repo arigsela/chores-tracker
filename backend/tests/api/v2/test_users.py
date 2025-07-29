@@ -1,23 +1,19 @@
 """Tests for v2 user endpoints."""
 import pytest
 from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.models.user import User
 
 
 @pytest.mark.asyncio
 async def test_register_parent_v2(
-    async_client: AsyncClient,
-    test_db: AsyncSession
+    client: AsyncClient
 ):
     """Test parent registration with v2 endpoint."""
-    response = await async_client.post(
+    response = await client.post(
         "/api/v2/users/register",
         json={
-            "username": "newparent",
+            "username": "newparentv2",
             "password": "SecurePass123!",
-            "email": "newparent@example.com",
+            "email": "newparentv2@example.com",
             "is_parent": True
         }
     )
@@ -27,49 +23,48 @@ async def test_register_parent_v2(
     
     # Check standardized response format
     assert data["success"] is True
-    assert data["data"]["username"] == "newparent"
-    assert data["data"]["email"] == "newparent@example.com"
+    assert data["data"]["username"] == "newparentv2"
+    assert data["data"]["email"] == "newparentv2@example.com"
     assert data["data"]["is_parent"] is True
     assert data["error"] is None
 
 
 @pytest.mark.asyncio
 async def test_register_child_v2(
-    async_client: AsyncClient,
-    test_db: AsyncSession,
-    test_parent_user: User,
-    parent_headers: dict
+    client: AsyncClient,
+    test_parent_user,
+    parent_token
 ):
     """Test child registration with v2 endpoint."""
-    response = await async_client.post(
+    response = await client.post(
         "/api/v2/users/register",
         json={
-            "username": "newchild",
+            "username": "newchildv2",
             "password": "ChildPass123!",
             "is_parent": False
         },
-        headers=parent_headers
+        headers={"Authorization": f"Bearer {parent_token}"}
     )
     
     assert response.status_code == 201
     data = response.json()
     
     assert data["success"] is True
-    assert data["data"]["username"] == "newchild"
+    assert data["data"]["username"] == "newchildv2"
     assert data["data"]["is_parent"] is False
     assert data["data"]["parent_id"] == test_parent_user.id
 
 
 @pytest.mark.asyncio
 async def test_get_current_user_v2(
-    async_client: AsyncClient,
-    test_parent_user: User,
-    parent_headers: dict
+    client: AsyncClient,
+    test_parent_user,
+    parent_token
 ):
     """Test getting current user with v2 endpoint."""
-    response = await async_client.get(
+    response = await client.get(
         "/api/v2/users/me",
-        headers=parent_headers
+        headers={"Authorization": f"Bearer {parent_token}"}
     )
     
     assert response.status_code == 200
@@ -82,15 +77,15 @@ async def test_get_current_user_v2(
 
 @pytest.mark.asyncio
 async def test_list_users_v2(
-    async_client: AsyncClient,
-    test_parent_user: User,
-    test_child_user: User,
-    parent_headers: dict
+    client: AsyncClient,
+    test_parent_user,
+    test_child_user,
+    parent_token
 ):
     """Test listing users with v2 endpoint."""
-    response = await async_client.get(
+    response = await client.get(
         "/api/v2/users/",
-        headers=parent_headers
+        headers={"Authorization": f"Bearer {parent_token}"}
     )
     
     assert response.status_code == 200
@@ -107,15 +102,15 @@ async def test_list_users_v2(
 
 @pytest.mark.asyncio
 async def test_get_children_v2(
-    async_client: AsyncClient,
-    test_parent_user: User,
-    test_child_user: User,
-    parent_headers: dict
+    client: AsyncClient,
+    test_parent_user,
+    test_child_user,
+    parent_token
 ):
     """Test getting children for parent with v2 endpoint."""
-    response = await async_client.get(
+    response = await client.get(
         "/api/v2/users/children",
-        headers=parent_headers
+        headers={"Authorization": f"Bearer {parent_token}"}
     )
     
     assert response.status_code == 200
@@ -129,35 +124,35 @@ async def test_get_children_v2(
 
 @pytest.mark.asyncio
 async def test_update_user_v2(
-    async_client: AsyncClient,
-    test_child_user: User,
-    parent_headers: dict
+    client: AsyncClient,
+    test_child_user,
+    parent_token
 ):
     """Test updating user with v2 endpoint."""
-    response = await async_client.put(
+    response = await client.put(
         f"/api/v2/users/{test_child_user.id}",
-        json={"email": "updated@example.com"},
-        headers=parent_headers
+        json={"email": "updatedv2@example.com"},
+        headers={"Authorization": f"Bearer {parent_token}"}
     )
     
     assert response.status_code == 200
     data = response.json()
     
     assert data["success"] is True
-    assert data["data"]["email"] == "updated@example.com"
+    assert data["data"]["email"] == "updatedv2@example.com"
 
 
 @pytest.mark.asyncio
 async def test_reset_password_v2(
-    async_client: AsyncClient,
-    test_child_user: User,
-    parent_headers: dict
+    client: AsyncClient,
+    test_child_user,
+    parent_token
 ):
     """Test resetting child password with v2 endpoint."""
-    response = await async_client.post(
+    response = await client.post(
         f"/api/v2/users/{test_child_user.id}/reset-password",
         json={"new_password": "NewSecurePass123!"},
-        headers=parent_headers
+        headers={"Authorization": f"Bearer {parent_token}"}
     )
     
     assert response.status_code == 200

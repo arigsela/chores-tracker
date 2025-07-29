@@ -1,25 +1,20 @@
 """Tests for v2 authentication endpoints."""
 import pytest
 from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.models.user import User
-from app.core.security.password import get_password_hash
 
 
 @pytest.mark.asyncio
 async def test_login_v2_success(
-    async_client: AsyncClient,
-    test_db: AsyncSession,
-    test_parent_user: User
+    client: AsyncClient,
+    test_parent_user
 ):
     """Test successful login with v2 endpoint."""
     # Login with form data (OAuth2 standard)
-    response = await async_client.post(
+    response = await client.post(
         "/api/v2/auth/login",
         data={
             "username": test_parent_user.username,
-            "password": "testpass123"
+            "password": "password123"  # This is the password set in conftest.py
         }
     )
     
@@ -37,12 +32,11 @@ async def test_login_v2_success(
 
 @pytest.mark.asyncio
 async def test_login_v2_invalid_credentials(
-    async_client: AsyncClient,
-    test_db: AsyncSession,
-    test_parent_user: User
+    client: AsyncClient,
+    test_parent_user
 ):
     """Test login with invalid credentials."""
-    response = await async_client.post(
+    response = await client.post(
         "/api/v2/auth/login",
         data={
             "username": test_parent_user.username,
@@ -62,10 +56,10 @@ async def test_login_v2_invalid_credentials(
 
 @pytest.mark.asyncio
 async def test_login_v2_missing_fields(
-    async_client: AsyncClient
+    client: AsyncClient
 ):
     """Test login with missing fields."""
-    response = await async_client.post(
+    response = await client.post(
         "/api/v2/auth/login",
         data={"username": "test"}  # Missing password
     )
@@ -75,10 +69,10 @@ async def test_login_v2_missing_fields(
 
 @pytest.mark.asyncio
 async def test_login_v2_nonexistent_user(
-    async_client: AsyncClient
+    client: AsyncClient
 ):
     """Test login with non-existent user."""
-    response = await async_client.post(
+    response = await client.post(
         "/api/v2/auth/login",
         data={
             "username": "doesnotexist",

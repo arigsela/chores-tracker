@@ -56,6 +56,16 @@ class UserUpdate(BaseModel):
     is_active: Optional[bool] = None
 
 
+class PasswordReset(BaseModel):
+    """Schema for password reset requests."""
+    new_password: str = Field(
+        ...,
+        description="New password for the user",
+        min_length=4,
+        json_schema_extra={"example": "NewSecurePass123"}
+    )
+
+
 class Token(BaseModel):
     """JWT token response schema."""
     access_token: str = Field(

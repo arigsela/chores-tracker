@@ -194,7 +194,7 @@ async def get_chore(
 )
 @limit_update
 async def update_chore(
-    request,  # Required for rate limiting
+    request: Request,  # Required for rate limiting
     chore_id: int,
     chore_update: ChoreUpdate,
     db: Annotated[AsyncSession, Depends(get_db)],
@@ -256,7 +256,7 @@ async def complete_chore(
         completed_chore = await chore_service.complete_chore(
             db=db,
             chore_id=chore_id,
-            child_id=current_user.id
+            user_id=current_user.id
         )
         
         return ApiResponse(
@@ -320,42 +320,45 @@ async def approve_chore(
 
 @router.post(
     "/{chore_id}/disable",
-    response_model=SuccessResponse,
+    response_model=ApiResponse[ChoreResponse],
     summary="Disable chore",
     description="Soft delete a chore. Parent only."
 )
 @limit_delete
 async def disable_chore(
-    request,  # Required for rate limiting
+    request: Request,  # Required for rate limiting
     chore_id: int,
     db: Annotated[AsyncSession, Depends(get_db)],
     chore_service: ChoreServiceDep,
     current_user: Annotated[User, Depends(get_current_user)]
-) -> SuccessResponse:
+) -> ApiResponse[ChoreResponse]:
     """Disable a chore."""
     if not current_user.is_parent:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only parents can disable chores"
+        return ApiResponse(
+            success=False,
+            error="Only parents can disable chores",
+            data=None
         )
     
     try:
-        await chore_service.disable_chore(
+        disabled_chore = await chore_service.disable_chore(
             db=db,
             chore_id=chore_id,
             parent_id=current_user.id
         )
         
-        return SuccessResponse(
+        return ApiResponse(
             success=True,
-            message="Chore disabled successfully"
+            data=ChoreResponse.model_validate(disabled_chore),
+            error=None
         )
-    except HTTPException:
-        raise
+    except HTTPException as e:
+        raise e
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
+        return ApiResponse(
+            success=False,
+            error=str(e),
+            data=None
         )
 
 

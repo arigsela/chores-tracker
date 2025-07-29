@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Annotated, Optional
 
 from ....db.base import get_db
-from ....schemas.user import UserCreate, UserResponse, UserUpdate
+from ....schemas.user import UserCreate, UserResponse, UserUpdate, PasswordReset
 from ....schemas.api_response import ApiResponse, PaginatedResponse, SuccessResponse, ErrorResponse
 from ....dependencies.auth import get_current_user, get_current_user_optional
 from ....dependencies.services import UserServiceDep
@@ -218,7 +218,7 @@ async def update_user(
         updated_user = await user_service.update(
             db=db,
             id=user_id,
-            obj_in=user_update
+            obj_in=user_update.model_dump(exclude_unset=True)
         )
         
         return ApiResponse(
@@ -242,7 +242,7 @@ async def update_user(
 )
 async def reset_password(
     user_id: int,
-    new_password: str,
+    password_data: PasswordReset,
     db: Annotated[AsyncSession, Depends(get_db)],
     user_service: UserServiceDep,
     current_user: Annotated[User, Depends(get_current_user)]
@@ -259,7 +259,7 @@ async def reset_password(
             db=db,
             parent_id=current_user.id,
             child_id=user_id,
-            new_password=new_password
+            new_password=password_data.new_password
         )
         
         return SuccessResponse(
