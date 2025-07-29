@@ -35,5 +35,19 @@ services:
       mysql:
         condition: service_healthy
 
+  web:
+    build:
+      context: ./packages/web
+      dockerfile: docker/Dockerfile.dev
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./packages/web:/app
+      - /app/node_modules
+    environment:
+      - VITE_API_URL=http://api:8000
+    depends_on:
+      - api
+
 volumes:
   mysql_data:
