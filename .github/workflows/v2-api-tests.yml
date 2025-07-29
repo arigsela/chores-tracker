@@ -1,0 +1,71 @@
+name: v2 API Tests
+
+on:
+  push:
+    branches: [ main, develop, 'feature/*' ]
+    paths:
+      - 'backend/app/api/api_v2/**'
+      - 'backend/app/schemas/api_response.py'
+      - 'backend/tests/api/v2/**'
+      - '.github/workflows/v2-api-tests.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'backend/app/api/api_v2/**'
+      - 'backend/app/schemas/api_response.py'
+      - 'backend/tests/api/v2/**'
+      - '.github/workflows/v2-api-tests.yml'
+
+jobs:
+  test-v2-api:
+    runs-on: ubuntu-latest
+    
+    services:
+      mysql:
+        image: mysql:5.7
+        env:
+          MYSQL_ROOT_PASSWORD: testpassword
+          MYSQL_DATABASE: chores_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r backend/requirements.txt
+        pip install pytest pytest-asyncio pytest-cov httpx
+        
+    - name: Run v2 API tests
+      env:
+        TESTING: "true"
+        MYSQL_HOST: localhost
+        MYSQL_PORT: 3306
+        MYSQL_USER: root
+        MYSQL_PASSWORD: testpassword
+        MYSQL_DATABASE: chores_test
+        SECRET_KEY: test-secret-key-for-ci
+        ALGORITHM: HS256
+        ACCESS_TOKEN_EXPIRE_MINUTES: 11520
+      run: |
+        python -m pytest backend/tests/api/v2 -v --cov=backend/app/api/api_v2 --cov-report=term-missing
+        
+    - name: Check v2 API test coverage
+      run: |
+        coverage_percent=$(python -m pytest backend/tests/api/v2 --cov=backend/app/api/api_v2 --cov-report=term | grep TOTAL | awk '{print $4}' | sed 's/%//')
+        echo "v2 API Test Coverage: $coverage_percent%"
+        if (( $(echo "$coverage_percent < 70" | bc -l) )); then
+          echo "Warning: v2 API test coverage is below 70%"
+        fi

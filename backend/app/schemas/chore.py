@@ -84,14 +84,29 @@ class ChoreCreate(ChoreBase):
     
     model_config = ConfigDict(
         json_schema_extra={
-            "example": {
-                "title": "Take out the trash",
-                "description": "Empty all wastebaskets and take bags to curb",
-                "reward": 2.0,
-                "is_recurring": True,
-                "cooldown_days": 1,
-                "assignee_id": 2
-            }
+            "examples": [
+                {
+                    "title": "Take out the trash",
+                    "description": "Empty all wastebaskets and take bags to curb",
+                    "reward": 2.0,
+                    "is_range_reward": False,
+                    "is_recurring": True,
+                    "cooldown_days": 1,
+                    "assignee_id": 2,
+                    "recurrence_type": "daily"
+                },
+                {
+                    "title": "Mow the lawn",
+                    "description": "Mow front and back lawn, edge walkways",
+                    "min_reward": 10.0,
+                    "max_reward": 20.0,
+                    "is_range_reward": True,
+                    "is_recurring": True,
+                    "cooldown_days": 7,
+                    "assignee_id": 3,
+                    "recurrence_type": "weekly"
+                }
+            ]
         }
     )
 
@@ -152,6 +167,21 @@ class ChoreUpdate(BaseModel):
     is_disabled: Optional[bool] = Field(
         None,
         description="Enable/disable the chore"
+    )
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "examples": [
+                {
+                    "title": "Updated chore title",
+                    "reward": 7.5
+                },
+                {
+                    "assignee_id": 3,
+                    "cooldown_days": 14
+                }
+            ]
+        }
     )
 
 class ChoreResponse(ChoreBase):
@@ -232,6 +262,22 @@ class ChoreApprove(BaseModel):
         ge=0,
         le=1000,
         json_schema_extra={"example": 5.0}
+    )
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "examples": [
+                {
+                    "is_approved": True,
+                    "reward_value": 15.0,
+                    "_comment": "For range-based reward chore"
+                },
+                {
+                    "is_approved": True,
+                    "_comment": "For fixed reward chore (reward_value not needed)"
+                }
+            ]
+        }
     )
 
 class ChoreDisable(BaseModel):

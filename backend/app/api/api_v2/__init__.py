@@ -1,0 +1,1 @@
+# API v2 - Standardized JSON-only endpoints

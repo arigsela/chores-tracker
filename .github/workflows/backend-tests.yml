@@ -34,4 +34,4 @@ jobs:
       env:
         TESTING: "true"
       run: |
-        python -m pytest backend/tests -v 
+        python -m pytest backend/tests -v --cov=backend/app --cov-report=html --cov-report=term 
