@@ -5,6 +5,7 @@ from ..db.base import Base
 
 if TYPE_CHECKING:
     from .chore import Chore
+    from .payment import Payment
 
 class User(Base):
     __tablename__ = "users"
@@ -22,3 +23,5 @@ class User(Base):
     chores_created: Mapped[List["Chore"]] = relationship(back_populates="creator", foreign_keys="Chore.creator_id")
     children: Mapped[List["User"]] = relationship("User", back_populates="parent", foreign_keys="User.parent_id")
     parent: Mapped[Optional["User"]] = relationship("User", back_populates="children", remote_side=id)
+    payments_received: Mapped[List["Payment"]] = relationship("Payment", back_populates="child", foreign_keys="Payment.child_id")
+    payments_made: Mapped[List["Payment"]] = relationship("Payment", back_populates="parent", foreign_keys="Payment.parent_id")

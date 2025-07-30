@@ -4,7 +4,7 @@ Service dependencies for FastAPI dependency injection.
 from typing import Annotated
 from fastapi import Depends
 
-from ..services import UserService, ChoreService
+from ..services import UserService, ChoreService, PaymentService
 
 
 def get_user_service() -> UserService:
@@ -17,6 +17,12 @@ def get_chore_service() -> ChoreService:
     return ChoreService()
 
 
+def get_payment_service() -> PaymentService:
+    """Get payment service instance."""
+    return PaymentService()
+
+
 # Type aliases for cleaner dependency injection
 UserServiceDep = Annotated[UserService, Depends(get_user_service)]
 ChoreServiceDep = Annotated[ChoreService, Depends(get_chore_service)]
+PaymentServiceDep = Annotated[PaymentService, Depends(get_payment_service)]
