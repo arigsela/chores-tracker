@@ -18,6 +18,7 @@ from fastapi import Form, File, UploadFile
 
 from .core.config import settings
 from .middleware.rate_limit import setup_rate_limiting
+from .middleware.request_validation import RequestValidationMiddleware
 from .core.logging import setup_query_logging, setup_connection_pool_logging
 
 from .api.api_v1.api import api_router
@@ -143,6 +144,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Add request validation middleware
+app.add_middleware(RequestValidationMiddleware)
 
 # Set up rate limiting
 setup_rate_limiting(app)
@@ -270,8 +274,10 @@ async def get_allowance_summary(
     
     from .repositories.user import UserRepository
     from .repositories.chore import ChoreRepository
+    from .repositories.reward_adjustment import RewardAdjustmentRepository
     user_repo = UserRepository()
     chore_repo = ChoreRepository()
+    adjustment_repo = RewardAdjustmentRepository()
     
     children = await user_repo.get_children(db, parent_id=current_user.id)
     
@@ -283,15 +289,19 @@ async def get_allowance_summary(
         completed_chores = len([c for c in chores if c.is_completed and c.is_approved])
         total_earned = sum(c.reward for c in chores if c.is_completed and c.is_approved)
         
+        # Get total adjustments for the child
+        total_adjustments = await adjustment_repo.calculate_total_adjustments(db, child_id=child.id)
+        
         # For now, assume no payments made yet
         paid_out = 0
-        balance_due = total_earned - paid_out
+        balance_due = total_earned + float(total_adjustments) - paid_out
         
         summary_data.append({
             "id": child.id,
             "username": child.username,
             "completed_chores": completed_chores,
             "total_earned": f"{total_earned:.2f}",
+            "total_adjustments": f"{float(total_adjustments):.2f}",
             "paid_out": f"{paid_out:.2f}",
             "balance_due": f"{balance_due:.2f}"
         })
@@ -1384,4 +1394,195 @@ async def get_potential_earnings_report(
     return templates.TemplateResponse(
         "components/potential_earnings_report.html", 
         {"request": request, "children": report_data, "totals": totals}
+    )
+
+
+# Reward Adjustments JSON API Endpoints
+from .services.reward_adjustment_service import RewardAdjustmentService
+from .middleware.rate_limit import limit_create, limit_api_endpoint
+
+
+@app.post("/api/v1/adjustments/", response_model=schemas.RewardAdjustmentResponse, status_code=201)
+@limit_create
+async def create_adjustment(
+    request: Request,
+    adjustment_data: schemas.RewardAdjustmentCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """Create a new reward adjustment (parent only)."""
+    adjustment_service = RewardAdjustmentService()
+    return await adjustment_service.create_adjustment(
+        db, adjustment_data=adjustment_data, current_user_id=current_user.id
+    )
+
+
+@app.get("/api/v1/adjustments/", response_model=List[schemas.RewardAdjustmentResponse])
+@limit_api_endpoint()
+async def get_adjustments(
+    request: Request,
+    child_id: Optional[int] = None,
+    skip: int = 0,
+    limit: int = 100,
+    db: AsyncSession = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """Get reward adjustments."""
+    adjustment_service = RewardAdjustmentService()
+    
+    if current_user.is_parent:
+        # Parents see all their adjustments or filter by child
+        if child_id:
+            adjustments = await adjustment_service.get_child_adjustments(
+                db, child_id=child_id, current_user_id=current_user.id, skip=skip, limit=limit
+            )
+        else:
+            adjustments = await adjustment_service.get_parent_adjustments(
+                db, parent_id=current_user.id, current_user_id=current_user.id, skip=skip, limit=limit
+            )
+    else:
+        # Children see only their own adjustments
+        adjustments = await adjustment_service.get_child_adjustments(
+            db, child_id=current_user.id, current_user_id=current_user.id, skip=skip, limit=limit
+        )
+    
+    # Convert ORM models to response models to avoid lazy loading issues
+    return [
+        schemas.RewardAdjustmentResponse(
+            id=adj.id,
+            child_id=adj.child_id,
+            parent_id=adj.parent_id,
+            amount=adj.amount,
+            reason=adj.reason,
+            created_at=adj.created_at
+        )
+        for adj in adjustments
+    ]
+
+
+# Reward Adjustments HTML Endpoints
+@app.get("/api/v1/html/adjustments/inline-form/{child_id}", response_class=HTMLResponse)
+async def get_adjustment_inline_form(
+    request: Request,
+    child_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """Get inline adjustment form for a specific child."""
+    if not current_user.is_parent:
+        return templates.TemplateResponse(
+            "components/not_authorized.html",
+            {"request": request}
+        )
+    
+    # Get child user to verify they belong to this parent
+    from .repositories.user import UserRepository
+    user_repo = UserRepository()
+    
+    child = await user_repo.get(db, id=child_id)
+    if not child or child.parent_id != current_user.id:
+        return templates.TemplateResponse(
+            "components/error_message.html",
+            {"request": request, "message": "Child not found"}
+        )
+    
+    return templates.TemplateResponse(
+        "adjustments/inline-form.html",
+        {"request": request, "child": child}
+    )
+
+
+@app.get("/api/v1/html/adjustments/modal-form/{child_id}", response_class=HTMLResponse)
+async def get_adjustment_modal_form(
+    request: Request,
+    child_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """Get modal adjustment form for a specific child."""
+    if not current_user.is_parent:
+        return templates.TemplateResponse(
+            "components/not_authorized.html",
+            {"request": request}
+        )
+    
+    # Get child user to verify they belong to this parent
+    from .repositories.user import UserRepository
+    user_repo = UserRepository()
+    
+    child = await user_repo.get(db, id=child_id)
+    if not child or child.parent_id != current_user.id:
+        return templates.TemplateResponse(
+            "components/error_message.html",
+            {"request": request, "message": "Child not found"}
+        )
+    
+    # Get all children for the dropdown (if not pre-selected)
+    children = await user_repo.get_children(db, parent_id=current_user.id)
+    
+    return templates.TemplateResponse(
+        "adjustments/modal-form.html",
+        {"request": request, "child": child, "children": children}
+    )
+
+
+@app.get("/api/v1/html/adjustments/form", response_class=HTMLResponse)
+async def get_adjustment_form(
+    request: Request,
+    child_id: Optional[int] = None,
+    db: AsyncSession = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """Get full page adjustment form."""
+    if not current_user.is_parent:
+        return templates.TemplateResponse(
+            "components/not_authorized.html",
+            {"request": request}
+        )
+    
+    # Get all children for the dropdown
+    from .repositories.user import UserRepository
+    user_repo = UserRepository()
+    
+    children = await user_repo.get_children(db, parent_id=current_user.id)
+    
+    return templates.TemplateResponse(
+        "adjustments/form.html",
+        {"request": request, "children": children, "selected_child_id": child_id}
+    )
+
+
+@app.get("/api/v1/html/adjustments/list/{child_id}", response_class=HTMLResponse)
+async def get_adjustments_list(
+    request: Request,
+    child_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """Get list of adjustments for a specific child."""
+    if not current_user.is_parent:
+        return templates.TemplateResponse(
+            "components/not_authorized.html",
+            {"request": request}
+        )
+    
+    # Verify child belongs to this parent
+    from .repositories.user import UserRepository
+    from .repositories.reward_adjustment import RewardAdjustmentRepository
+    user_repo = UserRepository()
+    adjustment_repo = RewardAdjustmentRepository()
+    
+    child = await user_repo.get(db, id=child_id)
+    if not child or child.parent_id != current_user.id:
+        return templates.TemplateResponse(
+            "components/error_message.html",
+            {"request": request, "message": "Child not found"}
+        )
+    
+    # Get adjustments for the child
+    adjustments = await adjustment_repo.get_by_child_id(db, child_id=child_id, limit=20)
+    
+    return templates.TemplateResponse(
+        "adjustments/list.html",
+        {"request": request, "adjustments": adjustments, "child": child}
     )

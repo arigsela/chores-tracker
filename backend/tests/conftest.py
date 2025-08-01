@@ -157,4 +157,102 @@ async def test_disabled_chore(db_session, test_parent_user, test_child_user):
     db_session.add(chore)
     await db_session.commit()
     await db_session.refresh(chore)
-    return chore 
+    return chore
+
+
+@pytest_asyncio.fixture(scope="function")
+async def reward_adjustment_data():
+    """Sample reward adjustment data for testing."""
+    return {
+        "child_id": 2,
+        "amount": "5.00",
+        "reason": "Completed extra chores this week"
+    }
+
+
+@pytest_asyncio.fixture(scope="function")
+async def test_reward_adjustment(db_session, test_parent_user, test_child_user):
+    """Create a test reward adjustment."""
+    from backend.app.models.reward_adjustment import RewardAdjustment
+    
+    adjustment = RewardAdjustment(
+        parent_id=test_parent_user.id,
+        child_id=test_child_user.id,
+        amount=10.00,
+        reason="Good behavior bonus"
+    )
+    db_session.add(adjustment)
+    await db_session.commit()
+    await db_session.refresh(adjustment)
+    return adjustment
+
+
+@pytest_asyncio.fixture(scope="function")
+async def parent_with_multiple_children(db_session):
+    """Create parent with multiple children for testing."""
+    # Create parent
+    parent = User(
+        email="multiparent@example.com",
+        username="multi_parent",
+        hashed_password=get_password_hash("password123"),
+        is_active=True,
+        is_parent=True
+    )
+    db_session.add(parent)
+    await db_session.commit()
+    
+    # Create 3 children
+    children = []
+    for i in range(3):
+        child = User(
+            email=f"child{i+1}@example.com",
+            username=f"child_{i+1}",
+            hashed_password=get_password_hash("password123"),
+            is_active=True,
+            is_parent=False,
+            parent_id=parent.id
+        )
+        db_session.add(child)
+        children.append(child)
+    
+    await db_session.commit()
+    for child in children:
+        await db_session.refresh(child)
+    await db_session.refresh(parent)
+    
+    return {"parent": parent, "children": children}
+
+
+@pytest_asyncio.fixture(scope="function")
+async def adjustment_history(db_session, test_parent_user, test_child_user):
+    """Create sample adjustment history for testing."""
+    from backend.app.models.reward_adjustment import RewardAdjustment
+    from decimal import Decimal
+    from datetime import datetime, timedelta
+    
+    adjustments = []
+    # Create 5 adjustments with different amounts and dates
+    adjustment_data = [
+        (Decimal("10.00"), "Initial bonus", 5),
+        (Decimal("5.00"), "Good behavior", 4),
+        (Decimal("-3.00"), "Minor penalty", 3),
+        (Decimal("15.00"), "Excellent week", 2),
+        (Decimal("-2.00"), "Late to dinner", 1)
+    ]
+    
+    for amount, reason, days_ago in adjustment_data:
+        adjustment = RewardAdjustment(
+            parent_id=test_parent_user.id,
+            child_id=test_child_user.id,
+            amount=amount,
+            reason=reason,
+            created_at=datetime.utcnow() - timedelta(days=days_ago)
+        )
+        db_session.add(adjustment)
+        adjustments.append(adjustment)
+    
+    await db_session.commit()
+    for adj in adjustments:
+        await db_session.refresh(adj)
+    
+    return adjustments 

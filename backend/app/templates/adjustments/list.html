@@ -1,0 +1,57 @@
+<!-- List of reward adjustments for a child -->
+<div class="bg-white rounded-lg shadow-sm">
+    <div class="px-4 py-3 border-b border-gray-200">
+        <h3 class="text-lg font-semibold text-gray-800">
+            Adjustment History for {{ child.username }}
+        </h3>
+    </div>
+    
+    {% if adjustments %}
+    <div class="divide-y divide-gray-200">
+        {% for adjustment in adjustments %}
+        <div class="px-4 py-3 hover:bg-gray-50">
+            <div class="flex justify-between items-start">
+                <div class="flex-1">
+                    <p class="text-sm text-gray-900">{{ adjustment.reason }}</p>
+                    <p class="text-xs text-gray-500 mt-1">
+                        {{ adjustment.created_at.strftime('%B %d, %Y at %I:%M %p') }}
+                    </p>
+                </div>
+                <div class="ml-4 flex-shrink-0">
+                    {% if adjustment.amount > 0 %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                            +${{ "%.2f"|format(adjustment.amount) }}
+                        </span>
+                    {% else %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-sm font-medium bg-red-100 text-red-800">
+                            ${{ "%.2f"|format(adjustment.amount) }}
+                        </span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="px-4 py-8 text-center">
+        <p class="text-gray-500 text-sm">No adjustments have been made yet.</p>
+    </div>
+    {% endif %}
+    
+    <!-- Total summary -->
+    {% if adjustments %}
+    <div class="px-4 py-3 bg-gray-50 border-t border-gray-200">
+        <div class="flex justify-between items-center">
+            <span class="text-sm font-medium text-gray-700">Total Adjustments:</span>
+            {% set total = adjustments | sum(attribute='amount') %}
+            {% if total > 0 %}
+                <span class="text-sm font-semibold text-green-600">+${{ "%.2f"|format(total) }}</span>
+            {% elif total < 0 %}
+                <span class="text-sm font-semibold text-red-600">${{ "%.2f"|format(total) }}</span>
+            {% else %}
+                <span class="text-sm font-semibold text-gray-600">${{ "%.2f"|format(total) }}</span>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>

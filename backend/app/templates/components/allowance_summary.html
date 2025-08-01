@@ -4,7 +4,8 @@
             <tr>
                 <th class="py-2 px-4 text-left">Child</th>
                 <th class="py-2 px-4 text-left">Completed Chores</th>
-                <th class="py-2 px-4 text-left">Total Earned</th>
+                <th class="py-2 px-4 text-left">Chore Earnings</th>
+                <th class="py-2 px-4 text-left">Adjustments</th>
                 <th class="py-2 px-4 text-left">Paid Out</th>
                 <th class="py-2 px-4 text-left">Balance Due</th>
                 <th class="py-2 px-4 text-left">Actions</th>
@@ -12,21 +13,27 @@
         </thead>
         <tbody>
             {% for child in children %}
-            <tr class="border-t">
+            <tr id="child-row-{{ child.id }}" class="border-t">
                 <td class="py-2 px-4">{{ child.username }}</td>
                 <td class="py-2 px-4">{{ child.completed_chores }}</td>
                 <td class="py-2 px-4">${{ child.total_earned }}</td>
+                <td class="py-2 px-4">
+                    {% if child.total_adjustments|float > 0 %}
+                        <span class="text-green-600">+${{ child.total_adjustments }}</span>
+                    {% elif child.total_adjustments|float < 0 %}
+                        <span class="text-red-600">${{ child.total_adjustments }}</span>
+                    {% else %}
+                        <span class="text-gray-500">${{ child.total_adjustments }}</span>
+                    {% endif %}
+                </td>
                 <td class="py-2 px-4">${{ child.paid_out }}</td>
                 <td class="py-2 px-4 font-semibold">${{ child.balance_due }}</td>
                 <td class="py-2 px-4">
-                    <button 
-                        class="bg-green-500 text-white px-3 py-1 rounded text-sm hover:bg-green-600"
-                        hx-post="/api/v1/payments/record"
-                        hx-vals='{"user_id": {{ child.id }}, "amount": {{ child.balance_due }}}'
-                        hx-target="#allowance-summary"
-                        hx-swap="innerHTML"
-                    >
-                        Record Payment
+                    <button id="adjust-btn-{{ child.id }}"
+                            onclick="showAdjustmentForm({{ child.id }})"
+                            class="bg-purple-500 text-white px-3 py-1 rounded text-sm hover:bg-purple-600"
+                            title="Add bonus or deduction">
+                        Adjust
                     </button>
                 </td>
             </tr>
@@ -34,3 +41,37 @@
         </tbody>
     </table>
 </div>
+
+<script>
+    function showAdjustmentForm(childId) {
+        // Option 1: Show inline form below the row
+        const targetRow = document.getElementById(`child-row-${childId}`);
+        if (targetRow) {
+            // Check if form row already exists
+            let formRow = document.getElementById(`adjustment-row-${childId}`);
+            if (!formRow) {
+                // Create a new row for the form
+                formRow = document.createElement('tr');
+                formRow.id = `adjustment-row-${childId}`;
+                formRow.innerHTML = '<td colspan="7" class="p-0"></td>';
+                
+                // Insert after the current row
+                targetRow.parentNode.insertBefore(formRow, targetRow.nextSibling);
+            }
+            
+            // Load the inline form via HTMX
+            htmx.ajax('GET', `/api/v1/html/adjustments/inline-form/${childId}`, {
+                target: `#adjustment-row-${childId} td`,
+                swap: 'innerHTML'
+            });
+            
+            // Hide the adjust button
+            document.getElementById(`adjust-btn-${childId}`).style.display = 'none';
+        }
+    }
+    
+    // Listen for htmx events to refresh summary when needed
+    document.body.addEventListener('refresh-summary', function(event) {
+        htmx.trigger('#allowance-summary', 'load');
+    });
+</script>
