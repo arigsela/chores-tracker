@@ -1,0 +1,163 @@
+<!-- Inline adjustment form for a specific child -->
+<div id="adjustment-form-{{ child.id }}" class="mt-4 p-4 bg-purple-50 border border-purple-200 rounded-lg">
+    <h4 class="text-sm font-semibold text-purple-800 mb-3">Make Balance Adjustment</h4>
+    
+    <!-- Error message for this specific form -->
+    <div id="adjustment-error-{{ child.id }}" class="hidden mb-3 p-2 bg-red-100 border border-red-400 text-red-700 rounded text-sm"></div>
+    
+    <form id="inline-adjustment-form-{{ child.id }}" class="space-y-3">
+        <input type="hidden" name="child_id" value="{{ child.id }}">
+        
+        <div class="flex space-x-3">
+            <!-- Amount input -->
+            <div class="flex-1">
+                <div class="relative">
+                    <span class="absolute left-2 top-2 text-gray-500 text-sm">$</span>
+                    <input type="number" 
+                           id="amount-{{ child.id }}" 
+                           name="amount" 
+                           step="0.01" 
+                           min="-999.99" 
+                           max="999.99" 
+                           required
+                           placeholder="0.00"
+                           class="w-full pl-7 pr-2 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500">
+                </div>
+            </div>
+            
+            <!-- Quick amount buttons -->
+            <div class="flex space-x-1">
+                <button type="button" 
+                        onclick="setQuickAmount({{ child.id }}, 5)"
+                        class="px-2 py-1 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200">
+                    +$5
+                </button>
+                <button type="button" 
+                        onclick="setQuickAmount({{ child.id }}, 10)"
+                        class="px-2 py-1 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200">
+                    +$10
+                </button>
+                <button type="button" 
+                        onclick="setQuickAmount({{ child.id }}, -5)"
+                        class="px-2 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200">
+                    -$5
+                </button>
+            </div>
+        </div>
+        
+        <!-- Reason input -->
+        <div>
+            <input type="text" 
+                   id="reason-{{ child.id }}" 
+                   name="reason" 
+                   required
+                   minlength="3" 
+                   maxlength="500"
+                   placeholder="Reason for adjustment (e.g., Bonus for extra chores)"
+                   class="w-full px-2 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500">
+        </div>
+        
+        <!-- Action buttons -->
+        <div class="flex justify-end space-x-2">
+            <button type="button" 
+                    onclick="cancelAdjustment({{ child.id }})"
+                    class="px-3 py-1 text-sm bg-gray-300 text-gray-700 rounded hover:bg-gray-400">
+                Cancel
+            </button>
+            <button type="submit" 
+                    id="submit-btn-{{ child.id }}"
+                    class="px-3 py-1 text-sm bg-purple-600 text-white rounded hover:bg-purple-700">
+                Apply
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+    // Set quick amount
+    function setQuickAmount(childId, amount) {
+        document.getElementById(`amount-${childId}`).value = amount.toFixed(2);
+    }
+    
+    // Cancel adjustment
+    function cancelAdjustment(childId) {
+        // Hide the form
+        document.getElementById(`adjustment-form-${childId}`).style.display = 'none';
+        
+        // Show the adjust button again
+        const adjustBtn = document.getElementById(`adjust-btn-${childId}`);
+        if (adjustBtn) {
+            adjustBtn.style.display = 'inline-block';
+        }
+    }
+    
+    // Handle form submission
+    document.getElementById('inline-adjustment-form-{{ child.id }}').addEventListener('submit', async function(event) {
+        event.preventDefault();
+        
+        const childId = {{ child.id }};
+        const submitBtn = document.getElementById(`submit-btn-${childId}`);
+        const errorDiv = document.getElementById(`adjustment-error-${childId}`);
+        
+        // Reset error
+        errorDiv.classList.add('hidden');
+        
+        // Disable submit button
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Applying...';
+        
+        // Get form data
+        const formData = {
+            child_id: childId,
+            amount: document.getElementById(`amount-${childId}`).value,
+            reason: document.getElementById(`reason-${childId}`).value.trim()
+        };
+        
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch('/api/v1/adjustments/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + token
+                },
+                body: JSON.stringify(formData)
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+                // Success - trigger HTMX to reload the allowance summary
+                htmx.trigger('#allowance-summary', 'refresh-summary');
+            } else {
+                // Show error
+                let errorMessage = 'Error applying adjustment';
+                
+                if (data.error) {
+                    errorMessage = data.error.message || errorMessage;
+                } else if (data.detail) {
+                    if (typeof data.detail === 'string') {
+                        errorMessage = data.detail;
+                    } else if (Array.isArray(data.detail)) {
+                        errorMessage = data.detail[0].msg || errorMessage;
+                    }
+                }
+                
+                errorDiv.textContent = errorMessage;
+                errorDiv.classList.remove('hidden');
+                
+                // Re-enable submit button
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Apply';
+            }
+        } catch (error) {
+            console.error('Error submitting adjustment:', error);
+            errorDiv.textContent = 'Network error. Please try again.';
+            errorDiv.classList.remove('hidden');
+            
+            // Re-enable submit button
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Apply';
+        }
+    });
+</script>

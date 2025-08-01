@@ -5,6 +5,7 @@ from ..db.base import Base
 
 if TYPE_CHECKING:
     from .chore import Chore
+    from .reward_adjustment import RewardAdjustment
 
 class User(Base):
     __tablename__ = "users"
@@ -22,3 +23,7 @@ class User(Base):
     chores_created: Mapped[List["Chore"]] = relationship(back_populates="creator", foreign_keys="Chore.creator_id")
     children: Mapped[List["User"]] = relationship("User", back_populates="parent", foreign_keys="User.parent_id")
     parent: Mapped[Optional["User"]] = relationship("User", back_populates="children", remote_side=id)
+    
+    # Reward adjustments
+    adjustments_received: Mapped[List["RewardAdjustment"]] = relationship(back_populates="child", foreign_keys="RewardAdjustment.child_id")
+    adjustments_created: Mapped[List["RewardAdjustment"]] = relationship(back_populates="parent", foreign_keys="RewardAdjustment.parent_id")
