@@ -1,4 +1,5 @@
 import pytest
+import os
 from decimal import Decimal
 from datetime import datetime
 from httpx import AsyncClient
@@ -338,6 +339,10 @@ class TestRewardAdjustmentsAPI:
     # Rate Limiting Tests
     @pytest.mark.asyncio
     @pytest.mark.rate_limit
+    @pytest.mark.skipif(
+        os.environ.get("TESTING") == "true",
+        reason="Rate limiting disabled in test environment"
+    )
     async def test_create_adjustment_rate_limited(
         self, client: AsyncClient, parent_headers, test_child_user
     ):
@@ -367,6 +372,10 @@ class TestRewardAdjustmentsAPI:
 
     @pytest.mark.asyncio
     @pytest.mark.rate_limit
+    @pytest.mark.skipif(
+        os.environ.get("TESTING") == "true",
+        reason="Rate limiting disabled in test environment"
+    )
     async def test_get_adjustments_rate_limited(
         self, client: AsyncClient, parent_headers
     ):

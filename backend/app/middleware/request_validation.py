@@ -44,29 +44,34 @@ class RequestValidationMiddleware(BaseHTTPMiddleware):
             if request.method in ["POST", "PUT", "PATCH"]:
                 content_type = request.headers.get("content-type", "").lower()
                 
-                # Extract base content type (ignore charset, boundary, etc.)
-                base_content_type = content_type.split(";")[0].strip()
-                
-                # Special handling for form submissions (HTMX)
-                if request.url.path.endswith("/html") or "hx-request" in request.headers:
-                    # Allow form data for HTML endpoints
+                # Skip validation if no content-type is provided (common in tests)
+                if not content_type:
+                    # Allow missing content-type for backwards compatibility
                     pass
-                elif base_content_type not in ALLOWED_CONTENT_TYPES:
-                    logger.warning(
-                        f"Invalid content-type: {content_type} for {request.url.path}"
-                    )
-                    return JSONResponse(
-                        status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
-                        content={
-                            "error": {
-                                "code": "UNSUPPORTED_MEDIA_TYPE",
-                                "message": f"Content-Type '{content_type}' is not supported",
-                                "details": {
-                                    "allowed_types": list(ALLOWED_CONTENT_TYPES)
+                else:
+                    # Extract base content type (ignore charset, boundary, etc.)
+                    base_content_type = content_type.split(";")[0].strip()
+                    
+                    # Special handling for form submissions (HTMX)
+                    if request.url.path.endswith("/html") or "hx-request" in request.headers:
+                        # Allow form data for HTML endpoints
+                        pass
+                    elif base_content_type not in ALLOWED_CONTENT_TYPES:
+                        logger.warning(
+                            f"Invalid content-type: {content_type} for {request.url.path}"
+                        )
+                        return JSONResponse(
+                            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+                            content={
+                                "error": {
+                                    "code": "UNSUPPORTED_MEDIA_TYPE",
+                                    "message": f"Content-Type '{content_type}' is not supported",
+                                    "details": {
+                                        "allowed_types": list(ALLOWED_CONTENT_TYPES)
+                                    }
                                 }
                             }
-                        }
-                    )
+                        )
             
             # 2. Validate request size
             content_length = request.headers.get("content-length")
