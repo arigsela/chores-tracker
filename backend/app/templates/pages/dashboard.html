@@ -72,7 +72,7 @@
         </div>
         
         <!-- Active Chores -->
-        <div class="bg-white p-4 rounded-lg shadow" id="active-chores-section">
+        <div class="bg-white p-4 rounded-lg shadow" id="active-chores-section" style="display: none;">
             <h2 class="text-xl font-semibold mb-4 text-blue-700">Active Chores</h2>
             <div 
                 id="active-chores"
@@ -114,7 +114,7 @@
     <div id="main-content" class="mt-8"></div>
     
     <!-- Summary Section -->
-    <div class="mt-8 bg-white p-4 rounded-lg shadow">
+    <div class="mt-8 bg-white p-4 rounded-lg shadow" id="allowance-summary-section" style="display: none;">
         <h2 class="text-xl font-semibold mb-4">Allowance Summary</h2>
         <div 
             id="allowance-summary"
@@ -184,6 +184,7 @@
                     document.getElementById('parent-buttons').style.display = 'flex';
                     document.getElementById('admin-tools').style.display = 'block';
                     document.getElementById('pending-approval-section').style.display = 'block';
+                    document.getElementById('allowance-summary-section').style.display = 'block';
                     // Manually trigger loading of parent-only content
                     htmx.trigger('#pending-chores', 'load');
                 } else {

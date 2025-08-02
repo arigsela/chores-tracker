@@ -22,6 +22,12 @@ A modern web application for families to manage household chores, built with Fas
 - ✅ **Reward Adjustments** - Manual balance adjustments for bonuses/penalties
 - ✅ **Dashboard Improvements** - Enhanced parent dashboard functionality
 
+**Recent Updates** (August 2025)
+- ✅ **Child Balance Display** - Added prominent balance card for child users
+- ✅ **Dashboard Authentication Fix** - Resolved issue where child users were redirected to login
+- ✅ **Improved User Schemas** - Added balance field to UserInDB schema
+- ✅ **Enhanced Child Experience** - Better UI/UX for child users viewing their rewards
+
 ### CI/CD Status
 [![Backend Tests](https://github.com/arigsela/chores-tracker/actions/workflows/backend-tests.yml/badge.svg)](https://github.com/arigsela/chores-tracker/actions/workflows/backend-tests.yml)
 [![Deploy to ECR](https://github.com/arigsela/chores-tracker/actions/workflows/deploy-to-ecr.yml/badge.svg)](https://github.com/arigsela/chores-tracker/actions/workflows/deploy-to-ecr.yml)
@@ -30,6 +36,11 @@ A modern web application for families to manage household chores, built with Fas
 - Total tests: 223 (100% passing) ✅
 - Coverage: 43% overall (>75% for critical business logic)
 - Skipped: 15 (architectural limitations in test environment)
+
+**Known Issues Fixed:**
+- ✅ Child users no longer redirected to login after successful authentication
+- ✅ Parent-only API endpoints no longer called for child users
+- ✅ JavaScript errors from non-existent UI elements resolved
 
 **CI/CD Pipeline:**
 - **Automated Deployment**: Push to main triggers Docker build and ECR push
@@ -53,6 +64,8 @@ A modern web application for families to manage household chores, built with Fas
 - **Responsive design** with Tailwind CSS
 - **Reward adjustments** - Parents can add bonuses or penalties to children's balances
 - **Enhanced dashboard** - Improved UI for managing chores and viewing statistics
+- **Child balance display** - Children can see their current balance prominently on dashboard
+- **Role-based UI** - Optimized views for parent and child users
 
 ### Mobile App (React Native)
 - **Native iOS and Android support** - Full-featured mobile application
@@ -211,10 +224,28 @@ npm run backend  # In one terminal
 npm run dev:simulator  # In another terminal
 ```
 
+## 🎯 Recent Feature Highlights
+
+### Child Balance Display (August 2025)
+The child balance feature provides a prominent display of rewards earned:
+- **Balance Card Component**: Shows current balance with wallet icon
+- **Real-time Updates**: Balance refreshes when chores are approved
+- **Child-Friendly UI**: Large, clear display optimized for young users
+- **Responsive Design**: Adapts to mobile and desktop screens
+
+### Dashboard Authentication Fix (August 2025)
+Resolved critical issue affecting child user experience:
+- **Fixed Race Condition**: Parent-only endpoints no longer load for child users
+- **Conditional Loading**: Role-specific content loads after authentication
+- **Improved Error Handling**: 403 errors no longer cause login redirects
+- **Smoother Navigation**: Child users stay logged in after authentication
+
 ## 📈 Future Improvements
 
-### Phase 3: UI & Performance (Partially Complete)
+### Phase 3: UI & Performance (In Progress)
 - ✅ Extract HTML to template files (completed)
+- ✅ Child balance display component (completed)
+- ✅ Role-based dashboard optimization (completed)
 - 📋 Add caching layer (Redis)
 - 📋 Enhanced monitoring and logging
 - 📋 Add OpenTelemetry monitoring
@@ -290,4 +321,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ---
 
-**Last Updated:** January 2025
+**Last Updated:** August 2025
