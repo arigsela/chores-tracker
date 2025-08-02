@@ -39,14 +39,32 @@
         <div id="selected-child-chores" class="mt-6"></div>
     </div>
     
+    <!-- Balance Card for Children Only -->
+    <div id="child-balance-section" style="display: none;">
+        <div 
+            hx-get="/api/v1/html/users/me/balance-card"
+            hx-trigger="load, refresh-balance from:body"
+            hx-swap="innerHTML">
+            <!-- Loading placeholder -->
+            <div class="bg-white shadow rounded-lg p-6 mb-6 animate-pulse">
+                <div class="flex items-center">
+                    <div class="w-12 h-12 bg-gray-200 rounded-full"></div>
+                    <div class="ml-5 flex-1">
+                        <div class="h-4 bg-gray-200 rounded w-1/4 mb-2"></div>
+                        <div class="h-8 bg-gray-200 rounded w-1/3"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- Chores to Approve -->
-        <div class="bg-white p-4 rounded-lg shadow" id="pending-approval-section">
+        <!-- Chores to Approve (Parent Only) -->
+        <div class="bg-white p-4 rounded-lg shadow" id="pending-approval-section" style="display: none;">
             <h2 class="text-xl font-semibold mb-4 text-purple-700">Pending Approval</h2>
             <div 
                 id="pending-chores"
                 hx-get="/api/v1/html/chores/pending-approval"
-                hx-trigger="load"
                 hx-swap="innerHTML"
             >
                 <p class="text-gray-500">Loading pending chores...</p>
@@ -165,10 +183,13 @@
                     document.getElementById('parent-view').style.display = 'block';
                     document.getElementById('parent-buttons').style.display = 'flex';
                     document.getElementById('admin-tools').style.display = 'block';
+                    document.getElementById('pending-approval-section').style.display = 'block';
+                    // Manually trigger loading of parent-only content
+                    htmx.trigger('#pending-chores', 'load');
                 } else {
                     // Show child view elements
                     document.getElementById('available-chores-section').style.display = 'block';
-                    document.getElementById('child-view').style.display = 'block';
+                    document.getElementById('child-balance-section').style.display = 'block';
                 }
             })
             .catch(error => {
@@ -245,6 +266,9 @@
             // Unauthorized - redirect to login
             localStorage.removeItem('token');
             window.location.href = '/pages/login';
+        } else if (event.detail.xhr.status === 403) {
+            // Forbidden - just log it, don't logout
+            console.log('Access forbidden to:', event.detail.pathInfo);
         }
     });
     
@@ -281,6 +305,11 @@
             htmx.trigger('#pending-chores', 'load');
             htmx.trigger('#active-chores', 'load');
             htmx.trigger('#completed-chores', 'load');
+            
+            // Trigger balance refresh for children
+            if (window.currentUser && !window.currentUser.is_parent) {
+                htmx.trigger('body', 'refresh-balance');
+            }
             
             // Reload the page after a brief delay to ensure all data is refreshed
             setTimeout(function() {
@@ -342,6 +371,11 @@
             htmx.trigger('#pending-chores', 'load');
             htmx.trigger('#active-chores', 'load');
             htmx.trigger('#completed-chores', 'load');
+            
+            // Trigger balance refresh for children
+            if (window.currentUser && !window.currentUser.is_parent) {
+                htmx.trigger('body', 'refresh-balance');
+            }
             
             // Reload the page after a brief delay to ensure all data is refreshed
             setTimeout(function() {
