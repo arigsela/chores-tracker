@@ -61,9 +61,11 @@ async def test_children_options_endpoint(client: AsyncClient, parent_token, test
         headers={"Authorization": f"Bearer {parent_token}"}
     )
     assert response.status_code == 200
-    assert b"Select a child" in response.content
+    # Updated test to match new clickable card format
+    assert b"Click to view chores" in response.content
     assert str(test_child_user.id).encode() in response.content
     assert test_child_user.username.encode() in response.content
+    assert b"viewChildChores" in response.content
 
 @pytest.mark.asyncio
 async def test_allowance_summary_endpoint(client: AsyncClient, parent_token, test_child_user):
