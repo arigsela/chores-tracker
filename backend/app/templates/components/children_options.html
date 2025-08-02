@@ -1,4 +1,10 @@
-<option value=''>Select a child</option>
 {% for child in children %}
-<option value='{{ child.id }}'>{{ child.username }}</option>
+<div class="p-4 border rounded-lg hover:bg-blue-50 cursor-pointer transition-colors"
+     onclick="viewChildChores({{ child.id }})">
+    <h3 class="font-semibold text-lg">{{ child.username }}</h3>
+    {% if child.email %}
+    <p class="text-gray-600 text-sm">{{ child.email }}</p>
+    {% endif %}
+    <p class="text-blue-600 font-medium mt-1">Click to view chores</p>
+</div>
 {% endfor %}
