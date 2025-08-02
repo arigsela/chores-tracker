@@ -92,3 +92,44 @@ class UserResponse(UserBase):
         description="ID of parent user (null for parent accounts)",
         json_schema_extra={"example": None}
     )
+
+class UserBalanceResponse(BaseModel):
+    """Schema for user balance information."""
+    model_config = ConfigDict(
+        from_attributes=True,
+        json_schema_extra={
+            "example": {
+                "balance": 25.50,
+                "total_earned": 45.00,
+                "adjustments": 5.50,
+                "paid_out": 25.00,
+                "pending_chores_value": 10.00
+            }
+        }
+    )
+    
+    balance: float = Field(
+        ...,
+        description="Current balance (total earned + adjustments - paid out)",
+        json_schema_extra={"example": 25.50}
+    )
+    total_earned: float = Field(
+        ...,
+        description="Total amount earned from approved chores",
+        json_schema_extra={"example": 45.00}
+    )
+    adjustments: float = Field(
+        ...,
+        description="Total adjustments (bonuses or deductions)",
+        json_schema_extra={"example": 5.50}
+    )
+    paid_out: float = Field(
+        ...,
+        description="Total amount already paid out",
+        json_schema_extra={"example": 25.00}
+    )
+    pending_chores_value: float = Field(
+        0.0,
+        description="Total value of chores pending approval",
+        json_schema_extra={"example": 10.00}
+    )

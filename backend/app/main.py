@@ -236,6 +236,50 @@ async def read_users_me(current_user: models.User = Depends(get_current_user)):
     """Get current user."""
     return current_user
 
+@app.get("/api/v1/users/me/balance", response_model=schemas.UserBalanceResponse)
+async def get_my_balance(
+    db: AsyncSession = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """Get current user's balance information.
+    
+    Returns balance details for the authenticated user (child accounts only).
+    Parents should use the /summary endpoint instead.
+    """
+    if current_user.is_parent:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Parents should use /api/v1/users/summary endpoint"
+        )
+    
+    # Reuse the balance calculation logic from the summary endpoint
+    from .repositories.chore import ChoreRepository
+    from .repositories.reward_adjustment import RewardAdjustmentRepository
+    chore_repo = ChoreRepository()
+    adjustment_repo = RewardAdjustmentRepository()
+    
+    # Get chores for the current user
+    chores = await chore_repo.get_by_assignee(db, assignee_id=current_user.id)
+    
+    # Calculate totals
+    total_earned = sum(c.reward for c in chores if c.is_completed and c.is_approved)
+    pending_chores_value = sum(c.reward for c in chores if c.is_completed and not c.is_approved)
+    
+    # Get total adjustments
+    total_adjustments = await adjustment_repo.calculate_total_adjustments(db, child_id=current_user.id)
+    
+    # For now, assume no payments made yet (same as parent summary)
+    paid_out = 0
+    balance = total_earned + float(total_adjustments) - paid_out
+    
+    return schemas.UserBalanceResponse(
+        balance=balance,
+        total_earned=total_earned,
+        adjustments=float(total_adjustments),
+        paid_out=paid_out,
+        pending_chores_value=pending_chores_value
+    )
+
 @app.get("/api/v1/users/children", response_class=HTMLResponse)
 async def get_children_options(
     request: Request,
@@ -495,10 +539,16 @@ async def complete_chore_html(
     updated_chore = await chore_repo.get(db, id=chore_id, eager_load_relations=["assignee", "creator"])
     
     # Render the updated chore as HTML
-    return templates.TemplateResponse(
+    response = templates.TemplateResponse(
         "components/chore_item.html", 
         {"request": request, "chore": updated_chore, "current_user": current_user}
     )
+    
+    # Trigger balance refresh for child users
+    if not current_user.is_parent:
+        response.headers["HX-Trigger"] = "refresh-balance"
+    
+    return response
 
 @app.post("/api/v1/chores/{chore_id}/approve", response_class=HTMLResponse)
 async def approve_chore_html(
@@ -1222,6 +1272,53 @@ async def get_children_html(
     return templates.TemplateResponse(
         "components/user_list.html",
         {"request": request, "users": children}
+    )
+
+@app.get("/api/v1/html/users/me/balance-card", response_class=HTMLResponse)
+async def get_balance_card(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """Return balance card HTML component for child dashboard."""
+    if current_user.is_parent:
+        return templates.TemplateResponse(
+            "components/not_authorized.html",
+            {"request": request, "message": "Parents should use the summary view"}
+        )
+    
+    # Reuse the balance calculation logic
+    from .repositories.chore import ChoreRepository
+    from .repositories.reward_adjustment import RewardAdjustmentRepository
+    chore_repo = ChoreRepository()
+    adjustment_repo = RewardAdjustmentRepository()
+    
+    # Get chores for the current user
+    chores = await chore_repo.get_by_assignee(db, assignee_id=current_user.id)
+    
+    # Calculate totals (same logic as JSON endpoint)
+    total_earned = sum(c.reward for c in chores if c.is_completed and c.is_approved)
+    pending_chores_value = sum(c.reward for c in chores if c.is_completed and not c.is_approved)
+    
+    # Get total adjustments
+    total_adjustments = await adjustment_repo.calculate_total_adjustments(db, child_id=current_user.id)
+    
+    # For now, assume no payments made yet
+    paid_out = 0
+    balance = total_earned + float(total_adjustments) - paid_out
+    
+    # Create balance data object matching our schema
+    balance_data = {
+        "balance": balance,
+        "total_earned": total_earned,
+        "adjustments": float(total_adjustments),
+        "paid_out": paid_out,
+        "pending_chores_value": pending_chores_value
+    }
+    
+    return templates.TemplateResponse(
+        "components/balance-card.html",
+        {"request": request, "balance": balance_data, "user": current_user}
     )
 
 @app.post("/api/v1/direct-reset-password/{child_id}", response_class=HTMLResponse)
