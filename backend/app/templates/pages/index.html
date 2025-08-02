@@ -114,21 +114,8 @@
             return response.json();
         })
         .then(user => {
-            // Update page based on user role
-            if (user.is_parent) {
-                // Show parent view and quick actions
-                document.getElementById('parent-view').style.display = 'block';
-                document.getElementById('quick-actions').style.display = 'block';
-                document.getElementById('child-view').style.display = 'none';
-                
-                // Load children's sections
-                loadChildrenSections();
-            } else {
-                // Show child view
-                document.getElementById('parent-view').style.display = 'none';
-                document.getElementById('quick-actions').style.display = 'none';
-                document.getElementById('child-view').style.display = 'block';
-            }
+            // Redirect authenticated users to dashboard
+            window.location.href = '/dashboard';
         })
         .catch(error => {
             console.error('Error fetching user data:', error);
