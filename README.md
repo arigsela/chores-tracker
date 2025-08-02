@@ -14,11 +14,13 @@ A modern web application for families to manage household chores, built with Fas
 - ✅ **Service layer** architecture implemented
 - ✅ **All deprecations** removed - using 2024 best practices
 
-**Phase 2 Completed** (December 2024 - June 2025)
+**Phase 2 Completed** (December 2024 - January 2025)
 - ✅ **Rate limiting** implemented with slowapi
 - ✅ **Database optimizations** - indexes, eager loading, connection pooling
 - ✅ **Unit of Work pattern** - transaction management implemented
 - ✅ **API Documentation** - Enhanced OpenAPI specs with examples
+- ✅ **Reward Adjustments** - Manual balance adjustments for bonuses/penalties
+- ✅ **Dashboard Improvements** - Enhanced parent dashboard functionality
 
 ### CI/CD Status
 [![Backend Tests](https://github.com/arigsela/chores-tracker/actions/workflows/backend-tests.yml/badge.svg)](https://github.com/arigsela/chores-tracker/actions/workflows/backend-tests.yml)
@@ -42,12 +44,22 @@ A modern web application for families to manage household chores, built with Fas
 
 ## 📋 Features
 
+### Core Features
 - **Parent accounts** can create and manage chores
 - **Child accounts** can view and complete assigned chores
 - **Reward system** with fixed or range-based rewards
 - **Recurring chores** with cooldown periods
 - **Real-time updates** using HTMX
 - **Responsive design** with Tailwind CSS
+- **Reward adjustments** - Parents can add bonuses or penalties to children's balances
+- **Enhanced dashboard** - Improved UI for managing chores and viewing statistics
+
+### Mobile App (React Native)
+- **Native iOS and Android support** - Full-featured mobile application
+- **Offline capabilities** - Works without constant internet connection
+- **Push notifications** - Get alerts for new chores and approvals
+- **Biometric authentication** - Secure login with Face ID/Touch ID
+- **Native animations** - Smooth, responsive user experience
 
 ## 🛠️ Tech Stack
 
@@ -69,6 +81,15 @@ A modern web application for families to manage household chores, built with Fas
 - **Tilt** - Hot-reloading development
 - **pytest** - Testing framework
 - **Alembic** - Database migrations
+- **GitHub Actions** - CI/CD pipeline
+- **AWS ECR** - Container registry
+
+### Mobile (React Native)
+- **React Native 0.80.0** - Cross-platform mobile framework
+- **React Navigation** - Navigation system
+- **Async Storage** - Local data persistence
+- **Reanimated 3** - Smooth animations
+- **Axios** - API client
 
 ## 🚦 Quick Start
 
@@ -139,6 +160,8 @@ docker compose exec api python -m pytest backend/tests/test_repositories.py -v
 - [`ECR_DEPLOYMENT_GUIDE.md`](ECR_DEPLOYMENT_GUIDE.md) - AWS ECR deployment setup
 - [`GITOPS_DEPLOYMENT_ANALYSIS.md`](GITOPS_DEPLOYMENT_ANALYSIS.md) - Kubernetes deployment architecture
 - [`RELEASING.md`](RELEASING.md) - Release process and versioning guide
+- [`MOBILE_APP_DEVELOPMENT_GUIDE.md`](documents/MOBILE_APP_DEVELOPMENT_GUIDE.md) - Mobile app development guide
+- [`REACT_NATIVE_IMPLEMENTATION.md`](documents/REACT_NATIVE_IMPLEMENTATION.md) - React Native implementation details
 
 ### API Documentation
 When running locally, visit http://localhost:8000/docs for interactive API documentation.
@@ -164,6 +187,28 @@ docker compose exec api python -m backend.app.scripts.list_users
 
 # Reset a user's password
 docker compose exec api python -m backend.app.scripts.reset_password
+
+# Create a parent user
+docker compose exec api python -m backend.app.scripts.create_parent_user
+```
+
+### Mobile App Development
+```bash
+# Navigate to mobile directory
+cd mobile
+
+# Install dependencies
+npm install
+
+# iOS development
+npm run ios
+
+# Android development
+npm run android
+
+# Run with backend
+npm run backend  # In one terminal
+npm run dev:simulator  # In another terminal
 ```
 
 ## 📈 Future Improvements
@@ -245,4 +290,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ---
 
-**Last Updated:** June 28, 2025
+**Last Updated:** January 2025
