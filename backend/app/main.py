@@ -394,7 +394,8 @@ async def get_chores_html(
 async def get_available_chores_html(
     request: Request,
     db: AsyncSession = Depends(get_db),
-    current_user: models.User = Depends(get_current_user)
+    current_user: models.User = Depends(get_current_user),
+    show_all: bool = Query(False)
 ):
     """Get HTML for available chores (child view)."""
     # Only for children
@@ -410,7 +411,7 @@ async def get_available_chores_html(
     
     return templates.TemplateResponse(
         "components/chore_list.html", 
-        {"request": request, "chores": chores, "current_user": current_user}
+        {"request": request, "chores": chores, "current_user": current_user, "show_all": show_all, "target_id": "available-chores"}
     )
 
 @app.get("/api/v1/html/chores/pending", response_class=HTMLResponse)
