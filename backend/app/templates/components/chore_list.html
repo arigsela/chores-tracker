@@ -1,12 +1,25 @@
 {% if chores %}
-    {% for chore in chores[:10] %}
-        {% include "components/chore_item.html" %}
-    {% endfor %}
-    {% if chores|length > 10 %}
-    <div class="mt-4 text-center">
-        <p class="text-gray-600 text-sm">Showing 10 of {{ chores|length }} chores</p>
-        <a href="/chores" class="text-blue-600 hover:text-blue-700 underline">View all chores</a>
-    </div>
+    {% if show_all %}
+        {% for chore in chores %}
+            {% include "components/chore_item.html" %}
+        {% endfor %}
+    {% else %}
+        {% for chore in chores[:10] %}
+            {% include "components/chore_item.html" %}
+        {% endfor %}
+        {% if chores|length > 10 %}
+        <div class="mt-4 text-center">
+            <p class="text-gray-600 text-sm">Showing 10 of {{ chores|length }} chores</p>
+            <button 
+                class="text-blue-600 hover:text-blue-700 underline cursor-pointer"
+                hx-get="{{ request.url.path }}?show_all=true"
+                hx-target="#{{ target_id|default('available-chores') }}"
+                hx-swap="innerHTML"
+            >
+                Show all chores
+            </button>
+        </div>
+        {% endif %}
     {% endif %}
 {% else %}
     <p class="text-gray-500 italic">No chores found.</p>
