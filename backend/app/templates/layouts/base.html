@@ -117,6 +117,14 @@
                 }, 0);
             }
         }
+        
+        // Add authentication headers to all HTMX requests globally
+        document.addEventListener('htmx:configRequest', function(event) {
+            const token = localStorage.getItem('token');
+            if (token) {
+                event.detail.headers['Authorization'] = 'Bearer ' + token;
+            }
+        });
     </script>
     {% block scripts %}{% endblock %}
 </body>

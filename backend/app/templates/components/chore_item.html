@@ -103,6 +103,19 @@
                 </button>
                 <div id="dropdown-{{ chore.id }}" class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg hidden z-10">
                     <div class="py-1">
+                        {% if not chore.is_disabled %}
+                        <button 
+                            class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                            hx-get="/chores/{{ chore.id }}/edit-form"
+                            hx-target="body"
+                            hx-swap="beforeend"
+                            hx-trigger="click"
+                            onclick="event.stopPropagation();"
+                        >
+                            Edit
+                        </button>
+                        {% endif %}
+                        
                         <button 
                             class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                             hx-delete="/api/v1/chores/{{ chore.id }}"

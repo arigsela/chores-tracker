@@ -825,11 +825,11 @@ async def get_edit_chore_form(
     # Get list of children for assignment dropdown
     from .repositories.user import UserRepository
     user_repo = UserRepository()
-    children = await user_repo.get_children_by_parent(db, parent_id=current_user.id)
+    children = await user_repo.get_children(db, parent_id=current_user.id)
     
-    # Render edit form
+    # Render edit form as modal
     return templates.TemplateResponse(
-        "components/edit-form.html",
+        "components/edit-form-modal.html",
         {"request": request, "chore": chore, "children": children, "current_user": current_user}
     )
 
@@ -886,8 +886,9 @@ async def update_chore(
             detail="Only the creator can update chores"
         )
     
-    # Update the chore
-    updated_chore = await chore_service.update(db, id=chore_id, obj_in=chore_update)
+    # Update the chore - convert Pydantic model to dict
+    update_data = chore_update.model_dump(exclude_unset=True)
+    updated_chore = await chore_service.update(db, id=chore_id, obj_in=update_data)
     
     return updated_chore
 
