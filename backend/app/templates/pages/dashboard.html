@@ -10,7 +10,7 @@
         <div class="flex space-x-2" id="parent-buttons" style="display: none;">
             <button 
                 class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
-                hx-get="/pages/chore-form"
+                hx-get="/pages/chores-form"
                 hx-target="#main-content"
             >
                 Add New Chore
@@ -30,7 +30,7 @@
     <div id="parent-view" class="bg-white p-4 rounded-lg shadow mb-6" style="display: none;">
         <h2 class="text-xl font-semibold mb-4 text-blue-700">Select a Child</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="children-list"
-             hx-get="/api/v1/users/children"
+             hx-get="/api/v1/users/children-cards"
              hx-trigger="load"
              hx-swap="innerHTML">
             <p class="text-gray-500">Loading children...</p>

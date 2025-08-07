@@ -1,0 +1,4 @@
+<option value="">Select a child</option>
+{% for child in children %}
+<option value="{{ child.id }}">{{ child.username }}</option>
+{% endfor %}
