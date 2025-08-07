@@ -27,6 +27,8 @@ A modern web application for families to manage household chores, built with Fas
 - ✅ **Dashboard Authentication Fix** - Resolved issue where child users were redirected to login
 - ✅ **Improved User Schemas** - Added balance field to UserInDB schema
 - ✅ **Enhanced Child Experience** - Better UI/UX for child users viewing their rewards
+- ✅ **Chore Pagination Fix** - Fixed "Show All" button for viewing more than 10 chores
+- ✅ **HTMX Dynamic Content** - Resolved HTMX initialization for dynamically loaded elements
 
 ### CI/CD Status
 [![Backend Tests](https://github.com/arigsela/chores-tracker/actions/workflows/backend-tests.yml/badge.svg)](https://github.com/arigsela/chores-tracker/actions/workflows/backend-tests.yml)
@@ -41,6 +43,8 @@ A modern web application for families to manage household chores, built with Fas
 - ✅ Child users no longer redirected to login after successful authentication
 - ✅ Parent-only API endpoints no longer called for child users
 - ✅ JavaScript errors from non-existent UI elements resolved
+- ✅ "Show All" button now works correctly for chore lists exceeding 10 items
+- ✅ HTMX elements in dynamically loaded content are now properly initialized
 
 **CI/CD Pipeline:**
 - **Automated Deployment**: Push to main triggers Docker build and ECR push
@@ -239,6 +243,13 @@ Resolved critical issue affecting child user experience:
 - **Conditional Loading**: Role-specific content loads after authentication
 - **Improved Error Handling**: 403 errors no longer cause login redirects
 - **Smoother Navigation**: Child users stay logged in after authentication
+
+### Chore Pagination Fix (August 2025)
+Fixed "Show All" button functionality for viewing extended chore lists:
+- **HTMX Initialization**: Added `htmx.process()` for dynamically loaded content
+- **Parent Dashboard**: Fixed viewing all chores when selecting a child
+- **Pagination Support**: Properly handles `show_all` parameter in all chore endpoints
+- **Dynamic Content**: JavaScript-loaded content now properly triggers HTMX events
 
 ## 📈 Future Improvements
 
