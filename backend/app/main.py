@@ -299,6 +299,29 @@ async def get_children_options(
     children = await user_repo.get_children(db, parent_id=current_user.id)
     
     return templates.TemplateResponse(
+        "components/children_dropdown_options.html",
+        {"request": request, "children": children}
+    )
+
+@app.get("/api/v1/users/children-cards", response_class=HTMLResponse)
+async def get_children_cards(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """Get children as clickable cards for dashboard."""
+    from .repositories.user import UserRepository
+    user_repo = UserRepository()
+    
+    if not current_user.is_parent:
+        return templates.TemplateResponse(
+            "components/not_authorized.html",
+            {"request": request, "format": "option"}
+        )
+    
+    children = await user_repo.get_children(db, parent_id=current_user.id)
+    
+    return templates.TemplateResponse(
         "components/children_options.html",
         {"request": request, "children": children}
     )
