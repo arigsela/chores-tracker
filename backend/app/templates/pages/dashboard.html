@@ -249,7 +249,10 @@
         })
         .then(response => response.text())
         .then(html => {
-            document.getElementById('selected-child-chores').innerHTML = html;
+            const container = document.getElementById('selected-child-chores');
+            container.innerHTML = html;
+            // Process the new content with HTMX so buttons work
+            htmx.process(container);
         })
         .catch(error => console.error('Error fetching child chores:', error));
     }
