@@ -65,6 +65,7 @@
             <div 
                 id="pending-chores"
                 hx-get="/api/v1/html/chores/pending-approval"
+                hx-trigger="load"
                 hx-swap="innerHTML"
             >
                 <p class="text-gray-500">Loading pending chores...</p>
