@@ -440,6 +440,7 @@ async def get_pending_chores_child_html(
 @app.get("/api/v1/html/chores/active", response_class=HTMLResponse)
 async def get_active_chores_html(
     request: Request,
+    show_all: bool = False,
     db: AsyncSession = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ):
@@ -458,12 +459,13 @@ async def get_active_chores_html(
     
     return templates.TemplateResponse(
         "components/chore_list.html", 
-        {"request": request, "chores": chores, "current_user": current_user}
+        {"request": request, "chores": chores, "current_user": current_user, "show_all": show_all, "target_id": "active-chores"}
     )
 
 @app.get("/api/v1/html/chores/completed", response_class=HTMLResponse)
 async def get_completed_chores_html(
     request: Request,
+    show_all: bool = False,
     db: AsyncSession = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ):
@@ -482,7 +484,7 @@ async def get_completed_chores_html(
     
     return templates.TemplateResponse(
         "components/chore_list.html", 
-        {"request": request, "chores": chores, "current_user": current_user}
+        {"request": request, "chores": chores, "current_user": current_user, "show_all": show_all, "target_id": "completed-chores"}
     )
 
 @app.post("/api/v1/chores/{chore_id}/complete", response_class=HTMLResponse)
@@ -924,6 +926,7 @@ async def delete_chore_html(
 @app.get("/api/v1/html/chores/pending-approval", response_class=HTMLResponse)
 async def get_pending_approval_chores_html(
     request: Request,
+    show_all: bool = False,
     db: AsyncSession = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ):
@@ -950,18 +953,19 @@ async def get_pending_approval_chores_html(
     
     return templates.TemplateResponse(
         "components/chore_list.html", 
-        {"request": request, "chores": chores, "current_user": current_user}
+        {"request": request, "chores": chores, "current_user": current_user, "show_all": show_all, "target_id": "pending-chores"}
     )
 
 @app.get("/api/v1/html/chores/child/{child_id}", response_class=HTMLResponse)
 async def get_child_chores_html(
     request: Request,
     child_id: int,
+    show_all: bool = False,
     db: AsyncSession = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ):
     """Get HTML for a specific child's active chores."""
-    print(f"Getting active chores for child ID: {child_id}")
+    print(f"Getting active chores for child ID: {child_id}, show_all: {show_all}")
     # Only for parents
     if not current_user.is_parent:
         print(f"User {current_user.username} is not a parent, access denied")
@@ -1000,7 +1004,7 @@ async def get_child_chores_html(
     
     return templates.TemplateResponse(
         "components/chore_list.html", 
-        {"request": request, "chores": chores, "current_user": current_user}
+        {"request": request, "chores": chores, "current_user": current_user, "show_all": show_all, "target_id": "selected-child-chores"}
     )
 
 @app.get("/api/v1/html/chores/child/{child_id}/completed", response_class=HTMLResponse)
