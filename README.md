@@ -29,6 +29,7 @@ A modern web application for families to manage household chores, built with Fas
 - ✅ **Enhanced Child Experience** - Better UI/UX for child users viewing their rewards
 - ✅ **Chore Pagination Fix** - Fixed "Show All" button for viewing more than 10 chores
 - ✅ **HTMX Dynamic Content** - Resolved HTMX initialization for dynamically loaded elements
+- ✅ **Chore Editing Feature** - Parents can now edit existing chores directly from the dashboard
 
 ### CI/CD Status
 [![Backend Tests](https://github.com/arigsela/chores-tracker/actions/workflows/backend-tests.yml/badge.svg)](https://github.com/arigsela/chores-tracker/actions/workflows/backend-tests.yml)
@@ -60,7 +61,7 @@ A modern web application for families to manage household chores, built with Fas
 ## 📋 Features
 
 ### Core Features
-- **Parent accounts** can create and manage chores
+- **Parent accounts** can create, edit, and manage chores
 - **Child accounts** can view and complete assigned chores
 - **Reward system** with fixed or range-based rewards
 - **Recurring chores** with cooldown periods
@@ -70,6 +71,7 @@ A modern web application for families to manage household chores, built with Fas
 - **Enhanced dashboard** - Improved UI for managing chores and viewing statistics
 - **Child balance display** - Children can see their current balance prominently on dashboard
 - **Role-based UI** - Optimized views for parent and child users
+- **Chore editing** - Parents can modify chore details, rewards, and assignments after creation
 
 ### Mobile App (React Native)
 - **Native iOS and Android support** - Full-featured mobile application
@@ -251,6 +253,14 @@ Fixed "Show All" button functionality for viewing extended chore lists:
 - **Pagination Support**: Properly handles `show_all` parameter in all chore endpoints
 - **Dynamic Content**: JavaScript-loaded content now properly triggers HTMX events
 
+### Chore Editing Feature (August 2025)
+Parents can now edit existing chores directly from the dashboard:
+- **Edit Button**: Added to Actions dropdown for all non-disabled chores
+- **Modal Interface**: Clean, intuitive modal overlay for editing chore details
+- **Comprehensive Editing**: Modify title, description, rewards, assignee, and recurrence settings
+- **Real-time Updates**: Changes apply immediately without full page refresh
+- **Authorization**: Only chore creators (parents) can edit their chores
+
 ## 📈 Future Improvements
 
 ### Phase 3: UI & Performance (In Progress)
@@ -332,4 +342,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ---
 
-**Last Updated:** August 2025
+**Last Updated:** August 2025 - Added Chore Editing Feature
