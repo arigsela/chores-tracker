@@ -61,7 +61,21 @@ async def test_children_options_endpoint(client: AsyncClient, parent_token, test
         headers={"Authorization": f"Bearer {parent_token}"}
     )
     assert response.status_code == 200
-    # Updated test to match new clickable card format
+    # Test expects dropdown options, not clickable cards
+    assert b"<option" in response.content
+    assert b"Select a child" in response.content
+    assert str(test_child_user.id).encode() in response.content
+    assert test_child_user.username.encode() in response.content
+
+@pytest.mark.asyncio
+async def test_children_cards_endpoint(client: AsyncClient, parent_token, test_child_user):
+    """Test the children cards endpoint for dashboard."""
+    response = await client.get(
+        "/api/v1/users/children-cards", 
+        headers={"Authorization": f"Bearer {parent_token}"}
+    )
+    assert response.status_code == 200
+    # Test expects clickable cards for dashboard
     assert b"Click to view chores" in response.content
     assert str(test_child_user.id).encode() in response.content
     assert test_child_user.username.encode() in response.content
