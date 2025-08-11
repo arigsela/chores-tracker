@@ -210,6 +210,18 @@ class ChoreResponse(ChoreBase):
         None,
         description="When the chore was last updated"
     )
+    
+    # Optional related objects (when eagerly loaded)
+    # NOTE: Commented out to avoid SQLAlchemy lazy loading issues
+    # These fields require explicit eager loading to work properly
+    # assignee: Optional['UserResponse'] = Field(
+    #     None,
+    #     description="Assigned child user details (when eagerly loaded)"
+    # )
+    # creator: Optional['UserResponse'] = Field(
+    #     None,
+    #     description="Parent creator details (when eagerly loaded)"
+    # )
 
 class ChoreComplete(BaseModel):
     """Schema for marking a chore as complete."""
@@ -241,3 +253,11 @@ class ChoreDisable(BaseModel):
         description="Disable the chore (always true)",
         json_schema_extra={"example": True}
     )
+
+# Avoid circular imports - import at end and rebuild
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from .user import UserResponse
+else:
+    from .user import UserResponse
+    ChoreResponse.model_rebuild()

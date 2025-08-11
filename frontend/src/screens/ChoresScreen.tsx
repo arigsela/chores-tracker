@@ -1,23 +1,219 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  ScrollView, 
+  TouchableOpacity, 
+  ActivityIndicator,
+  RefreshControl,
+  Alert 
+} from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
+import { choreAPI, Chore } from '@/api/chores';
+import { ChoreCard } from '@/components/ChoreCard';
+
+type TabType = 'available' | 'active' | 'completed';
 
 export const ChoresScreen: React.FC = () => {
   const { user } = useAuth();
   const isParent = user?.role === 'parent';
+  
+  const [activeTab, setActiveTab] = useState<TabType>('available');
+  const [chores, setChores] = useState<Chore[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const fetchChores = async (refresh = false) => {
+    try {
+      if (refresh) setIsRefreshing(true);
+      else setIsLoading(true);
+
+      let fetchedChores: Chore[] = [];
+
+      if (isParent) {
+        // Parent view - fetch based on tab
+        if (activeTab === 'available') {
+          // Parents see pending approval chores
+          fetchedChores = await choreAPI.getPendingApprovalChores();
+        } else {
+          // Fetch all chores and filter client-side
+          fetchedChores = await choreAPI.getMyChores();
+          if (activeTab === 'active') {
+            fetchedChores = fetchedChores.filter(c => c.is_active && !c.completed_at);
+          } else if (activeTab === 'completed') {
+            fetchedChores = fetchedChores.filter(c => c.completed_at);
+          }
+        }
+      } else {
+        // Child view
+        if (activeTab === 'available') {
+          fetchedChores = await choreAPI.getAvailableChores();
+        } else {
+          // Fetch all assigned chores and filter
+          fetchedChores = await choreAPI.getMyChores();
+          if (activeTab === 'active') {
+            fetchedChores = fetchedChores.filter(c => !c.completed_at && c.assigned_to_id === user?.id);
+          } else if (activeTab === 'completed') {
+            fetchedChores = fetchedChores.filter(c => c.completed_at && c.assigned_to_id === user?.id);
+          }
+        }
+      }
+
+      setChores(fetchedChores);
+    } catch (error) {
+      console.error('Failed to fetch chores:', error);
+      Alert.alert('Error', 'Failed to load chores. Please try again.');
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchChores();
+  }, [activeTab]);
+
+  const handleCompleteChore = async (choreId: number) => {
+    Alert.alert(
+      'Complete Chore',
+      'Are you sure you want to mark this chore as complete?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Complete', 
+          onPress: async () => {
+            try {
+              await choreAPI.completeChore(choreId);
+              Alert.alert('Success', 'Chore marked as complete!');
+              fetchChores(true);
+            } catch (error) {
+              Alert.alert('Error', 'Failed to complete chore. Please try again.');
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const handleApproveChore = async (chore: Chore) => {
+    if (chore.is_range_reward && chore.min_reward && chore.max_reward) {
+      // For range rewards, parent needs to select amount
+      Alert.prompt(
+        'Approve Chore',
+        `Enter reward amount between $${chore.min_reward} and $${chore.max_reward}:`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Approve',
+            onPress: async (value) => {
+              const amount = parseFloat(value || '0');
+              if (amount >= chore.min_reward && amount <= chore.max_reward) {
+                try {
+                  await choreAPI.approveChore(chore.id, amount);
+                  Alert.alert('Success', 'Chore approved!');
+                  fetchChores(true);
+                } catch (error) {
+                  Alert.alert('Error', 'Failed to approve chore.');
+                }
+              } else {
+                Alert.alert('Invalid Amount', `Please enter an amount between $${chore.min_reward} and $${chore.max_reward}`);
+              }
+            }
+          }
+        ],
+        'plain-text',
+        '',
+        'numeric'
+      );
+    } else {
+      // Fixed reward
+      Alert.alert(
+        'Approve Chore',
+        `Approve this chore with reward of $${chore.reward}?`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { 
+            text: 'Approve',
+            onPress: async () => {
+              try {
+                await choreAPI.approveChore(chore.id);
+                Alert.alert('Success', 'Chore approved!');
+                fetchChores(true);
+              } catch (error) {
+                Alert.alert('Error', 'Failed to approve chore.');
+              }
+            }
+          }
+        ]
+      );
+    }
+  };
+
+  const renderTab = (tab: TabType, label: string) => (
+    <TouchableOpacity
+      key={tab}
+      style={[styles.tab, activeTab === tab && styles.activeTab]}
+      onPress={() => setActiveTab(tab)}
+      testID={`tab-${tab}`}
+    >
+      <Text style={[styles.tabText, activeTab === tab && styles.activeTabText]}>
+        {label}
+      </Text>
+    </TouchableOpacity>
+  );
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Chores</Text>
-      <Text style={styles.subtitle}>
-        {isParent ? 'Manage family chores' : 'View your assigned chores'}
-      </Text>
-      
-      <View style={styles.placeholder}>
-        <Text style={styles.placeholderText}>
-          Coming soon in Phase 3 & 4
+      <View style={styles.header}>
+        <Text style={styles.title}>Chores</Text>
+        <Text style={styles.subtitle}>
+          {isParent ? 'Manage family chores' : 'Your assigned chores'}
         </Text>
       </View>
+
+      <View style={styles.tabs}>
+        {renderTab('available', isParent ? 'Pending Approval' : 'Available')}
+        {renderTab('active', 'Active')}
+        {renderTab('completed', 'Completed')}
+      </View>
+
+      <ScrollView
+        style={styles.scrollView}
+        refreshControl={
+          <RefreshControl refreshing={isRefreshing} onRefresh={() => fetchChores(true)} />
+        }
+      >
+        {isLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#007AFF" />
+          </View>
+        ) : chores.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>
+              {activeTab === 'available' 
+                ? isParent 
+                  ? 'No chores pending approval'
+                  : 'No chores available'
+                : activeTab === 'active'
+                ? 'No active chores'
+                : 'No completed chores'}
+            </Text>
+          </View>
+        ) : (
+          <View style={styles.choresList}>
+            {chores.map(chore => (
+              <ChoreCard
+                key={chore.id}
+                chore={chore}
+                onComplete={!isParent && activeTab === 'available' ? handleCompleteChore : undefined}
+                showCompleteButton={!isParent && activeTab === 'available'}
+                isChild={!isParent}
+              />
+            ))}
+          </View>
+        )}
+      </ScrollView>
     </View>
   );
 };
@@ -26,26 +222,65 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
+  },
+  header: {
     padding: 20,
+    paddingBottom: 10,
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
     color: '#333',
-    marginBottom: 8,
+    marginBottom: 4,
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 14,
     color: '#666',
-    marginBottom: 20,
   },
-  placeholder: {
+  tabs: {
+    flexDirection: 'row',
+    backgroundColor: '#fff',
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 15,
+    alignItems: 'center',
+  },
+  activeTab: {
+    borderBottomWidth: 2,
+    borderBottomColor: '#007AFF',
+  },
+  tabText: {
+    fontSize: 14,
+    color: '#999',
+  },
+  activeTabText: {
+    color: '#007AFF',
+    fontWeight: '600',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingTop: 50,
   },
-  placeholderText: {
-    fontSize: 18,
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingTop: 50,
+  },
+  emptyText: {
+    fontSize: 16,
     color: '#999',
+  },
+  choresList: {
+    padding: 20,
   },
 });

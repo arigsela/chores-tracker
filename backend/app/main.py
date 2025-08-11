@@ -23,6 +23,25 @@ from .core.logging import setup_query_logging, setup_connection_pool_logging
 
 from .api.api_v1.api import api_router
 
+# ============================================================================
+# DEPRECATION NOTICE - HTML/HTMX ENDPOINTS
+# ============================================================================
+# The HTML/HTMX endpoints in this file are scheduled for deprecation as part of
+# the frontend migration to React Native Web.
+# 
+# Migration Timeline:
+# - Phase 1: API parity achieved (COMPLETED)
+# - Phase 2-6: React Native Web frontend development (IN PROGRESS)
+# - Phase 7: HTMX UI retirement (FUTURE)
+#
+# All HTML endpoints below will remain functional during the transition period.
+# New development should use the JSON API endpoints under /api/v1/
+# 
+# For JSON API equivalents, see:
+# - /docs for OpenAPI documentation
+# - documents/API_PARITY_CHECKLIST.md for mapping
+# ============================================================================
+
 app = FastAPI(
     title=settings.APP_NAME,
     description="""
@@ -180,10 +199,19 @@ async def healthcheck():
     """Health check endpoint for Kubernetes readiness probes."""
     return {"status": "ok"}
 
+# ============================================================================
+# HTML PAGE ROUTES (DEPRECATED - Use React Native Web frontend)
+# ============================================================================
+
 # Modify the root endpoint to redirect to the dashboard if authenticated
 @app.get("/", response_class=HTMLResponse)
 async def read_index(request: Request, db: AsyncSession = Depends(get_db)):
-    """Render the index page."""
+    """
+    Render the index page.
+    
+    DEPRECATED: This HTML endpoint will be removed in Phase 7.
+    New frontend should be a separate React Native Web application.
+    """
     return templates.TemplateResponse("pages/index.html", {"request": request})
 
 @app.get("/pages/{page}", response_class=HTMLResponse)
@@ -279,6 +307,11 @@ async def get_my_balance(
         paid_out=paid_out,
         pending_chores_value=pending_chores_value
     )
+
+# ============================================================================
+# HTML/HTMX USER ENDPOINTS (DEPRECATED)
+# Use JSON endpoints: GET /api/v1/users/*, POST /api/v1/users/*
+# ============================================================================
 
 @app.get("/api/v1/users/children", response_class=HTMLResponse)
 async def get_children_options(
@@ -378,7 +411,7 @@ async def get_allowance_summary(
         {"request": request, "children": summary_data}
     )
 
-@app.get("/api/v1/chores", response_class=HTMLResponse)
+@app.get("/api/v1/html/chores", response_class=HTMLResponse)
 async def get_chores_html(
     request: Request,
     status: str = None,
@@ -412,6 +445,11 @@ async def get_chores_html(
         "components/chore_list.html", 
         {"request": request, "chores": chores, "current_user": current_user}
     )
+
+# ============================================================================
+# HTML/HTMX CHORE ENDPOINTS (DEPRECATED)
+# Use JSON endpoints: GET /api/v1/chores/*, POST /api/v1/chores/{id}/*
+# ============================================================================
 
 @app.get("/api/v1/html/chores/available", response_class=HTMLResponse)
 async def get_available_chores_html(
@@ -1585,6 +1623,11 @@ async def get_adjustments(
         for adj in adjustments
     ]
 
+
+# ============================================================================
+# HTML/HTMX ADJUSTMENT ENDPOINTS (DEPRECATED)
+# Use JSON endpoints: GET/POST /api/v1/adjustments/*
+# ============================================================================
 
 # Reward Adjustments HTML Endpoints
 @app.get("/api/v1/html/adjustments/inline-form/{child_id}", response_class=HTMLResponse)
