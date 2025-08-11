@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { Chore } from '@/api/chores';
 
 interface ChoreCardProps {
@@ -15,6 +15,7 @@ export const ChoreCard: React.FC<ChoreCardProps> = ({
   showCompleteButton = false,
   isChild = false 
 }) => {
+  const [isCompleting, setIsCompleting] = useState(false);
   const getStatusText = () => {
     if (chore.approved_at) return '✅ Approved';
     if (chore.completed_at && !chore.approved_at) return '⏳ Pending Approval';
@@ -25,7 +26,7 @@ export const ChoreCard: React.FC<ChoreCardProps> = ({
         return `🔒 Available ${nextDate.toLocaleDateString()}`;
       }
     }
-    return '📋 Available';
+    return '📋 Ready to Complete';
   };
 
   const getRewardText = () => {
@@ -72,11 +73,20 @@ export const ChoreCard: React.FC<ChoreCardProps> = ({
 
       {showCompleteButton && isAvailableNow() && !chore.completed_at && onComplete && (
         <TouchableOpacity 
-          style={styles.completeButton}
-          onPress={() => onComplete(chore.id)}
+          style={[styles.completeButton, isCompleting && styles.completingButton]}
+          onPress={async () => {
+            setIsCompleting(true);
+            await onComplete(chore.id);
+            setIsCompleting(false);
+          }}
           testID="complete-chore-button"
+          disabled={isCompleting}
         >
-          <Text style={styles.completeButtonText}>Mark as Complete</Text>
+          {isCompleting ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <Text style={styles.completeButtonText}>Mark as Complete</Text>
+          )}
         </TouchableOpacity>
       )}
     </View>
@@ -143,5 +153,8 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 14,
     fontWeight: '600',
+  },
+  completingButton: {
+    opacity: 0.7,
   },
 });

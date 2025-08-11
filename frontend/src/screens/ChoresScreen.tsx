@@ -75,20 +75,30 @@ export const ChoresScreen: React.FC = () => {
   }, [activeTab]);
 
   const handleCompleteChore = async (choreId: number) => {
+    const chore = chores.find(c => c.id === choreId);
+    if (!chore) return;
+    
     Alert.alert(
       'Complete Chore',
-      'Are you sure you want to mark this chore as complete?',
+      `Mark "${chore.title}" as complete? It will be sent to your parent for approval.`,
       [
         { text: 'Cancel', style: 'cancel' },
         { 
           text: 'Complete', 
           onPress: async () => {
             try {
+              setIsLoading(true);
               await choreAPI.completeChore(choreId);
-              Alert.alert('Success', 'Chore marked as complete!');
-              fetchChores(true);
+              Alert.alert(
+                'Success!', 
+                'Chore marked as complete and sent for parent approval.',
+                [{ text: 'OK', onPress: () => fetchChores(true) }]
+              );
             } catch (error) {
+              console.error('Failed to complete chore:', error);
               Alert.alert('Error', 'Failed to complete chore. Please try again.');
+            } finally {
+              setIsLoading(false);
             }
           }
         }
