@@ -12,6 +12,7 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { choreAPI, Chore } from '@/api/chores';
 import { ChoreCard } from '@/components/ChoreCard';
+import ChoresManagementScreen from './ChoresManagementScreen';
 
 type TabType = 'available' | 'active' | 'completed';
 
@@ -19,6 +20,12 @@ export const ChoresScreen: React.FC = () => {
   const { user } = useAuth();
   const isParent = user?.role === 'parent';
   
+  // For parents, show the management screen
+  if (isParent) {
+    return <ChoresManagementScreen />;
+  }
+  
+  // Child view continues below
   const [activeTab, setActiveTab] = useState<TabType>('available');
   const [chores, setChores] = useState<Chore[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -31,35 +38,19 @@ export const ChoresScreen: React.FC = () => {
 
       let fetchedChores: Chore[] = [];
 
-      if (isParent) {
-        // Parent view - fetch based on tab
-        if (activeTab === 'available') {
-          // Parents see pending approval chores
-          fetchedChores = await choreAPI.getPendingApprovalChores();
-        } else {
-          // Fetch all chores and filter client-side
-          fetchedChores = await choreAPI.getMyChores();
-          if (activeTab === 'active') {
-            fetchedChores = fetchedChores.filter(c => c.is_active && !c.completed_at);
-          } else if (activeTab === 'completed') {
-            fetchedChores = fetchedChores.filter(c => c.completed_at);
-          }
-        }
+      // Child view only (parent returns early above)
+      if (activeTab === 'available') {
+        fetchedChores = await choreAPI.getAvailableChores();
       } else {
-        // Child view
-        if (activeTab === 'available') {
-          fetchedChores = await choreAPI.getAvailableChores();
-        } else {
-          // Fetch all assigned chores and filter
-          fetchedChores = await choreAPI.getMyChores();
-          if (activeTab === 'active') {
-            fetchedChores = fetchedChores.filter(c => !c.completed_at && c.assigned_to_id === user?.id);
-          } else if (activeTab === 'completed') {
-            fetchedChores = fetchedChores.filter(c => c.completed_at && c.assigned_to_id === user?.id);
-          }
+        // Fetch all assigned chores and filter
+        fetchedChores = await choreAPI.getMyChores();
+        if (activeTab === 'active') {
+          fetchedChores = fetchedChores.filter(c => !c.completed_at && c.assigned_to_id === user?.id);
+        } else if (activeTab === 'completed') {
+          fetchedChores = fetchedChores.filter(c => c.completed_at && c.assigned_to_id === user?.id);
         }
       }
-
+      
       setChores(fetchedChores);
     } catch (error) {
       console.error('Failed to fetch chores:', error);

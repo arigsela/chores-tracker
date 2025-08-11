@@ -22,6 +22,7 @@ export interface Chore {
   is_active?: boolean;
   is_completed?: boolean; // Backend uses this field
   is_approved?: boolean; // Backend uses this field
+  is_disabled?: boolean; // Backend uses this field
   is_recurring: boolean;
   next_available_at?: string | null;
 }
@@ -110,6 +111,80 @@ export const choreAPI = {
       return response.data;
     } catch (error) {
       console.error('Failed to fetch child completed chores:', error);
+      throw error;
+    }
+  },
+
+  // Create a new chore (parent only)
+  createChore: async (choreData: {
+    title: string;
+    description?: string;
+    reward?: number;
+    is_range_reward: boolean;
+    min_reward?: number;
+    max_reward?: number;
+    assignee_id: number;  // Required by backend
+    is_recurring: boolean;
+    cooldown_days?: number;
+  }): Promise<Chore> => {
+    try {
+      const response = await apiClient.post('/chores/', choreData);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to create chore:', error);
+      throw error;
+    }
+  },
+
+  // Update an existing chore (parent only)
+  updateChore: async (choreId: number, choreData: {
+    title?: string;
+    description?: string;
+    reward?: number;
+    is_range_reward?: boolean;
+    min_reward?: number;
+    max_reward?: number;
+    assigned_to_id?: number;
+    is_recurring?: boolean;
+    cooldown_days?: number;
+  }): Promise<Chore> => {
+    try {
+      const response = await apiClient.put(`/chores/${choreId}`, choreData);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to update chore:', error);
+      throw error;
+    }
+  },
+
+  // Disable a chore (parent only)
+  disableChore: async (choreId: number): Promise<Chore> => {
+    try {
+      const response = await apiClient.post(`/chores/${choreId}/disable`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to disable chore:', error);
+      throw error;
+    }
+  },
+
+  // Enable a disabled chore (parent only)
+  enableChore: async (choreId: number): Promise<Chore> => {
+    try {
+      const response = await apiClient.post(`/chores/${choreId}/enable`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to enable chore:', error);
+      throw error;
+    }
+  },
+
+  // Delete a chore permanently (parent only)
+  deleteChore: async (choreId: number): Promise<void> => {
+    try {
+      await apiClient.delete(`/chores/${choreId}`);
+    } catch (error) {
+      console.error('Failed to delete chore:', error);
       throw error;
     }
   },
