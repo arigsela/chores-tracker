@@ -7,8 +7,9 @@ import { ChoresScreen } from '@/screens/ChoresScreen';
 import { ChildrenScreen } from '@/screens/ChildrenScreen';
 import { BalanceScreen } from '@/screens/BalanceScreen';
 import { ProfileScreen } from '@/screens/ProfileScreen';
+import ApprovalsScreen from '@/screens/ApprovalsScreen';
 
-type TabName = 'Home' | 'Chores' | 'Children' | 'Balance' | 'Profile';
+type TabName = 'Home' | 'Chores' | 'Children' | 'Approvals' | 'Balance' | 'Profile';
 
 export const SimpleNavigator: React.FC = () => {
   const { isAuthenticated, user } = useAuth();
@@ -28,6 +29,8 @@ export const SimpleNavigator: React.FC = () => {
         return <ChoresScreen />;
       case 'Children':
         return isParent ? <ChildrenScreen /> : <BalanceScreen />;
+      case 'Approvals':
+        return isParent ? <ApprovalsScreen /> : <BalanceScreen />;
       case 'Balance':
         return <BalanceScreen />;
       case 'Profile':
@@ -72,15 +75,27 @@ export const SimpleNavigator: React.FC = () => {
         </TouchableOpacity>
 
         {isParent ? (
-          <TouchableOpacity
-            style={[styles.tab, activeTab === 'Children' && styles.activeTab]}
-            onPress={() => setActiveTab('Children')}
-          >
-            <Text style={styles.tabIcon}>👨‍👩‍👧‍👦</Text>
-            <Text style={[styles.tabLabel, activeTab === 'Children' && styles.activeTabLabel]}>
-              Children
-            </Text>
-          </TouchableOpacity>
+          <>
+            <TouchableOpacity
+              style={[styles.tab, activeTab === 'Children' && styles.activeTab]}
+              onPress={() => setActiveTab('Children')}
+            >
+              <Text style={styles.tabIcon}>👨‍👩‍👧‍👦</Text>
+              <Text style={[styles.tabLabel, activeTab === 'Children' && styles.activeTabLabel]}>
+                Children
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.tab, activeTab === 'Approvals' && styles.activeTab]}
+              onPress={() => setActiveTab('Approvals')}
+            >
+              <Text style={styles.tabIcon}>✔️</Text>
+              <Text style={[styles.tabLabel, activeTab === 'Approvals' && styles.activeTabLabel]}>
+                Approvals
+              </Text>
+            </TouchableOpacity>
+          </>
         ) : (
           <TouchableOpacity
             style={[styles.tab, activeTab === 'Balance' && styles.activeTab]}
