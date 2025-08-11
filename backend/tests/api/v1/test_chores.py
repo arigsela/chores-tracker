@@ -520,6 +520,51 @@ async def test_disable_chore(client: AsyncClient, parent_token, child_token, tes
 
 
 @pytest.mark.asyncio
+async def test_enable_chore(client: AsyncClient, parent_token, child_token, test_chore, db_session):
+    """Test enabling a disabled chore."""
+    # First disable the chore
+    response = await client.post(
+        f"/api/v1/chores/{test_chore.id}/disable",
+        headers={"Authorization": f"Bearer {parent_token}"}
+    )
+    assert response.status_code == 200
+    assert response.json()["is_disabled"] == True
+    
+    # Child cannot enable a chore
+    response = await client.post(
+        f"/api/v1/chores/{test_chore.id}/enable",
+        headers={"Authorization": f"Bearer {child_token}"}
+    )
+    assert response.status_code == 403
+    assert "Only parents can enable chores" in response.json()["detail"]
+    
+    # Parent can enable the chore
+    response = await client.post(
+        f"/api/v1/chores/{test_chore.id}/enable",
+        headers={"Authorization": f"Bearer {parent_token}"}
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["is_disabled"] == False
+    
+    # Cannot enable an already enabled chore
+    response = await client.post(
+        f"/api/v1/chores/{test_chore.id}/enable",
+        headers={"Authorization": f"Bearer {parent_token}"}
+    )
+    assert response.status_code == 400
+    assert "Chore is not disabled" in response.json()["detail"]
+    
+    # Child can now complete the enabled chore
+    response = await client.post(
+        f"/api/v1/chores/{test_chore.id}/complete",
+        headers={"Authorization": f"Bearer {child_token}"}
+    )
+    assert response.status_code == 200
+    assert response.json()["is_completed"] == True
+
+
+@pytest.mark.asyncio
 async def test_child_chores_endpoint(client: AsyncClient, parent_token, test_child_user, test_chore, test_range_chore):
     """Test the parent endpoint to view a specific child's chores."""
     response = await client.get(

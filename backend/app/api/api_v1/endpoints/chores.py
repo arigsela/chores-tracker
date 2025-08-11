@@ -171,13 +171,17 @@ async def create_chore(
 @router.get(
     "/",
     response_model=List[ChoreResponse],
-    summary="Get chores for current user",
+    summary="Get chores (with optional filters)",
     description="""
-    Get all chores visible to the current user.
+    Get chores visible to the current user, with optional filters.
     
     **Access patterns**:
-    - **Parents**: See all chores they created
-    - **Children**: See only chores assigned to them
+    - **Parents**: Base scope is chores they created; can filter by `child_id`
+    - **Children**: Base scope is chores assigned to them
+    
+    **Optional filters** (applied after base scope):
+    - `state`: one of `active`, `completed`, `pending-approval`
+    - `child_id`: only for parents, filter to a specific child
     
     Results include active and disabled chores, but not deleted ones.
     """,
@@ -206,16 +210,42 @@ async def create_chore(
 async def read_chores(
     skip: int = Query(0, description="Number of records to skip"),
     limit: int = Query(100, description="Maximum number of records to return"),
+    state: Optional[str] = Query(None, description="Filter by state: active|completed|pending-approval"),
+    child_id: Optional[int] = Query(None, description="Parent-only: filter chores for a specific child"),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
     chore_service: ChoreServiceDep = None
 ):
     """
-    Get all chores visible to the current user based on their role.
-    
-    Parents see all chores they created, while children see only their assigned chores.
+    Get chores visible to the current user with optional state and child filters.
     """
-    chores = await chore_service.get_chores_for_user(db, user=current_user)
+    # Base scope
+    if current_user.is_parent:
+        if child_id is not None:
+            # Verify child belongs to parent and fetch chores
+            chores = await chore_service.get_child_chores(db, parent_id=current_user.id, child_id=child_id)
+        else:
+            chores = await chore_service.get_chores_for_user(db, user=current_user)
+    else:
+        chores = await chore_service.get_chores_for_user(db, user=current_user)
+
+    # Apply state filter
+    if state:
+        if state == "active":
+            chores = [c for c in chores if not c.is_completed]
+        elif state == "completed":
+            chores = [c for c in chores if c.is_completed and c.is_approved]
+        elif state == "pending-approval":
+            if current_user.is_parent:
+                chores = [c for c in chores if c.is_completed and not c.is_approved]
+            else:
+                chores = [c for c in chores if c.is_completed and not c.is_approved]
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Invalid state. Must be one of: active, completed, pending-approval",
+            )
+
     return chores
 
 @router.get(
@@ -914,4 +944,94 @@ async def disable_chore(
         chore_id=chore_id,
         parent_id=current_user.id
     )
+    return updated_chore
+
+
+@router.post(
+    "/{chore_id}/enable",
+    response_model=ChoreResponse,
+    summary="Enable a disabled chore",
+    description="""
+    Enable a previously disabled chore, making it active again.
+    
+    **Access**: Parents only (must be the chore creator)
+    
+    **Effects**:
+    - Chore reappears in active lists
+    - Children can complete the chore again
+    - Retains all previous completion history
+    
+    This endpoint is used to reactivate a temporarily disabled chore.
+    """,
+    responses={
+        200: {
+            "description": "Chore enabled successfully",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "id": 1,
+                        "title": "Clean Room",
+                        "is_disabled": False,
+                        "updated_at": "2024-12-24T18:00:00"
+                    }
+                }
+            }
+        },
+        400: {
+            "description": "Chore is not disabled"
+        },
+        403: {
+            "description": "Only parents can enable chores"
+        },
+        404: {
+            "description": "Chore not found or not owned by user"
+        }
+    }
+)
+async def enable_chore(
+    chore_id: int = Path(..., description="The ID of the chore to enable"),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    chore_service: ChoreServiceDep = None
+):
+    """
+    Enable a disabled chore.
+    
+    The chore will be visible in active lists and can be completed again.
+    """
+    # Only parents can enable chores
+    if not current_user.is_parent:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only parents can enable chores"
+        )
+    
+    # Get the chore using the repository
+    from ....repositories.chore import ChoreRepository
+    chore_repo = ChoreRepository()
+    
+    chore = await chore_repo.get(db, id=chore_id)
+    if not chore:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Chore not found"
+        )
+    
+    # Check if the parent owns this chore
+    if chore.creator_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only enable chores you created"
+        )
+    
+    # Check if the chore is actually disabled
+    if not chore.is_disabled:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Chore is not disabled"
+        )
+    
+    # Enable the chore using the repository
+    updated_chore = await chore_repo.enable_chore(db, chore_id=chore_id)
+    
     return updated_chore

@@ -9,14 +9,65 @@ from sqlalchemy import text
 from ....core.config import settings
 
 from ....db.base import get_db
-from ....schemas.user import UserCreate, UserResponse, Token
+from ....schemas.user import UserCreate, UserResponse, Token, ChildAllowanceSummary
 from ....core.security.jwt import create_access_token, verify_token
 from ....dependencies.auth import get_current_user
 from ....dependencies.services import UserServiceDep
+from ....repositories.user import UserRepository
 from ....models.user import User
 from ....middleware.rate_limit import limit_login, limit_register, limit_api_endpoint_default
 
 router = APIRouter()
+# Convenience: get children for current parent (JSON)
+@router.get(
+    "/my-children",
+    response_model=List[UserResponse],
+    summary="Get children for current parent",
+    description="""
+    Get all child accounts for the authenticated parent.
+    
+    This is a convenience over `/users/children/{parent_id}` that infers the parent
+    from the current authenticated user.
+    """,
+    tags=["users"],
+    responses={
+        200: {
+            "description": "List of child accounts for current parent",
+            "content": {
+                "application/json": {
+                    "example": [
+                        {
+                            "id": 2,
+                            "username": "child_user",
+                            "email": "child@example.com",
+                            "is_parent": False,
+                            "is_active": True,
+                            "parent_id": 1
+                        }
+                    ]
+                }
+            }
+        },
+        403: {"description": "Only parents can list their children"}
+    }
+)
+async def read_my_children(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    user_service: UserServiceDep = None
+):
+    """
+    Get children for the current authenticated parent.
+    """
+    if not current_user.is_parent:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only parents can list their children"
+        )
+    # Prefer repository call to avoid issues if service injection differs
+    children = await UserRepository().get_children(db, parent_id=current_user.id)
+    return children
+
 
 # Templates
 templates = Jinja2Templates(directory=settings.TEMPLATES_DIR)
@@ -496,6 +547,83 @@ async def read_children(
     """
     children = await user_service.repository.get_children(db, parent_id=parent_id)
     return children
+
+@router.get(
+    "/allowance-summary",
+    response_model=List[ChildAllowanceSummary],
+    summary="Get allowance summary for current parent",
+    description="""
+    Returns per-child allowance summary for the authenticated parent, including
+    completed_chores, total_earned, total_adjustments, paid_out, and balance_due.
+    """,
+    tags=["users"],
+    responses={
+        200: {
+            "description": "Per-child allowance summary",
+            "content": {
+                "application/json": {
+                    "example": [
+                        {
+                            "id": 2,
+                            "username": "child_user",
+                            "completed_chores": 5,
+                            "total_earned": 12.5,
+                            "total_adjustments": -2.0,
+                            "paid_out": 0.0,
+                            "balance_due": 10.5
+                        }
+                    ]
+                }
+            }
+        },
+        403: {"description": "Only parents can access allowance summary"}
+    }
+)
+async def read_parent_allowance_summary(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if not current_user.is_parent:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only parents can access allowance summary",
+        )
+
+    # Reuse repository logic already used by HTML route in main.py
+    from ....repositories.user import UserRepository
+    from ....repositories.chore import ChoreRepository
+    from ....repositories.reward_adjustment import RewardAdjustmentRepository
+
+    user_repo = UserRepository()
+    chore_repo = ChoreRepository()
+    adjustment_repo = RewardAdjustmentRepository()
+
+    children = await user_repo.get_children(db, parent_id=current_user.id)
+
+    summary: List[ChildAllowanceSummary] = []
+    for child in children:
+        chores = await chore_repo.get_by_assignee(db, assignee_id=child.id)
+        completed_chores = len([c for c in chores if c.is_completed and c.is_approved])
+        total_earned = sum(c.reward for c in chores if c.is_completed and c.is_approved)
+        total_adjustments = float(
+            await adjustment_repo.calculate_total_adjustments(db, child_id=child.id)
+        )
+        paid_out = 0.0
+        balance_due = total_earned + total_adjustments - paid_out
+
+        summary.append(
+            ChildAllowanceSummary(
+                id=child.id,
+                username=child.username,
+                completed_chores=completed_chores,
+                total_earned=float(total_earned),
+                total_adjustments=float(total_adjustments),
+                paid_out=float(paid_out),
+                balance_due=float(balance_due),
+            )
+        )
+
+    return summary
 
 @router.post(
     "/children/{child_id}/reset-password",

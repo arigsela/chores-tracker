@@ -2,281 +2,224 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Overview
+## Project Overview
 
-Chores Tracker is a web application designed to help families manage household chores. Parents can assign chores to children, set rewards, and track completion. Children can mark chores as complete, and parents can approve them, with rewards tracked for allowance purposes.
+**Chores Tracker** is a full-stack family chore management application with:
+- **Backend**: FastAPI (Python 3.11) with SQLAlchemy 2.0, MySQL database
+- **Frontend**: Server-side rendered HTML with HTMX for dynamic updates, Tailwind CSS
+- **Mobile**: React Native app for iOS/Android with offline support
+- **Infrastructure**: Docker Compose for local dev, AWS ECR + Kubernetes for production
 
-## Recent Updates (December 24, 2024)
+## Key Architecture Patterns
 
-### Phase 1 Completed ✅
-- **SQLAlchemy 2.0**: Migrated from legacy patterns to modern declarative syntax
-- **Pydantic v2**: Updated all schemas to use ConfigDict and model_dump()
-- **pytest-asyncio**: Fixed configuration warnings with proper pytest.ini
-- **Test Coverage**: Improved core component coverage to >75%
-- **Service Layer**: Implemented complete service architecture (Phase 1.5)
-- **Dependencies**: All packages updated to latest stable versions
+### Backend (FastAPI + SQLAlchemy)
 
-### CI/CD Fixes Completed ✅
-- **Python Compatibility**: Fixed Python 3.9+ union syntax (`T | None` → `Optional[T]`)
-- **Test Authentication**: Fixed JWT token creation in test files
-- **Service Method Calls**: Corrected parameter names in service method invocations
-- **Schema Validation**: Made `assignee_id` optional in `ChoreResponse` schema
-- **CI Environment**: Added `TESTING=true` to GitHub Actions workflow
+**Service Layer Architecture**:
+- **Models** (`backend/app/models/`): SQLAlchemy ORM models
+- **Schemas** (`backend/app/schemas/`): Pydantic v2 models for validation
+- **Repositories** (`backend/app/repositories/`): Data access layer
+- **Services** (`backend/app/services/`): Business logic layer
+- **Unit of Work** (`backend/app/core/unit_of_work.py`): Transaction management
+- **Dependencies** (`backend/app/dependencies/`): Dependency injection
 
-### Missing HTML Endpoints Implemented ✅
-- **GET /chores/{id}/approve-form**: Returns approval form for parents
-- **GET /chores/{id}/edit-form**: Returns edit form for parents
-- **PUT /chores/{id}**: Updates chore details (JSON API)
-- Created corresponding HTML templates (approve-form.html, edit-form.html)
-- All previously skipped tests now passing
+**Authentication**: JWT-based with parent/child role system
+**API Structure**: RESTful endpoints under `/api/v1/`
 
-### Unit of Work Pattern ✅
-- **Implementation**: Already exists in `app/core/unit_of_work.py`
-- **Features**: Async context manager for transactional operations
-- **Repository Access**: Lazy-loaded user and chore repositories
-- **Usage**: Used in `bulk_assign_chores` and `approve_chore_with_next_instance` methods
-- **Tests**: Comprehensive edge case testing in place
+### Frontend (HTMX + Jinja2)
 
-### API Documentation Enhanced ✅
-- **OpenAPI Metadata**: Added comprehensive app-level documentation
-- **Endpoint Documentation**: All REST endpoints now have detailed descriptions, examples, and response codes
-- **Schema Documentation**: Pydantic models enhanced with field descriptions and examples
-- **Authentication Flow**: Documented complete auth flow in OpenAPI description
-- **HTML Endpoints**: Documented HTMX endpoints for approve/edit forms
-- **Deprecation Fixes**: Updated to Pydantic v2 field validators and json_schema_extra
+- **Templates** (`backend/app/templates/`): Jinja2 HTML templates
+  - `pages/`: Full page templates
+  - `components/`: Reusable HTMX components
+  - `layouts/`: Base layouts
+- **HTMX Patterns**: Server returns HTML fragments for dynamic updates
+- **JavaScript**: Minimal, mainly for HTMX initialization on dynamic content
 
-### Latest CI Fixes (December 24, 2024) ✅
-- **Rate Limiting Decorators**: Added missing `request: Request` parameter to `@limit_update` and `@limit_delete` decorated endpoints
-- **Test Error Handling**: Fixed validation error response handling in tests (supporting both string and list error messages)
-- **Unit of Work Tests**: Modified to use test database session factory instead of production MySQL connection
-  - Fixed async/sync mismatch by using lambda function instead of async factory
-  - Fixed DetachedInstanceError by storing IDs and re-fetching objects after UnitOfWork context
-  - Skipped rollback test that requires isolated sessions (architectural limitation in test environment)
-- **Schema Validation**: Added missing description field in test data to satisfy NOT NULL constraint
+### Mobile App (React Native)
 
-### CI/CD Enhancements (December 26, 2024) ✅
-- **ECR Deployment Workflow**: Created automated Docker image deployment to Amazon ECR
-- **Release Workflow**: Implemented semantic versioning with automated GitHub releases
-- **Multi-Tag Strategy**: Docker images tagged with version, SHA, timestamp, and latest
-- **Documentation**: Added comprehensive RELEASING.md and ECR_DEPLOYMENT_GUIDE.md
+- **Navigation**: React Navigation with stack/tab navigators
+- **State**: Context API for auth state
+- **API Client**: Axios with JWT token management
+- **Storage**: AsyncStorage for offline persistence
 
-### Current Test Status
-- **Total**: 223 tests
-- **Passing**: 223 (100%) ✅
-- **Skipped**: 15 ✅ (reduced from 21)
-- **Coverage**: 43% overall (but >75% for critical business logic)
+## Essential Commands
 
-## Tech Stack
-
-- **Backend**: FastAPI (Python 3.11) with async support
-- **Database**: MySQL 5.7 with SQLAlchemy 2.0 ORM (async)
-- **Frontend**: Jinja2 HTML templates with HTMX for dynamic updates
-- **Authentication**: JWT tokens with OAuth2 Password Bearer flow
-- **Development**: Docker Compose, Tilt for hot-reloading
-- **Testing**: pytest with async support and coverage reporting
-
-## Local Testing
-
-For comprehensive local testing instructions, including:
-- Docker-based setup (recommended)
-- Direct Python setup for faster iteration
-- API testing with curl/HTTPie examples
-- Accessing the enhanced API documentation
-- Troubleshooting common issues
-
-**See [LOCAL_TESTING.md](./LOCAL_TESTING.md) for the complete guide.**
-
-## Development Commands
-
-### Initial Setup
+### Development Setup
 
 ```bash
-# Create environment file from template
-cp .env.sample .env
-
-# Generate secret key for JWT
-python -c "import secrets; print(secrets.token_urlsafe(32))"
-
-# Start development environment with Docker Compose
+# Start the full stack with Docker Compose
 docker-compose up
 
-# Or use Tilt for hot-reloading
+# Or use Tilt for hot-reloading development
 tilt up
+
+# Access the application
+# Web: http://localhost:8000
+# API Docs: http://localhost:8000/docs
 ```
 
-### Database Operations
-
-```bash
-# Run migrations (automatic on startup via docker-entrypoint.sh)
-docker compose exec api python -m alembic -c backend/alembic.ini upgrade head
-
-# Create new migration
-docker compose exec api python -m alembic -c backend/alembic.ini revision --autogenerate -m "migration description"
-
-# Check migration history
-docker compose exec api python -m alembic -c backend/alembic.ini history
-
-# Downgrade one revision
-docker compose exec api python -m alembic -c backend/alembic.ini downgrade -1
-```
-
-### Testing
+### Backend Development
 
 ```bash
 # Run all tests
 docker compose exec api python -m pytest
 
-# Run with verbose output and print statements
-docker compose exec api python -m pytest -vv -s
-
 # Run specific test file
-docker compose exec api python -m pytest backend/tests/api/v1/test_chores.py
-
-# Run specific test
-docker compose exec api python -m pytest backend/tests/api/v1/test_chores.py::test_create_chore
-
-# Run tests matching pattern
-docker compose exec api python -m pytest -k "test_create"
+docker compose exec api python -m pytest backend/tests/test_repositories.py -v
 
 # Run with coverage
 docker compose exec api python -m pytest --cov=backend/app --cov-report=html
 
-# Stop on first failure
-docker compose exec api python -m pytest -x
+# Run a single test
+docker compose exec api python -m pytest backend/tests/test_service_layer.py::TestUserServiceBusinessLogic::test_create_child_user -v
 
-# Rerun failed tests
-docker compose exec api python -m pytest --lf
+# Database migrations
+docker compose exec api python -m alembic -c backend/alembic.ini upgrade head
+docker compose exec api python -m alembic -c backend/alembic.ini revision --autogenerate -m "description"
 
-# Run tests excluding rate limiting tests
-docker compose exec api python -m pytest -m "not rate_limit"
-
-# Run only rate limiting tests
-docker compose exec api python -m pytest -m rate_limit
+# Access MySQL shell
+docker compose exec mysql mysql -u root -p
 ```
 
-### Utility Scripts
+### Mobile Development
+
+```bash
+cd mobile
+
+# Install dependencies
+npm install
+
+# iOS development
+npm run ios:simulator  # Run on simulator
+npm run ios:device     # Run on connected device
+
+# Android development
+npm run android
+
+# Development with local backend
+npm run backend  # Start Docker backend (in one terminal)
+npm run dev:simulator  # Run app with local API (in another)
+
+# Clean cache
+npm run start:clean
+```
+
+### User Management Scripts
 
 ```bash
 # List all users
 docker compose exec api python -m backend.app.scripts.list_users
 
-# Reset a user password
+# Create a parent user
+docker compose exec api python -m backend.app.scripts.create_parent_user
+
+# Reset a user's password
 docker compose exec api python -m backend.app.scripts.reset_password
 
-# Delete all users (careful!)
-docker compose exec api python -m backend.app.scripts.delete_all_users
-
-# Validate password
-docker compose exec api python -m backend.app.scripts.validate_password
+# Create test child user
+docker compose exec api python -m backend.app.scripts.create_test_child
 ```
 
-### Development Workflow
+## Testing Strategy
 
-```bash
-# View logs
-docker compose logs -f api
+### Backend Testing
+- **Unit tests**: Test services, repositories in isolation
+- **Integration tests**: Test API endpoints with test database
+- **Test database**: Uses SQLite in-memory for speed
+- **Fixtures**: See `backend/tests/conftest.py` for common test fixtures
+- **Coverage target**: >70% for critical business logic
 
-# Access API shell
-docker compose exec api bash
+### Key Test Patterns
+```python
+# Always use TESTING=true environment variable
+TESTING=true python3 -m pytest
 
-# Access MySQL shell
-docker compose exec db mysql -u root -p
-
-# Rebuild containers
-docker compose down && docker compose build && docker compose up
-
-# Clean rebuild (remove volumes)
-docker compose down -v && docker compose up --build
-
-# Check API health
-curl http://localhost:8000/health
-
-# View API documentation
-open http://localhost:8000/docs
+# Test with specific verbosity
+python -m pytest -v  # Verbose
+python -m pytest --tb=short  # Short traceback
+python -m pytest -x  # Stop on first failure
 ```
 
-## Architecture
+## Important Implementation Details
 
-### API Design
+### HTMX Dynamic Content
+When loading content dynamically with HTMX, always initialize new elements:
+```javascript
+// After loading new HTMX content
+htmx.process(document.querySelector('#new-content'));
+```
 
-The application uses a **dual API approach**:
+### Database Transactions
+Use Unit of Work pattern for multi-repository operations:
+```python
+async with UnitOfWork() as uow:
+    user = await uow.users.create(db=uow.session, obj_in=user_data)
+    chore = await uow.chores.create(db=uow.session, obj_in=chore_data)
+    await uow.commit()
+```
 
-1. **RESTful JSON APIs** (`/api/v1/users/`, `/api/v1/chores/`) - Traditional CRUD operations
-2. **HTML Component APIs** (`/api/v1/html/`) - HTMX-powered dynamic UI updates
+### JWT Authentication Flow
+1. Login returns JWT token (8-day expiry)
+2. Include in requests: `Authorization: Bearer <token>`
+3. Parent vs Child role determines API access
 
-Both API types share the same business logic through the service layer.
+### Reward System
+- **Fixed rewards**: Single amount
+- **Range rewards**: Min/max amounts, parent sets final value on approval
+- **Adjustments**: Manual balance changes with reasons
 
-### Core Components
+## CI/CD Pipeline
 
-1. **Authentication Flow**
-   - JWT tokens via OAuth2 Password Bearer
-   - Parent/child role-based access control
-   - Token stored in localStorage, sent via Authorization header
-   - Dependency injection pattern for current user
+### GitHub Actions Workflows
+- **backend-tests.yml**: Runs on backend changes, Python 3.11
+- **deploy-to-ecr.yml**: Builds Docker image, pushes to AWS ECR
+- **create-release.yml**: Creates GitHub releases with semantic versioning
 
-2. **Data Access Layer**
-   - Service layer for business logic
-   - Repository pattern with async support
-   - Type-safe generics using Python TypeVar
-   - Base repository for common CRUD operations
-   - Domain-specific extensions for data access
+### Deployment
+- **Local**: Docker Compose or Tilt
+- **Production**: Kubernetes via ArgoCD (GitOps)
+- **Container Registry**: AWS ECR
 
-3. **Chore Workflow State Machine**
-   - **Created**: Parent creates and assigns to child
-   - **Pending**: Child marks complete, awaits approval
-   - **Approved**: Parent approves with reward amount
-   - **Cooldown**: Recurring chores enter cooldown period
-   - **Disabled**: Soft delete for inactive chores
+## Common Troubleshooting
 
-4. **HTMX Integration**
-   - Server-side rendering with component templates
-   - Progressive enhancement with JavaScript
-   - Real-time updates via HTMX swaps
-   - Mixed content type handling (JSON/form data)
+### HTMX Not Working on Dynamic Content
+Add `htmx.process()` after loading new content
 
-### Key Patterns
+### Child Users Redirected to Login
+Check conditional loading of parent-only endpoints in templates
 
-- **Dependency Injection**: Extensive use of FastAPI's `Depends()`
-- **Async-First**: All database operations are async
-- **Schema Separation**: Pydantic models separate from ORM models
-- **Template Inheritance**: Base layout with blocks
-- **Role-Based UI**: Different views for parents vs children
+### Database Connection Issues
+Ensure MySQL is healthy: `docker compose exec mysql mysqladmin ping -h localhost -u root -p`
 
-### Business Rules
+### Mobile App Can't Connect to Backend
+- Use `API_URL=http://localhost:8000/api/v1` for local development
+- Check CORS settings in backend
 
-- Only parents can create, approve, and disable chores
-- Only assigned children can mark chores complete
-- Range rewards require exact amount during approval
-- Cooldown periods prevent immediate re-completion
-- Children only see their own assigned chores
+## Domain Concepts
 
-## Environment Variables
+### User Hierarchy
+- **Parents**: Can create children, chores, approve completions
+- **Children**: Can view assigned chores, mark complete, view balance
 
-Required variables (see `.env.sample`):
+### Chore Lifecycle
+1. Parent creates chore (assigned or unassigned)
+2. Child marks as completed
+3. Parent approves and sets final reward
+4. Child's balance increases
 
-- `MYSQL_HOST`: Database host
-- `MYSQL_USER`: Database user
-- `MYSQL_PASSWORD`: Database password
-- `MYSQL_DATABASE`: Database name
-- `SECRET_KEY`: JWT signing key
-- `ALGORITHM`: JWT algorithm (default: HS256)
-- `ACCESS_TOKEN_EXPIRE_MINUTES`: Token expiration
+### Reward Adjustments
+Parents can manually adjust child balances for bonuses/penalties outside normal chore flow
 
-## Future Development - Pending Phases
+## Code Style Guidelines
 
-### Phase 2: Medium Priority Items ✅
-1. ~~**Unit of Work Pattern** - Transaction management (COMPLETED)~~
-2. ~~**API Documentation** - Enhanced OpenAPI specs (COMPLETED)~~
+- **Python**: Follow PEP 8, use type hints, async/await patterns
+- **SQL**: Use SQLAlchemy 2.0 async patterns
+- **Templates**: Keep logic minimal, use HTMX for interactivity
+- **React Native**: Functional components with hooks
 
-### Remaining Phase 2 Items ⏳
-1. **Refresh Tokens** - Enhanced security with token rotation
-2. **Rate Limiting** - Already implemented, needs testing
-3. **Database Optimization** - Add indexes, query caching
+## Security Considerations
 
-### Phase 3: Low Priority Items ⏳
-1. **Extract HTML Templates** - Move inline HTML to files
-2. **Monitoring** - Add OpenTelemetry
-3. **Performance** - Add Redis caching
-4. **WebSocket Support** - Real-time updates for chore completions
-
-See `MODERNIZATION_ROADMAP.md` for detailed implementation plans.
+- JWT tokens expire after 8 days
+- Passwords hashed with bcrypt
+- Role-based access control (parent/child)
+- Rate limiting on auth endpoints
+- Input validation with Pydantic

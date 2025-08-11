@@ -39,7 +39,21 @@ class RewardAdjustmentCreate(RewardAdjustmentBase):
 
 class RewardAdjustmentResponse(RewardAdjustmentBase):
     """Schema for reward adjustment responses."""
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(
+        from_attributes=True,
+        json_schema_extra={
+            "example": {
+                "id": 1,
+                "amount": "5.00",
+                "reason": "Bonus for helping with extra tasks",
+                "child_id": 2,
+                "parent_id": 1,
+                "created_at": "2024-01-01T10:00:00",
+                "child": None,
+                "parent": None
+            }
+        }
+    )
     
     id: int = Field(
         ...,
@@ -65,11 +79,11 @@ class RewardAdjustmentResponse(RewardAdjustmentBase):
     # Optional related objects
     child: Optional['UserResponse'] = Field(
         None,
-        description="Child user details"
+        description="Child user details (when eagerly loaded)"
     )
     parent: Optional['UserResponse'] = Field(
         None,
-        description="Parent user details"
+        description="Parent user details (when eagerly loaded)"
     )
 
 # Avoid circular imports

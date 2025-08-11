@@ -122,3 +122,32 @@ async def test_read_children(client: AsyncClient, parent_token, test_parent_user
     assert data[0]["email"] == "child@example.com"
     assert data[0]["username"] == "child_user"
     assert data[0]["is_parent"] == False 
+
+
+@pytest.mark.asyncio
+async def test_read_my_children(client: AsyncClient, parent_token, test_parent_user, test_child_user):
+    """Test getting children for current parent via convenience endpoint."""
+    response = await client.get(
+        "/api/v1/users/my-children",
+        headers={"Authorization": f"Bearer {parent_token}"}
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) >= 1
+    assert any(u["id"] == test_child_user.id for u in data)
+
+
+@pytest.mark.asyncio
+async def test_allowance_summary(client: AsyncClient, parent_token, test_parent_user, test_child_user):
+    """Test allowance summary for current parent returns expected shape."""
+    response = await client.get(
+        "/api/v1/users/allowance-summary",
+        headers={"Authorization": f"Bearer {parent_token}"}
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert isinstance(data, list)
+    if data:
+        item = data[0]
+        # Minimal shape checks
+        assert {"id", "username", "completed_chores", "total_earned", "total_adjustments", "paid_out", "balance_due"}.issubset(item.keys())
