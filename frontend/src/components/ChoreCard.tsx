@@ -5,18 +5,26 @@ import { Chore } from '@/api/chores';
 interface ChoreCardProps {
   chore: Chore;
   onComplete?: (choreId: number) => void;
+  onEnable?: (choreId: number) => void;
+  onDisable?: (choreId: number) => void;
   showCompleteButton?: boolean;
+  showManageButtons?: boolean;
   isChild?: boolean;
 }
 
 export const ChoreCard: React.FC<ChoreCardProps> = ({ 
   chore, 
-  onComplete, 
+  onComplete,
+  onEnable,
+  onDisable, 
   showCompleteButton = false,
+  showManageButtons = false,
   isChild = false 
 }) => {
   const [isCompleting, setIsCompleting] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const getStatusText = () => {
+    if (chore.is_disabled) return '🚫 Disabled';
     if (chore.approved_at) return '✅ Approved';
     if (chore.completed_at && !chore.approved_at) return '⏳ Pending Approval';
     if (chore.completed_at) return '✓ Completed';
@@ -89,6 +97,48 @@ export const ChoreCard: React.FC<ChoreCardProps> = ({
           )}
         </TouchableOpacity>
       )}
+
+      {showManageButtons && (
+        <View style={styles.manageButtons}>
+          {chore.is_disabled && onEnable && (
+            <TouchableOpacity 
+              style={[styles.enableButton, isProcessing && styles.processingButton]}
+              onPress={async () => {
+                setIsProcessing(true);
+                await onEnable(chore.id);
+                setIsProcessing(false);
+              }}
+              testID="enable-chore-button"
+              disabled={isProcessing}
+            >
+              {isProcessing ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={styles.enableButtonText}>Enable Chore</Text>
+              )}
+            </TouchableOpacity>
+          )}
+          
+          {!chore.is_disabled && onDisable && (
+            <TouchableOpacity 
+              style={[styles.disableButton, isProcessing && styles.processingButton]}
+              onPress={async () => {
+                setIsProcessing(true);
+                await onDisable(chore.id);
+                setIsProcessing(false);
+              }}
+              testID="disable-chore-button"
+              disabled={isProcessing}
+            >
+              {isProcessing ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={styles.disableButtonText}>Disable Chore</Text>
+              )}
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
     </View>
   );
 };
@@ -155,6 +205,41 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   completingButton: {
+    opacity: 0.7,
+  },
+  manageButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 12,
+    gap: 8,
+  },
+  enableButton: {
+    flex: 1,
+    backgroundColor: '#007AFF',
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+  },
+  enableButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  disableButton: {
+    flex: 1,
+    backgroundColor: '#FF3B30',
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+  },
+  disableButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  processingButton: {
     opacity: 0.7,
   },
 });

@@ -7,10 +7,12 @@ import {
   RefreshControl,
   ActivityIndicator,
   Alert,
+  TouchableOpacity,
 } from 'react-native';
 import { usersAPI, ChildWithChores, ChildAllowanceSummary } from '../api/users';
 import ChildCard from '../components/ChildCard';
 import ChildDetailScreen from './ChildDetailScreen';
+import CreateChildScreen from './CreateChildScreen';
 
 export const ChildrenScreen: React.FC = () => {
   const [children, setChildren] = useState<ChildWithChores[]>([]);
@@ -18,6 +20,7 @@ export const ChildrenScreen: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedChild, setSelectedChild] = useState<ChildWithChores | null>(null);
+  const [showCreateChild, setShowCreateChild] = useState(false);
 
   const fetchData = async () => {
     try {
@@ -58,6 +61,19 @@ export const ChildrenScreen: React.FC = () => {
       return total + pending;
     }, 0);
   };
+
+  // If creating a new child, show the create form
+  if (showCreateChild) {
+    return (
+      <CreateChildScreen
+        onSuccess={() => {
+          setShowCreateChild(false);
+          fetchData(); // Refresh to show new child
+        }}
+        onCancel={() => setShowCreateChild(false)}
+      />
+    );
+  }
 
   // If a child is selected, show the detail view
   if (selectedChild) {
@@ -102,7 +118,15 @@ export const ChildrenScreen: React.FC = () => {
 
       {/* Children List */}
       <View style={styles.childrenSection}>
-        <Text style={styles.sectionTitle}>Children ({children.length})</Text>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Children ({children.length})</Text>
+          <TouchableOpacity
+            style={styles.addButton}
+            onPress={() => setShowCreateChild(true)}
+          >
+            <Text style={styles.addButtonText}>+ Add Child</Text>
+          </TouchableOpacity>
+        </View>
         {children.length === 0 ? (
           <View style={styles.emptyState}>
             <Text style={styles.emptyText}>No children added yet</Text>
@@ -178,11 +202,27 @@ const styles = StyleSheet.create({
   summarySection: {
     padding: 16,
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#1a1a1a',
-    marginBottom: 12,
+  },
+  addButton: {
+    backgroundColor: '#2196f3',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  addButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
   },
   summaryCards: {
     flexDirection: 'row',

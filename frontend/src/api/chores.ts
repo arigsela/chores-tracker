@@ -168,7 +168,7 @@ export const choreAPI = {
     }
   },
 
-  // Enable a disabled chore (parent only)
+  // Enable a chore (parent only)
   enableChore: async (choreId: number): Promise<Chore> => {
     try {
       const response = await apiClient.post(`/chores/${choreId}/enable`);
@@ -179,7 +179,7 @@ export const choreAPI = {
     }
   },
 
-  // Delete a chore permanently (parent only)
+  // Delete a chore (parent only)
   deleteChore: async (choreId: number): Promise<void> => {
     try {
       await apiClient.delete(`/chores/${choreId}`);
@@ -188,4 +188,5 @@ export const choreAPI = {
       throw error;
     }
   },
+
 };

@@ -58,19 +58,30 @@ export const usersAPI = {
   },
 
   // Create a new child user
-  createChild: async (childData: {
+  createChildAccount: async (childData: {
     username: string;
     password: string;
-    email?: string;
   }): Promise<User> => {
     try {
-      const response = await apiClient.post('/users/', {
-        ...childData,
-        is_parent: false,
+      // Get the parent's ID first
+      const parentResponse = await apiClient.get('/users/me');
+      const parentId = parentResponse.data.id;
+      
+      // Create child account using form data
+      const formData = new URLSearchParams();
+      formData.append('username', childData.username);
+      formData.append('password', childData.password);
+      formData.append('is_parent', 'false');
+      formData.append('parent_id', parentId.toString());
+      
+      const response = await apiClient.post('/users/register', formData, {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
       });
       return response.data;
     } catch (error) {
-      console.error('Failed to create child:', error);
+      console.error('Failed to create child account:', error);
       throw error;
     }
   },
