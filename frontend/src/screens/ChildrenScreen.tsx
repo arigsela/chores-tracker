@@ -8,6 +8,8 @@ import {
   ActivityIndicator,
   Alert,
   TouchableOpacity,
+  TextInput,
+  Modal,
 } from 'react-native';
 import { usersAPI, ChildWithChores, ChildAllowanceSummary } from '../api/users';
 import ChildCard from '../components/ChildCard';
@@ -21,6 +23,10 @@ export const ChildrenScreen: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [selectedChild, setSelectedChild] = useState<ChildWithChores | null>(null);
   const [showCreateChild, setShowCreateChild] = useState(false);
+  const [resetPasswordModal, setResetPasswordModal] = useState<{ visible: boolean; child: ChildWithChores | null }>({ visible: false, child: null });
+  const [newPassword, setNewPassword] = useState('');
+  const [resetPasswordError, setResetPasswordError] = useState('');
+  const [resetPasswordSuccess, setResetPasswordSuccess] = useState(false);
 
   const fetchData = async () => {
     try {
@@ -50,6 +56,47 @@ export const ChildrenScreen: React.FC = () => {
 
   const getTotalOwed = () => {
     return allowanceSummary.reduce((total, child) => total + child.balance_due, 0);
+  };
+
+  const handleResetPassword = (child: ChildWithChores) => {
+    setResetPasswordModal({ visible: true, child });
+    setNewPassword('');
+    setResetPasswordError('');
+    setResetPasswordSuccess(false);
+  };
+
+  const performPasswordReset = async () => {
+    if (!resetPasswordModal.child) return;
+    
+    // Validate password
+    if (!newPassword || newPassword.length < 3) {
+      setResetPasswordError('Password must be at least 3 characters long');
+      return;
+    }
+    
+    setResetPasswordError('');
+    
+    try {
+      await usersAPI.resetChildPassword(resetPasswordModal.child.id, newPassword);
+      setResetPasswordSuccess(true);
+      
+      // Auto-close modal after 2 seconds on success
+      setTimeout(() => {
+        setResetPasswordModal({ visible: false, child: null });
+        setNewPassword('');
+        setResetPasswordSuccess(false);
+      }, 2000);
+    } catch (error) {
+      console.error('Reset password error:', error);
+      setResetPasswordError('Failed to reset password. Please try again.');
+    }
+  };
+
+  const closePasswordResetModal = () => {
+    setResetPasswordModal({ visible: false, child: null });
+    setNewPassword('');
+    setResetPasswordError('');
+    setResetPasswordSuccess(false);
   };
 
   const getTotalPending = () => {
@@ -147,6 +194,7 @@ export const ChildrenScreen: React.FC = () => {
                 key={child.id}
                 child={enrichedChild}
                 onPress={() => setSelectedChild(child)}
+                onResetPassword={() => handleResetPassword(enrichedChild)}
               />
             );
           })
@@ -185,6 +233,60 @@ export const ChildrenScreen: React.FC = () => {
           ))}
         </View>
       )}
+
+      {/* Password Reset Modal */}
+      <Modal
+        visible={resetPasswordModal.visible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={closePasswordResetModal}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Reset Password</Text>
+            {resetPasswordModal.child && (
+              <Text style={styles.modalSubtitle}>for {resetPasswordModal.child.username}</Text>
+            )}
+            
+            {resetPasswordSuccess ? (
+              <View style={styles.successContainer}>
+                <Text style={styles.successText}>✓ Password reset successfully!</Text>
+              </View>
+            ) : (
+              <>
+                <TextInput
+                  style={styles.passwordInput}
+                  placeholder="Enter new password (min 3 characters)"
+                  value={newPassword}
+                  onChangeText={setNewPassword}
+                  secureTextEntry={true}
+                  autoFocus={true}
+                />
+                
+                {resetPasswordError ? (
+                  <Text style={styles.errorText}>{resetPasswordError}</Text>
+                ) : null}
+                
+                <View style={styles.modalButtons}>
+                  <TouchableOpacity
+                    style={[styles.modalButton, styles.cancelButton]}
+                    onPress={closePasswordResetModal}
+                  >
+                    <Text style={styles.cancelButtonText}>Cancel</Text>
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity
+                    style={[styles.modalButton, styles.resetButton]}
+                    onPress={performPasswordReset}
+                  >
+                    <Text style={styles.resetButtonText}>Reset Password</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 };
@@ -328,5 +430,87 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#1a1a1a',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 24,
+    width: '90%',
+    maxWidth: 400,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1a1a1a',
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  modalSubtitle: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  passwordInput: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    marginBottom: 8,
+  },
+  errorText: {
+    color: '#dc3545',
+    fontSize: 14,
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  successContainer: {
+    paddingVertical: 20,
+    alignItems: 'center',
+  },
+  successText: {
+    color: '#28a745',
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginTop: 16,
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  cancelButton: {
+    backgroundColor: '#f0f0f0',
+  },
+  cancelButtonText: {
+    color: '#666',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  resetButton: {
+    backgroundColor: '#2196f3',
+  },
+  resetButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

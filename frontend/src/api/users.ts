@@ -63,21 +63,13 @@ export const usersAPI = {
     password: string;
   }): Promise<User> => {
     try {
-      // Get the parent's ID first
-      const parentResponse = await apiClient.get('/users/me');
-      const parentId = parentResponse.data.id;
-      
-      // Create child account using form data
-      const formData = new URLSearchParams();
-      formData.append('username', childData.username);
-      formData.append('password', childData.password);
-      formData.append('is_parent', 'false');
-      formData.append('parent_id', parentId.toString());
-      
-      const response = await apiClient.post('/users/register', formData, {
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
+      // Create child account using the authenticated endpoint
+      // The parent_id will be set automatically from the current user
+      const response = await apiClient.post('/users/', {
+        username: childData.username,
+        password: childData.password,
+        is_parent: false,
+        // parent_id is automatically set from the authenticated parent
       });
       return response.data;
     } catch (error) {
@@ -89,9 +81,16 @@ export const usersAPI = {
   // Reset child's password
   resetChildPassword: async (childId: number, newPassword: string): Promise<User> => {
     try {
-      const response = await apiClient.post(`/users/children/${childId}/reset-password`, {
-        new_password: newPassword,
-      });
+      // The API expects just the password string as the body, not an object
+      const response = await apiClient.post(
+        `/users/children/${childId}/reset-password`, 
+        JSON.stringify(newPassword),
+        {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
       return response.data;
     } catch (error) {
       console.error('Failed to reset password:', error);
