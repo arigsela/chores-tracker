@@ -5,9 +5,10 @@ import { ChildWithChores } from '../api/users';
 interface ChildCardProps {
   child: ChildWithChores;
   onPress: () => void;
+  onResetPassword?: () => void;
 }
 
-const ChildCard: React.FC<ChildCardProps> = ({ child, onPress }) => {
+const ChildCard: React.FC<ChildCardProps> = ({ child, onPress, onResetPassword }) => {
   // Count active and completed chores if available (handle both field names)
   const activeChores = child.chores?.filter(c => 
     !c.is_completed && !c.completed_at && !c.completion_date
@@ -21,7 +22,7 @@ const ChildCard: React.FC<ChildCardProps> = ({ child, onPress }) => {
   ).length || 0;
 
   return (
-    <TouchableOpacity style={styles.card} onPress={onPress}>
+    <View style={styles.card}>
       <View style={styles.header}>
         <Text style={styles.name}>{child.username}</Text>
         <View style={styles.statusBadge}>
@@ -47,9 +48,16 @@ const ChildCard: React.FC<ChildCardProps> = ({ child, onPress }) => {
       </View>
 
       <View style={styles.footer}>
-        <Text style={styles.viewDetails}>View Details →</Text>
+        <TouchableOpacity onPress={onPress} style={styles.detailsButton}>
+          <Text style={styles.viewDetails}>View Details →</Text>
+        </TouchableOpacity>
+        {onResetPassword && (
+          <TouchableOpacity onPress={onResetPassword} style={styles.resetButton}>
+            <Text style={styles.resetButtonText}>Reset Password</Text>
+          </TouchableOpacity>
+        )}
       </View>
-    </TouchableOpacity>
+    </View>
   );
 };
 
@@ -116,11 +124,30 @@ const styles = StyleSheet.create({
   },
   footer: {
     marginTop: 12,
-    alignItems: 'flex-end',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  detailsButton: {
+    flex: 1,
   },
   viewDetails: {
     fontSize: 14,
     color: '#2196f3',
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  resetButton: {
+    flex: 1,
+    backgroundColor: '#dc3545',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    alignItems: 'center',
+  },
+  resetButtonText: {
+    fontSize: 14,
+    color: '#fff',
     fontWeight: '600',
   },
 });

@@ -128,6 +128,7 @@ export const choreAPI = {
     cooldown_days?: number;
   }): Promise<Chore> => {
     try {
+      // Send as JSON directly - axios client already has JSON content-type
       const response = await apiClient.post('/chores/', choreData);
       return response.data;
     } catch (error) {
@@ -145,10 +146,12 @@ export const choreAPI = {
     min_reward?: number;
     max_reward?: number;
     assigned_to_id?: number;
+    assignee_id?: number;
     is_recurring?: boolean;
     cooldown_days?: number;
   }): Promise<Chore> => {
     try {
+      // Send as JSON directly - axios client already has JSON content-type
       const response = await apiClient.put(`/chores/${choreId}`, choreData);
       return response.data;
     } catch (error) {

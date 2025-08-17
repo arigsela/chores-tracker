@@ -7,14 +7,16 @@ import {
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
-  Alert,
   Switch,
 } from 'react-native';
 import { Chore, choreAPI } from '../api/chores';
+import { usersAPI, ChildWithChores } from '../api/users';
 import ChoreFormScreen from './ChoreFormScreen';
+import { Alert } from '../utils/Alert';
 
 const ChoresManagementScreen: React.FC = () => {
   const [chores, setChores] = useState<Chore[]>([]);
+  const [children, setChildren] = useState<ChildWithChores[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showForm, setShowForm] = useState(false);
@@ -23,6 +25,7 @@ const ChoresManagementScreen: React.FC = () => {
 
   useEffect(() => {
     fetchChores();
+    fetchChildren();
   }, []);
 
   const fetchChores = async () => {
@@ -39,12 +42,24 @@ const ChoresManagementScreen: React.FC = () => {
     }
   };
 
+  const fetchChildren = async () => {
+    try {
+      const childrenData = await usersAPI.getMyChildren();
+      setChildren(childrenData);
+    } catch (error) {
+      console.error('Failed to fetch children:', error);
+      // Don't show alert for children fetch failure, just log it
+    }
+  };
+
   const onRefresh = () => {
     setRefreshing(true);
     fetchChores();
+    fetchChildren();
   };
 
   const handleCreateNew = () => {
+    console.log('Create New Chore clicked');
     setEditingChore(undefined);
     setShowForm(true);
   };
@@ -58,6 +73,7 @@ const ChoresManagementScreen: React.FC = () => {
     setShowForm(false);
     setEditingChore(undefined);
     fetchChores(); // Refresh the list
+    fetchChildren(); // Refresh children data in case assignments changed
   };
 
   const handleCancel = () => {
@@ -109,7 +125,6 @@ const ChoresManagementScreen: React.FC = () => {
           onPress: async () => {
             try {
               await choreAPI.deleteChore(chore.id);
-              Alert.alert('Success', 'Chore deleted successfully');
               fetchChores();
             } catch (error) {
               console.error('Failed to delete chore:', error);
@@ -119,6 +134,12 @@ const ChoresManagementScreen: React.FC = () => {
         },
       ]
     );
+  };
+
+  const getChildName = (assigneeId: number | null): string => {
+    if (!assigneeId) return 'Unassigned';
+    const child = children.find(c => c.id === assigneeId);
+    return child ? child.username : `Child #${assigneeId}`;
   };
 
   const renderChoreCard = (chore: Chore) => {
@@ -180,14 +201,12 @@ const ChoresManagementScreen: React.FC = () => {
             </View>
           )}
 
-          {(chore.assignee_id || chore.assigned_to_id) && (
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Assigned to:</Text>
-              <Text style={[styles.detailValue, isDisabled && styles.disabledText]}>
-                Child #{chore.assignee_id || chore.assigned_to_id}
-              </Text>
-            </View>
-          )}
+          <View style={styles.detailRow}>
+            <Text style={styles.detailLabel}>Assigned to:</Text>
+            <Text style={[styles.detailValue, isDisabled && styles.disabledText]}>
+              {getChildName(chore.assignee_id || chore.assigned_to_id)}
+            </Text>
+          </View>
         </View>
 
         <View style={styles.choreActions}>
@@ -224,6 +243,7 @@ const ChoresManagementScreen: React.FC = () => {
   };
 
   if (showForm) {
+    console.log('Showing ChoreFormScreen, editing:', editingChore);
     return (
       <ChoreFormScreen
         chore={editingChore}
@@ -279,7 +299,7 @@ const ChoresManagementScreen: React.FC = () => {
           </View>
         ) : (
           <View style={styles.choresList}>
-            {filteredChores.map(renderChoreCard)}
+            {filteredChores.map((chore) => renderChoreCard(chore))}
           </View>
         )}
       </ScrollView>
@@ -340,7 +360,6 @@ const styles = StyleSheet.create({
   },
   choresList: {
     padding: 16,
-    gap: 12,
   },
   choreCard: {
     backgroundColor: '#fff',

@@ -7,11 +7,11 @@ import {
   TextInput,
   TouchableOpacity,
   Switch,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
 import { Chore, choreAPI } from '../api/chores';
 import { usersAPI, ChildWithChores } from '../api/users';
+import { Alert } from '../utils/Alert';
 
 interface ChoreFormScreenProps {
   chore?: Chore; // If provided, we're editing; otherwise creating
@@ -63,21 +63,30 @@ const ChoreFormScreen: React.FC<ChoreFormScreenProps> = ({ chore, onSave, onCanc
     }
 
     if (isRangeReward) {
+      if (!minReward || !maxReward) {
+        Alert.alert('Validation Error', 'Please enter both minimum and maximum reward amounts');
+        console.log('Validation failed: minReward=', minReward, 'maxReward=', maxReward);
+        return false;
+      }
+      
       const min = parseFloat(minReward);
       const max = parseFloat(maxReward);
       
       if (isNaN(min) || isNaN(max)) {
-        Alert.alert('Validation Error', 'Please enter valid reward amounts');
+        Alert.alert('Validation Error', 'Please enter valid numeric reward amounts');
+        console.log('Validation failed: min=', min, 'max=', max);
         return false;
       }
       
       if (min >= max) {
-        Alert.alert('Validation Error', 'Minimum reward must be less than maximum');
+        Alert.alert('Validation Error', 'Minimum reward must be less than maximum reward');
+        console.log('Validation failed: min >= max', min, '>=', max);
         return false;
       }
       
       if (min < 0 || max < 0) {
         Alert.alert('Validation Error', 'Reward amounts must be positive');
+        console.log('Validation failed: negative values', min, max);
         return false;
       }
     } else {
@@ -100,7 +109,22 @@ const ChoreFormScreen: React.FC<ChoreFormScreenProps> = ({ chore, onSave, onCanc
   };
 
   const handleSubmit = async () => {
+    console.log('Submit button clicked');
+    console.log('Form state:', {
+      title,
+      description,
+      isRangeReward,
+      fixedReward,
+      minReward,
+      maxReward,
+      isRecurring,
+      cooldownDays,
+      assignedToId,
+      children: children.length
+    });
+    
     if (!validateForm()) {
+      console.log('Form validation failed');
       return;
     }
 
@@ -108,7 +132,7 @@ const ChoreFormScreen: React.FC<ChoreFormScreenProps> = ({ chore, onSave, onCanc
 
     const choreData: any = {
       title: title.trim(),
-      description: description.trim() || undefined,
+      description: description.trim() || '',
       is_range_reward: isRangeReward,
       is_recurring: isRecurring,
     };
@@ -137,6 +161,7 @@ const ChoreFormScreen: React.FC<ChoreFormScreenProps> = ({ chore, onSave, onCanc
     }
 
     try {
+      console.log('Submitting chore data:', choreData);
       let savedChore: Chore;
       
       if (isEditing && chore) {
@@ -144,14 +169,16 @@ const ChoreFormScreen: React.FC<ChoreFormScreenProps> = ({ chore, onSave, onCanc
         Alert.alert('Success', 'Chore updated successfully');
       } else {
         savedChore = await choreAPI.createChore(choreData);
-        Alert.alert('Success', 'Chore created successfully');
       }
       
       onSave(savedChore);
     } catch (error: any) {
       console.error('Failed to save chore:', error);
-      const errorMessage = error.response?.data?.detail || 'Failed to save chore';
-      Alert.alert('Error', errorMessage);
+      console.error('Error response:', error.response?.data);
+      console.error('Error status:', error.response?.status);
+      console.error('Sent data:', choreData);
+      const errorMessage = error.response?.data?.detail || error.message || 'Failed to save chore';
+      Alert.alert('Error', `${errorMessage}\n\nCheck console for details`);
     } finally {
       setLoading(false);
     }
@@ -163,12 +190,24 @@ const ChoreFormScreen: React.FC<ChoreFormScreenProps> = ({ chore, onSave, onCanc
         <View style={styles.rangeContainer}>
           <View style={styles.rangeInputContainer}>
             <Text style={styles.rangeLabel}>Min $</Text>
-            <TextInput
-              style={[styles.input, styles.rangeInput]}
+            <input
+              style={{
+                flex: 1,
+                padding: 8,
+                borderWidth: 1,
+                borderColor: '#ddd',
+                borderRadius: 4,
+                fontSize: 16,
+              }}
+              type="number"
               value={minReward}
-              onChangeText={setMinReward}
+              onChange={(e) => {
+                const text = e.target.value;
+                console.log('Min reward input changed to:', text);
+                setMinReward(text);
+              }}
               placeholder="0.00"
-              keyboardType="decimal-pad"
+              step="0.01"
             />
           </View>
           <Text style={styles.rangeSeparator}>to</Text>
@@ -177,9 +216,19 @@ const ChoreFormScreen: React.FC<ChoreFormScreenProps> = ({ chore, onSave, onCanc
             <TextInput
               style={[styles.input, styles.rangeInput]}
               value={maxReward}
-              onChangeText={setMaxReward}
+              onChangeText={(text) => {
+                console.log('Max reward changed to:', text);
+                setMaxReward(text);
+              }}
+              onChange={(e) => {
+                const text = e.nativeEvent.text;
+                console.log('Max reward onChange:', text);
+                setMaxReward(text);
+              }}
               placeholder="0.00"
-              keyboardType="decimal-pad"
+              keyboardType="numeric"
+              autoComplete="off"
+              autoCorrect={false}
             />
           </View>
         </View>
@@ -282,7 +331,18 @@ const ChoreFormScreen: React.FC<ChoreFormScreenProps> = ({ chore, onSave, onCanc
             <Text style={styles.switchLabel}>Range Reward</Text>
             <Switch
               value={isRangeReward}
-              onValueChange={setIsRangeReward}
+              onValueChange={(value) => {
+                console.log('Range reward toggle:', value, 'fixedReward:', fixedReward, 'minReward:', minReward, 'maxReward:', maxReward);
+                setIsRangeReward(value);
+                // When switching from fixed to range reward, initialize min/max with fixed reward value
+                if (value && fixedReward && (!minReward || minReward === '') && (!maxReward || maxReward === '')) {
+                  console.log('Initializing min/max rewards with fixed reward value:', fixedReward);
+                  setMinReward(fixedReward);
+                  setMaxReward(fixedReward);
+                } else {
+                  console.log('Not initializing because:', 'value:', value, 'fixedReward:', fixedReward, 'minReward check:', (!minReward || minReward === ''), 'maxReward check:', (!maxReward || maxReward === ''));
+                }
+              }}
               trackColor={{ false: '#ccc', true: '#2196f3' }}
               thumbColor={isRangeReward ? '#1976d2' : '#f4f3f4'}
             />

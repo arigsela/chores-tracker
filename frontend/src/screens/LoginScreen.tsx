@@ -12,7 +12,11 @@ import {
 } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
 
-export const LoginScreen: React.FC = () => {
+interface LoginScreenProps {
+  onNavigateToRegister: () => void;
+}
+
+export const LoginScreen: React.FC<LoginScreenProps> = ({ onNavigateToRegister }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -90,6 +94,16 @@ export const LoginScreen: React.FC = () => {
               <Text style={styles.buttonText}>Sign In</Text>
             )}
           </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.linkButton}
+            onPress={onNavigateToRegister}
+            disabled={isLoading}
+          >
+            <Text style={styles.linkText}>
+              Don't have an account? Sign Up
+            </Text>
+          </TouchableOpacity>
         </View>
       </View>
     </KeyboardAvoidingView>
@@ -162,5 +176,15 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  linkButton: {
+    marginTop: 16,
+    paddingVertical: 8,
+    alignItems: 'center',
+  },
+  linkText: {
+    color: '#007AFF',
+    fontSize: 14,
+    fontWeight: '500',
   },
 });

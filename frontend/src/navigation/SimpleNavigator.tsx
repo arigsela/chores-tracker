@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { LoginScreen } from '@/screens/LoginScreen';
+import { RegisterScreen } from '@/screens/RegisterScreen';
 import { HomeScreen } from '@/screens/HomeScreen';
 import { ChoresScreen } from '@/screens/ChoresScreen';
 import { ChildrenScreen } from '@/screens/ChildrenScreen';
@@ -10,13 +11,18 @@ import { ProfileScreen } from '@/screens/ProfileScreen';
 import ApprovalsScreen from '@/screens/ApprovalsScreen';
 
 type TabName = 'Home' | 'Chores' | 'Children' | 'Approvals' | 'Balance' | 'Profile';
+type AuthScreen = 'login' | 'register';
 
 export const SimpleNavigator: React.FC = () => {
   const { isAuthenticated, user } = useAuth();
   const [activeTab, setActiveTab] = useState<TabName>('Home');
+  const [authScreen, setAuthScreen] = useState<AuthScreen>('login');
   
   if (!isAuthenticated) {
-    return <LoginScreen />;
+    if (authScreen === 'register') {
+      return <RegisterScreen onBackToLogin={() => setAuthScreen('login')} />;
+    }
+    return <LoginScreen onNavigateToRegister={() => setAuthScreen('register')} />;
   }
 
   const isParent = user?.role === 'parent';
@@ -24,7 +30,7 @@ export const SimpleNavigator: React.FC = () => {
   const renderScreen = () => {
     switch (activeTab) {
       case 'Home':
-        return <HomeScreen />;
+        return <HomeScreen onNavigate={setActiveTab} />;
       case 'Chores':
         return <ChoresScreen />;
       case 'Children':
@@ -36,7 +42,7 @@ export const SimpleNavigator: React.FC = () => {
       case 'Profile':
         return <ProfileScreen />;
       default:
-        return <HomeScreen />;
+        return <HomeScreen onNavigate={setActiveTab} />;
     }
   };
 

@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
 import { usersAPI } from '../api/users';
@@ -21,28 +20,31 @@ export const CreateChildScreen: React.FC<CreateChildScreenProps> = ({ onSuccess,
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isCreating, setIsCreating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
 
   const validateForm = () => {
     if (!username.trim()) {
-      Alert.alert('Validation Error', 'Username is required');
+      setError('Username is required');
       return false;
     }
     if (username.length < 3) {
-      Alert.alert('Validation Error', 'Username must be at least 3 characters');
+      setError('Username must be at least 3 characters');
       return false;
     }
     if (!password) {
-      Alert.alert('Validation Error', 'Password is required');
+      setError('Password is required');
       return false;
     }
     if (password.length < 8) {
-      Alert.alert('Validation Error', 'Password must be at least 8 characters');
+      setError('Password must be at least 8 characters');
       return false;
     }
     if (password !== confirmPassword) {
-      Alert.alert('Validation Error', 'Passwords do not match');
+      setError('Passwords do not match');
       return false;
     }
+    setError(null);
     return true;
   };
 
@@ -50,21 +52,22 @@ export const CreateChildScreen: React.FC<CreateChildScreenProps> = ({ onSuccess,
     if (!validateForm()) return;
 
     setIsCreating(true);
+    setError(null);
     try {
       await usersAPI.createChildAccount({
         username: username.trim(),
         password,
       });
       
-      Alert.alert(
-        'Success',
-        `Child account "${username}" created successfully!`,
-        [{ text: 'OK', onPress: onSuccess }]
-      );
+      setSuccess(true);
+      // Show success briefly then call onSuccess
+      setTimeout(() => {
+        onSuccess();
+      }, 1500);
     } catch (error: any) {
       console.error('Failed to create child account:', error);
       const errorMessage = error.response?.data?.detail || 'Failed to create child account';
-      Alert.alert('Error', errorMessage);
+      setError(errorMessage);
     } finally {
       setIsCreating(false);
     }
@@ -81,6 +84,16 @@ export const CreateChildScreen: React.FC<CreateChildScreenProps> = ({ onSuccess,
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.form}>
+          {error && (
+            <View style={styles.errorBox}>
+              <Text style={styles.errorText}>⚠️ {error}</Text>
+            </View>
+          )}
+          {success && (
+            <View style={styles.successBox}>
+              <Text style={styles.successText}>✅ Child account created successfully!</Text>
+            </View>
+          )}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Username</Text>
             <TextInput
@@ -266,6 +279,30 @@ const styles = StyleSheet.create({
   },
   disabledButton: {
     opacity: 0.6,
+  },
+  errorBox: {
+    backgroundColor: '#fee',
+    borderColor: '#fcc',
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+  },
+  errorText: {
+    color: '#c00',
+    fontSize: 14,
+  },
+  successBox: {
+    backgroundColor: '#efe',
+    borderColor: '#cfc',
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+  },
+  successText: {
+    color: '#060',
+    fontSize: 14,
   },
 });
 

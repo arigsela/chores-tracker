@@ -1,8 +1,14 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
 
-export const HomeScreen: React.FC = () => {
+type TabName = 'Home' | 'Chores' | 'Children' | 'Approvals' | 'Balance' | 'Profile';
+
+interface HomeScreenProps {
+  onNavigate?: (tab: TabName) => void;
+}
+
+export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
   const { user } = useAuth();
   const isParent = user?.role === 'parent';
 
@@ -31,20 +37,34 @@ export const HomeScreen: React.FC = () => {
 
       <View style={styles.quickActions}>
         <Text style={styles.sectionTitle}>Quick Actions</Text>
-        <View style={styles.actionCard}>
+        <TouchableOpacity 
+          style={styles.actionCard}
+          onPress={() => {
+            if (onNavigate) {
+              onNavigate('Chores');
+            }
+          }}
+        >
           <Text style={styles.actionText}>
             {isParent 
               ? '📝 Create New Chore' 
               : '✅ View Available Chores'}
           </Text>
-        </View>
-        <View style={styles.actionCard}>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={styles.actionCard}
+          onPress={() => {
+            if (onNavigate) {
+              onNavigate(isParent ? 'Children' : 'Balance');
+            }
+          }}
+        >
           <Text style={styles.actionText}>
             {isParent 
               ? '👨‍👩‍👧‍👦 Manage Children' 
               : '💰 Check Balance'}
           </Text>
-        </View>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -116,6 +136,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+    cursor: 'pointer' as any, // For web
   },
   actionText: {
     fontSize: 16,
