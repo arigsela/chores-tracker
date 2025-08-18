@@ -256,7 +256,7 @@ class ChoreService(BaseService[Chore, ChoreRepository]):
                     status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                     detail=f"Reward value must be between {chore.min_reward} and {chore.max_reward}"
                 )
-            update_data["reward"] = reward_value
+            update_data["approval_reward"] = reward_value
         
         # Approve chore
         updated_chore = await self.repository.update(
@@ -500,7 +500,7 @@ class ChoreService(BaseService[Chore, ChoreRepository]):
                     raise ValueError("Reward value is required for range-based rewards")
                 if reward_value < chore.min_reward or reward_value > chore.max_reward:
                     raise ValueError(f"Reward must be between {chore.min_reward} and {chore.max_reward}")
-                update_data["reward"] = reward_value
+                update_data["approval_reward"] = reward_value
             
             # Approve the chore
             approved_chore = await uow.chores.update(

@@ -12,6 +12,7 @@ import {
   Modal,
 } from 'react-native';
 import { usersAPI, ChildWithChores, ChildAllowanceSummary } from '../api/users';
+import { choreAPI, Chore } from '../api/chores';
 import ChildCard from '../components/ChildCard';
 import ChildDetailScreen from './ChildDetailScreen';
 import CreateChildScreen from './CreateChildScreen';
@@ -19,6 +20,7 @@ import CreateChildScreen from './CreateChildScreen';
 export const ChildrenScreen: React.FC = () => {
   const [children, setChildren] = useState<ChildWithChores[]>([]);
   const [allowanceSummary, setAllowanceSummary] = useState<ChildAllowanceSummary[]>([]);
+  const [pendingChores, setPendingChores] = useState<Chore[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedChild, setSelectedChild] = useState<ChildWithChores | null>(null);
@@ -30,12 +32,14 @@ export const ChildrenScreen: React.FC = () => {
 
   const fetchData = async () => {
     try {
-      const [childrenData, summaryData] = await Promise.all([
+      const [childrenData, summaryData, pendingChoresData] = await Promise.all([
         usersAPI.getMyChildren(),
         usersAPI.getAllowanceSummary(),
+        choreAPI.getPendingApprovalChores(),
       ]);
       setChildren(childrenData);
       setAllowanceSummary(summaryData);
+      setPendingChores(pendingChoresData);
     } catch (error) {
       console.error('Failed to fetch children data:', error);
       Alert.alert('Error', 'Failed to load children data');
@@ -100,13 +104,16 @@ export const ChildrenScreen: React.FC = () => {
   };
 
   const getTotalPending = () => {
-    return children.reduce((total, child) => {
-      const pending = child.chores?.filter(c => 
-        (c.is_completed || c.completed_at || c.completion_date) && 
-        !c.is_approved && !c.approved_at
-      ).length || 0;
-      return total + pending;
-    }, 0);
+    return pendingChores.length;
+  };
+
+  const getChildPendingCount = (childId: number) => {
+    const childPendingChores = pendingChores.filter(chore => {
+      const assignedToChild = (chore.assignee_id === childId) || (chore.assigned_to_id === childId);
+      return assignedToChild;
+    });
+    
+    return childPendingChores.length;
   };
 
   // If creating a new child, show the create form
@@ -195,6 +202,7 @@ export const ChildrenScreen: React.FC = () => {
                 child={enrichedChild}
                 onPress={() => setSelectedChild(child)}
                 onResetPassword={() => handleResetPassword(enrichedChild)}
+                pendingCount={getChildPendingCount(child.id)}
               />
             );
           })
@@ -328,7 +336,6 @@ const styles = StyleSheet.create({
   },
   summaryCards: {
     flexDirection: 'row',
-    gap: 12,
   },
   summaryCard: {
     flex: 1,
@@ -416,7 +423,6 @@ const styles = StyleSheet.create({
     color: '#2196f3',
   },
   allowanceDetails: {
-    gap: 8,
   },
   detailRow: {
     flexDirection: 'row',
@@ -488,7 +494,6 @@ const styles = StyleSheet.create({
   modalButtons: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: 12,
     marginTop: 16,
   },
   modalButton: {

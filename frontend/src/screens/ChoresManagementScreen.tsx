@@ -431,7 +431,6 @@ const styles = StyleSheet.create({
   },
   choreActions: {
     flexDirection: 'row',
-    gap: 8,
     borderTopWidth: 1,
     borderTopColor: '#f0f0f0',
     paddingTop: 12,

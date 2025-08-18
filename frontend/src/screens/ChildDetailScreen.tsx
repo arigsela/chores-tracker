@@ -7,12 +7,12 @@ import {
   RefreshControl,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
+import { Alert } from '../utils/Alert';
 import { ChildWithChores, ChildAllowanceSummary } from '../api/users';
 import { Chore, choreAPI } from '../api/chores';
 import { adjustmentAPI, Adjustment, AdjustmentTotal } from '../api/adjustments';
-import ChoreCard from '../components/ChoreCard';
+import { ChoreCard } from '../components/ChoreCard';
 import AdjustmentFormScreen from './AdjustmentFormScreen';
 
 interface ChildDetailScreenProps {

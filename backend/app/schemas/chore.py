@@ -38,6 +38,13 @@ class ChoreBase(BaseModel):
         le=1000,
         json_schema_extra={"example": 7.0}
     )
+    approval_reward: Optional[float] = Field(
+        None,
+        description="Final approved reward amount for range-based rewards",
+        ge=0,
+        le=1000,
+        json_schema_extra={"example": 5.5}
+    )
     is_range_reward: bool = Field(
         False,
         description="Whether this chore has a range-based reward (parent chooses amount during approval)",

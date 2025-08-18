@@ -6,9 +6,11 @@ interface ChildCardProps {
   child: ChildWithChores;
   onPress: () => void;
   onResetPassword?: () => void;
+  pendingCount?: number; // Override calculated pending count
 }
 
-const ChildCard: React.FC<ChildCardProps> = ({ child, onPress, onResetPassword }) => {
+const ChildCard: React.FC<ChildCardProps> = (props) => {
+  const { child, onPress, onResetPassword } = props;
   // Count active and completed chores if available (handle both field names)
   const activeChores = child.chores?.filter(c => 
     !c.is_completed && !c.completed_at && !c.completion_date
@@ -16,10 +18,13 @@ const ChildCard: React.FC<ChildCardProps> = ({ child, onPress, onResetPassword }
   const completedChores = child.chores?.filter(c => 
     (c.is_approved || c.approved_at)
   ).length || 0;
-  const pendingApproval = child.chores?.filter(c => 
-    (c.is_completed || c.completed_at || c.completion_date) && 
-    !c.is_approved && !c.approved_at
-  ).length || 0;
+  // Use provided pendingCount if available, otherwise calculate from child.chores
+  const pendingApproval = props.pendingCount !== undefined 
+    ? props.pendingCount 
+    : (child.chores?.filter(c => 
+        (c.is_completed || c.completed_at || c.completion_date) && 
+        !c.is_approved && !c.approved_at
+      ).length || 0);
 
   return (
     <View style={styles.card}>
@@ -126,7 +131,6 @@ const styles = StyleSheet.create({
     marginTop: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: 8,
   },
   detailsButton: {
     flex: 1,

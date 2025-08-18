@@ -650,7 +650,6 @@ const styles = StyleSheet.create({
   },
   actionButtons: {
     flexDirection: 'row',
-    gap: 8,
   },
   button: {
     flex: 1,

@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
+import { choreAPI } from '@/api/chores';
 
 type TabName = 'Home' | 'Chores' | 'Children' | 'Approvals' | 'Balance' | 'Profile';
 
@@ -11,6 +12,62 @@ interface HomeScreenProps {
 export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
   const { user } = useAuth();
   const isParent = user?.role === 'parent';
+  const [activeChoresCount, setActiveChoresCount] = useState(0);
+  const [pendingApprovalsCount, setPendingApprovalsCount] = useState(0);
+  const [completedTodayCount, setCompletedTodayCount] = useState(0);
+
+  useEffect(() => {
+    fetchDashboardStats();
+  }, [user, isParent]);
+
+  const fetchDashboardStats = async () => {
+    try {
+      if (isParent) {
+        // For parents: get pending approvals and total active chores
+        const pendingChores = await choreAPI.getPendingApprovalChores();
+        setPendingApprovalsCount(pendingChores.length);
+
+        const allChores = await choreAPI.getMyChores();
+        const activeChores = allChores.filter(c => 
+          !c.is_disabled && 
+          !c.completed_at && 
+          !c.completion_date && 
+          !c.is_completed
+        );
+        setActiveChoresCount(activeChores.length);
+      } else {
+        // For children: get active chores assigned to them
+        const allChores = await choreAPI.getMyChores();
+        
+        // Filter for active chores assigned to this child
+        const activeChores = allChores.filter(c => {
+          // Check if chore is not completed
+          const isNotCompleted = !c.completed_at && !c.completion_date && !c.is_completed;
+          
+          // Check assignment - handle both field names
+          const assignedToUser = (
+            (c.assigned_to_id && c.assigned_to_id === user?.id) ||
+            (c.assignee_id && c.assignee_id === user?.id)
+          );
+          
+          return isNotCompleted && assignedToUser;
+        });
+        setActiveChoresCount(activeChores.length);
+
+        // Get completed chores from today
+        const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+        const completedToday = allChores.filter(c => {
+          const completionDate = c.completed_at || c.completion_date;
+          if (!completionDate) return false;
+          const choreDate = new Date(completionDate).toISOString().split('T')[0];
+          return choreDate === today && (c.assigned_to_id === user?.id || c.assignee_id === user?.id);
+        });
+        setCompletedTodayCount(completedToday.length);
+      }
+    } catch (error) {
+      console.error('[HomeScreen] Failed to fetch dashboard stats:', error);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -21,14 +78,14 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
 
       <View style={styles.statsContainer}>
         <View style={styles.statCard}>
-          <Text style={styles.statNumber}>0</Text>
+          <Text style={styles.statNumber}>{isParent ? pendingApprovalsCount : activeChoresCount}</Text>
           <Text style={styles.statLabel}>
             {isParent ? 'Pending Approvals' : 'Active Chores'}
           </Text>
         </View>
         
         <View style={styles.statCard}>
-          <Text style={styles.statNumber}>0</Text>
+          <Text style={styles.statNumber}>{isParent ? activeChoresCount : completedTodayCount}</Text>
           <Text style={styles.statLabel}>
             {isParent ? 'Active Chores' : 'Completed Today'}
           </Text>

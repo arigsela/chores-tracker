@@ -600,11 +600,19 @@ async def read_parent_allowance_summary(
 
     children = await user_repo.get_children(db, parent_id=current_user.id)
 
+    # Helper function to get final reward amount (matches frontend logic)
+    def get_final_reward_amount(chore):
+        # For approved chores, prioritize approval_reward field
+        if chore.approval_reward is not None:
+            return chore.approval_reward
+        # Fallback to reward field (legacy and fixed rewards)
+        return chore.reward or 0
+
     summary: List[ChildAllowanceSummary] = []
     for child in children:
         chores = await chore_repo.get_by_assignee(db, assignee_id=child.id)
         completed_chores = len([c for c in chores if c.is_completed and c.is_approved])
-        total_earned = sum(c.reward for c in chores if c.is_completed and c.is_approved)
+        total_earned = sum(get_final_reward_amount(c) for c in chores if c.is_completed and c.is_approved)
         total_adjustments = float(
             await adjustment_repo.calculate_total_adjustments(db, child_id=child.id)
         )

@@ -25,9 +25,15 @@ export const ChoreCard: React.FC<ChoreCardProps> = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const getStatusText = () => {
     if (chore.is_disabled) return '🚫 Disabled';
-    if (chore.approved_at) return '✅ Approved';
-    if (chore.completed_at && !chore.approved_at) return '⏳ Pending Approval';
-    if (chore.completed_at) return '✓ Completed';
+    
+    // Check for approval - try both approved_at and is_approved fields
+    if (chore.approved_at || chore.is_approved) return '✅ Approved';
+    
+    // Check both completed_at and completion_date fields, as well as is_completed boolean
+    const isCompleted = chore.completed_at || chore.completion_date || chore.is_completed;
+    
+    if (isCompleted && !chore.approved_at && !chore.is_approved) return '⏳ Pending Approval';
+    if (isCompleted) return '✓ Completed';
     if (chore.next_available_at) {
       const nextDate = new Date(chore.next_available_at);
       if (nextDate > new Date()) {
@@ -38,20 +44,34 @@ export const ChoreCard: React.FC<ChoreCardProps> = ({
   };
 
   const getRewardText = () => {
+    // For approved chores, show the final approved amount
     if (chore.approval_reward) {
       return `$${chore.approval_reward.toFixed(2)}`;
     }
+    
+    // For approved range rewards (legacy method), show the final reward amount
+    const isApproved = chore.approved_at || chore.is_approved;
+    if (chore.is_range_reward && isApproved && chore.reward) {
+      return `$${chore.reward.toFixed(2)}`;
+    }
+    
+    // For pending range rewards, show the range
     if (chore.is_range_reward && chore.min_reward && chore.max_reward) {
       return `$${chore.min_reward.toFixed(2)} - $${chore.max_reward.toFixed(2)}`;
     }
+    
+    // For fixed rewards
     if (chore.reward) {
       return `$${chore.reward.toFixed(2)}`;
     }
+    
     return 'No reward';
   };
 
   const isAvailableNow = () => {
-    if (chore.completed_at) return false;
+    // Check both completed_at and completion_date fields, as well as is_completed boolean
+    const isCompleted = chore.completed_at || chore.completion_date || chore.is_completed;
+    if (isCompleted) return false;
     if (chore.next_available_at) {
       return new Date(chore.next_available_at) <= new Date();
     }
@@ -79,7 +99,7 @@ export const ChoreCard: React.FC<ChoreCardProps> = ({
         )}
       </View>
 
-      {showCompleteButton && isAvailableNow() && !chore.completed_at && onComplete && (
+      {showCompleteButton && isAvailableNow() && !(chore.completed_at || chore.completion_date || chore.is_completed) && onComplete && (
         <TouchableOpacity 
           style={[styles.completeButton, isCompleting && styles.completingButton]}
           onPress={async () => {
@@ -211,7 +231,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginTop: 12,
-    gap: 8,
   },
   enableButton: {
     flex: 1,

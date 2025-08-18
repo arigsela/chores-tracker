@@ -6,9 +6,9 @@ import {
   ScrollView, 
   TouchableOpacity, 
   ActivityIndicator,
-  RefreshControl,
-  Alert 
+  RefreshControl
 } from 'react-native';
+import { Alert } from '../utils/Alert';
 import { useAuth } from '@/contexts/AuthContext';
 import { choreAPI, Chore } from '@/api/chores';
 import { ChoreCard } from '@/components/ChoreCard';
@@ -43,11 +43,53 @@ export const ChoresScreen: React.FC = () => {
         fetchedChores = await choreAPI.getAvailableChores();
       } else {
         // Fetch all assigned chores and filter
-        fetchedChores = await choreAPI.getMyChores();
+        const allChores = await choreAPI.getMyChores();
+        
         if (activeTab === 'active') {
-          fetchedChores = fetchedChores.filter(c => !c.completed_at && c.assigned_to_id === user?.id);
+          fetchedChores = allChores.filter(c => {
+            // Check if chore is not completed
+            const isNotCompleted = !c.completed_at && !c.completion_date && !c.is_completed;
+            
+            // Check assignment - handle both field names
+            const assignedToUser = (
+              (c.assigned_to_id && c.assigned_to_id === user?.id) ||
+              (c.assignee_id && c.assignee_id === user?.id)
+            );
+            
+            return isNotCompleted && assignedToUser;
+          });
         } else if (activeTab === 'completed') {
-          fetchedChores = fetchedChores.filter(c => c.completed_at && c.assigned_to_id === user?.id);
+          fetchedChores = allChores.filter(c => 
+            (c.completed_at || c.completion_date || c.is_completed) && 
+            (c.assigned_to_id === user?.id || c.assignee_id === user?.id)
+          );
+          
+          // DEBUG: Log completed chores for balance audit
+          if (activeTab === 'completed') {
+            console.log('[CHORES AUDIT] Total chores returned from API:', allChores.length);
+            console.log('[CHORES AUDIT] Filtered completed chores:', fetchedChores.length);
+            
+            let totalRewardSum = 0;
+            const choreDetails = fetchedChores.map(chore => {
+              const rewardAmount = chore.approval_reward || chore.reward || 0;
+              totalRewardSum += rewardAmount;
+              return {
+                id: chore.id,
+                title: chore.title,
+                reward: chore.reward,
+                approval_reward: chore.approval_reward,
+                used_reward: rewardAmount,
+                completed_at: chore.completed_at,
+                completion_date: chore.completion_date,
+                approved_at: chore.approved_at,
+                is_approved: chore.is_approved,
+                is_completed: chore.is_completed
+              };
+            });
+            
+            console.log('[CHORES AUDIT] Completed chores breakdown:', choreDetails);
+            console.log('[CHORES AUDIT] Manual sum of visible chore rewards:', totalRewardSum);
+          }
         }
       }
       
@@ -69,32 +111,16 @@ export const ChoresScreen: React.FC = () => {
     const chore = chores.find(c => c.id === choreId);
     if (!chore) return;
     
-    Alert.alert(
-      'Complete Chore',
-      `Mark "${chore.title}" as complete? It will be sent to your parent for approval.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Complete', 
-          onPress: async () => {
-            try {
-              setIsLoading(true);
-              await choreAPI.completeChore(choreId);
-              Alert.alert(
-                'Success!', 
-                'Chore marked as complete and sent for parent approval.',
-                [{ text: 'OK', onPress: () => fetchChores(true) }]
-              );
-            } catch (error) {
-              console.error('Failed to complete chore:', error);
-              Alert.alert('Error', 'Failed to complete chore. Please try again.');
-            } finally {
-              setIsLoading(false);
-            }
-          }
-        }
-      ]
-    );
+    try {
+      setIsLoading(true);
+      await choreAPI.completeChore(choreId);
+      fetchChores(true);
+    } catch (error) {
+      console.error('Failed to complete chore:', error);
+      Alert.alert('Error', 'Failed to complete chore. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleApproveChore = async (chore: Chore) => {

@@ -208,9 +208,17 @@ async def get_my_balance(
     # Get chores for the current user
     chores = await chore_repo.get_by_assignee(db, assignee_id=current_user.id)
     
-    # Calculate totals
-    total_earned = sum(c.reward for c in chores if c.is_completed and c.is_approved)
-    pending_chores_value = sum(c.reward for c in chores if c.is_completed and not c.is_approved)
+    # Helper function to get final reward amount (matches frontend logic)
+    def get_final_reward_amount(chore):
+        # For approved chores, prioritize approval_reward field
+        if chore.approval_reward is not None:
+            return chore.approval_reward
+        # Fallback to reward field (legacy and fixed rewards)
+        return chore.reward or 0
+    
+    # Calculate totals using correct reward amounts
+    total_earned = sum(get_final_reward_amount(c) for c in chores if c.is_completed and c.is_approved)
+    pending_chores_value = sum(get_final_reward_amount(c) for c in chores if c.is_completed and not c.is_approved)
     
     # Get total adjustments
     total_adjustments = await adjustment_repo.calculate_total_adjustments(db, child_id=current_user.id)

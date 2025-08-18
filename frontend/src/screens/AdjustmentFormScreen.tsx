@@ -6,11 +6,11 @@ import {
   ScrollView,
   TextInput,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { Alert } from '../utils/Alert';
 import { adjustmentAPI, AdjustmentCreate } from '../api/adjustments';
 import { usersAPI, ChildWithChores } from '../api/users';
 
@@ -94,27 +94,17 @@ const AdjustmentFormScreen: React.FC<AdjustmentFormScreenProps> = ({
       await adjustmentAPI.createAdjustment(adjustmentData);
       
       const childName = children.find(c => c.id === selectedChildId)?.username || 'Child';
-      const adjustmentType = isPositive ? 'bonus' : 'deduction';
       
-      Alert.alert(
-        'Success',
-        `${isPositive ? 'Bonus' : 'Deduction'} of $${amountValue.toFixed(2)} has been applied to ${childName}'s balance.`,
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              // Reset form
-              setAmount('');
-              setReason('');
-              setIsPositive(true);
-              
-              if (onSuccess) {
-                onSuccess();
-              }
-            },
-          },
-        ]
-      );
+      // Reset form immediately
+      setAmount('');
+      setReason('');
+      setIsPositive(true);
+      
+      // Call onSuccess to close modal and refresh data
+      if (onSuccess) {
+        onSuccess();
+      }
+      
     } catch (error: any) {
       console.error('Failed to create adjustment:', error);
       const errorMessage = error.response?.data?.detail || 'Failed to create adjustment';
@@ -413,7 +403,6 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   childSelector: {
-    gap: 10,
   },
   childOption: {
     flexDirection: 'row',
@@ -442,7 +431,6 @@ const styles = StyleSheet.create({
   },
   typeSelector: {
     flexDirection: 'row',
-    gap: 10,
   },
   typeButton: {
     flex: 1,
@@ -515,7 +503,6 @@ const styles = StyleSheet.create({
   quickReasons: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
   },
   quickReasonChip: {
     paddingHorizontal: 12,
@@ -529,7 +516,6 @@ const styles = StyleSheet.create({
   },
   actions: {
     flexDirection: 'row',
-    gap: 10,
     padding: 16,
   },
   button: {

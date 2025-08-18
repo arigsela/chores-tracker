@@ -297,7 +297,6 @@ const styles = StyleSheet.create({
   childSelectorContent: {
     paddingHorizontal: 16,
     paddingVertical: 8,
-    gap: 10,
   },
   childTab: {
     paddingHorizontal: 16,

@@ -253,7 +253,6 @@ const styles = StyleSheet.create({
     padding: 20,
     borderTopWidth: 1,
     borderTopColor: '#e0e0e0',
-    gap: 12,
   },
   button: {
     flex: 1,

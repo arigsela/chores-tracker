@@ -30,6 +30,21 @@ export const BalanceScreen: React.FC = () => {
         setBalance(null);
       } else {
         const balanceData = await balanceAPI.getMyBalance();
+        
+        // DEBUG: Log the raw balance API response
+        console.log('[BALANCE AUDIT] Raw balance API response:', JSON.stringify(balanceData, null, 2));
+        
+        // Calculate manual sum for verification
+        const manualBalance = balanceData.total_earned + balanceData.adjustments - balanceData.paid_out;
+        console.log('[BALANCE AUDIT] Manual calculation:', {
+          total_earned: balanceData.total_earned,
+          adjustments: balanceData.adjustments,
+          paid_out: balanceData.paid_out,
+          manual_sum: manualBalance,
+          api_balance: balanceData.balance,
+          difference: balanceData.balance - manualBalance
+        });
+        
         setBalance(balanceData);
       }
     } catch (error) {

@@ -470,7 +470,6 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
   },
   childrenList: {
-    gap: 8,
   },
   childOption: {
     backgroundColor: '#fff',
@@ -518,7 +517,6 @@ const styles = StyleSheet.create({
   rangeContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
   },
   rangeInputContainer: {
     flex: 1,
@@ -544,7 +542,6 @@ const styles = StyleSheet.create({
   },
   buttonContainer: {
     flexDirection: 'row',
-    gap: 12,
     marginTop: 20,
     marginBottom: 40,
   },
