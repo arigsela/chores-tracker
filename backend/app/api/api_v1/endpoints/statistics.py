@@ -59,7 +59,7 @@ async def get_weekly_summary(
             if not child:
                 raise HTTPException(status_code=404, detail="Child not found")
             
-            chore_query = chore_query.where(Chore.assigned_to_id == child_id)
+            chore_query = chore_query.where(Chore.assignee_id == child_id)
         
         # Get completed chores for the week
         chore_result = await db.execute(chore_query)
@@ -216,7 +216,7 @@ async def get_monthly_summary(
 
 @router.get("/trends", response_model=TrendAnalysisResponse)
 async def get_trend_analysis(
-    period: str = Query(default="monthly", regex="^(weekly|monthly)$", description="Analysis period"),
+    period: str = Query(default="monthly", pattern="^(weekly|monthly)$", description="Analysis period"),
     child_id: Optional[int] = Query(default=None, description="Filter by specific child"),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
@@ -238,9 +238,10 @@ async def get_trend_analysis(
         stats_response = await get_monthly_summary(periods_back, child_id, current_user, db)
         data_points = stats_response.monthly_data
     
-    # Calculate trends
-    chore_counts = [point["completed_chores"] for point in data_points]
-    earnings = [point["total_earned"] for point in data_points]
+    # Calculate trends - convert Pydantic models to dicts for processing
+    data_points_dict = [point.model_dump() if hasattr(point, 'model_dump') else point for point in data_points]
+    chore_counts = [point["completed_chores"] for point in data_points_dict]
+    earnings = [point["total_earned"] for point in data_points_dict]
     
     return TrendAnalysisResponse(
         period=period,
@@ -256,7 +257,7 @@ async def get_trend_analysis(
             "consistency_score": calculate_consistency_score(earnings)
         },
         insights=generate_insights(chore_counts, earnings, period),
-        data_points=data_points
+        data_points=data_points_dict
     )
 
 
@@ -264,7 +265,7 @@ async def get_trend_analysis(
 async def get_comparison_stats(
     compare_periods: str = Query(
         default="this_vs_last_month", 
-        regex="^(this_vs_last_week|this_vs_last_month|current_vs_previous_quarter)$",
+        pattern="^(this_vs_last_week|this_vs_last_month|current_vs_previous_quarter)$",
         description="Comparison period type"
     ),
     child_id: Optional[int] = Query(default=None, description="Filter by specific child"),
