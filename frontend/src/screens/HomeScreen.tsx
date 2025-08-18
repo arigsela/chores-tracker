@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { choreAPI } from '@/api/chores';
+import { ActivityFeed } from '@/components/ActivityFeed';
+import { FinancialSummaryCards } from '@/components/FinancialSummaryCards';
 
-type TabName = 'Home' | 'Chores' | 'Children' | 'Approvals' | 'Balance' | 'Profile';
+type TabName = 'Home' | 'Chores' | 'Children' | 'Approvals' | 'Balance' | 'Profile' | 'Reports' | 'Statistics';
 
 interface HomeScreenProps {
   onNavigate?: (tab: TabName) => void;
@@ -15,6 +17,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
   const [activeChoresCount, setActiveChoresCount] = useState(0);
   const [pendingApprovalsCount, setPendingApprovalsCount] = useState(0);
   const [completedTodayCount, setCompletedTodayCount] = useState(0);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     fetchDashboardStats();
@@ -64,6 +67,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
         });
         setCompletedTodayCount(completedToday.length);
       }
+      
+      // Trigger activity feed refresh after stats update
+      setRefreshKey(prev => prev + 1);
     } catch (error) {
       console.error('[HomeScreen] Failed to fetch dashboard stats:', error);
     }
@@ -71,58 +77,111 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.greeting}>Welcome back,</Text>
-        <Text style={styles.username}>{user?.username}!</Text>
-      </View>
-
-      <View style={styles.statsContainer}>
-        <View style={styles.statCard}>
-          <Text style={styles.statNumber}>{isParent ? pendingApprovalsCount : activeChoresCount}</Text>
-          <Text style={styles.statLabel}>
-            {isParent ? 'Pending Approvals' : 'Active Chores'}
-          </Text>
+      <ScrollView 
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
+        <View style={styles.header}>
+          <Text style={styles.greeting}>Welcome back,</Text>
+          <Text style={styles.username}>{user?.username}!</Text>
         </View>
-        
-        <View style={styles.statCard}>
-          <Text style={styles.statNumber}>{isParent ? activeChoresCount : completedTodayCount}</Text>
-          <Text style={styles.statLabel}>
-            {isParent ? 'Active Chores' : 'Completed Today'}
-          </Text>
-        </View>
-      </View>
 
-      <View style={styles.quickActions}>
-        <Text style={styles.sectionTitle}>Quick Actions</Text>
-        <TouchableOpacity 
-          style={styles.actionCard}
-          onPress={() => {
-            if (onNavigate) {
-              onNavigate('Chores');
-            }
-          }}
-        >
-          <Text style={styles.actionText}>
-            {isParent 
-              ? '📝 Create New Chore' 
-              : '✅ View Available Chores'}
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={styles.actionCard}
-          onPress={() => {
-            if (onNavigate) {
-              onNavigate(isParent ? 'Children' : 'Balance');
-            }
-          }}
-        >
-          <Text style={styles.actionText}>
-            {isParent 
-              ? '👨‍👩‍👧‍👦 Manage Children' 
-              : '💰 Check Balance'}
-          </Text>
-        </TouchableOpacity>
-      </View>
+        <View style={styles.statsContainer}>
+          <View style={styles.statCard}>
+            <Text style={styles.statNumber}>{isParent ? pendingApprovalsCount : activeChoresCount}</Text>
+            <Text style={styles.statLabel}>
+              {isParent ? 'Pending Approvals' : 'Active Chores'}
+            </Text>
+          </View>
+          
+          <View style={styles.statCard}>
+            <Text style={styles.statNumber}>{isParent ? activeChoresCount : completedTodayCount}</Text>
+            <Text style={styles.statLabel}>
+              {isParent ? 'Active Chores' : 'Completed Today'}
+            </Text>
+          </View>
+        </View>
+
+        {/* Financial Summary Cards for Parents */}
+        {isParent && (
+          <FinancialSummaryCards 
+            refreshKey={refreshKey}
+            onViewReports={() => {
+              if (onNavigate) {
+                onNavigate('Reports');
+              }
+            }}
+          />
+        )}
+
+        <View style={styles.quickActions}>
+          <Text style={styles.sectionTitle}>Quick Actions</Text>
+          <TouchableOpacity 
+            style={styles.actionCard}
+            onPress={() => {
+              if (onNavigate) {
+                onNavigate('Chores');
+              }
+            }}
+          >
+            <Text style={styles.actionText}>
+              {isParent 
+                ? '📝 Create New Chore' 
+                : '✅ View Available Chores'}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.actionCard}
+            onPress={() => {
+              if (onNavigate) {
+                onNavigate(isParent ? 'Children' : 'Balance');
+              }
+            }}
+          >
+            <Text style={styles.actionText}>
+              {isParent 
+                ? '👨‍👩‍👧‍👦 Manage Children' 
+                : '💰 Check Balance'}
+            </Text>
+          </TouchableOpacity>
+          {isParent && (
+            <>
+              <TouchableOpacity 
+                style={styles.actionCard}
+                onPress={() => {
+                  if (onNavigate) {
+                    onNavigate('Reports');
+                  }
+                }}
+              >
+                <Text style={styles.actionText}>
+                  📊 View Financial Reports
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.actionCard}
+                onPress={() => {
+                  if (onNavigate) {
+                    onNavigate('Statistics');
+                  }
+                }}
+              >
+                <Text style={styles.actionText}>
+                  📈 View Statistics & Trends
+                </Text>
+              </TouchableOpacity>
+            </>
+          )}
+        </View>
+
+        <View style={styles.activitySection}>
+          <ActivityFeed 
+            limit={10}
+            showHeader={true}
+            refreshKey={refreshKey}
+          />
+        </View>
+      </ScrollView>
     </View>
   );
 };
@@ -131,6 +190,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
+  },
+  scrollContent: {
+    flexGrow: 1,
     padding: 20,
   },
   header: {
@@ -175,7 +237,18 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   quickActions: {
+    marginBottom: 20,
+  },
+  activitySection: {
     flex: 1,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   sectionTitle: {
     fontSize: 18,

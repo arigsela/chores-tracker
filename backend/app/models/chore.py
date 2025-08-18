@@ -18,6 +18,7 @@ class Chore(Base):
     min_reward: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     max_reward: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     approval_reward: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    rejection_reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     is_range_reward: Mapped[bool] = mapped_column(Boolean, default=False)
     cooldown_days: Mapped[int] = mapped_column(default=0)
     is_recurring: Mapped[bool] = mapped_column(Boolean, default=False)

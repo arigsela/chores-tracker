@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { Chore, choreAPI } from '../api/chores';
 import { usersAPI, ChildWithChores } from '../api/users';
+import { RejectChoreModal } from '../components/RejectChoreModal';
 
 interface ApprovalCardProps {
   chore: Chore;
@@ -148,6 +149,10 @@ const ApprovalsScreen: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [selectedChores, setSelectedChores] = useState<Set<number>>(new Set());
   const [bulkMode, setBulkMode] = useState(false);
+  
+  // Rejection modal state
+  const [rejectModalVisible, setRejectModalVisible] = useState(false);
+  const [choreToReject, setChoreToReject] = useState<Chore | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -205,30 +210,42 @@ const ApprovalsScreen: React.FC = () => {
     }
   };
 
-  const handleReject = async (choreId: number) => {
-    Alert.alert(
-      'Reject Chore',
-      'Are you sure you want to reject this chore? The child will need to complete it again.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Reject',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              // For now, we'll disable the chore as a way to reject it
-              // In a real app, you might want a dedicated reject endpoint
-              await choreAPI.disableChore(choreId);
-              setPendingChores(prev => prev.filter(c => c.id !== choreId));
-              Alert.alert('Chore Rejected', 'The chore has been rejected and must be completed again.');
-            } catch (error) {
-              console.error('Failed to reject chore:', error);
-              Alert.alert('Error', 'Failed to reject chore');
-            }
-          },
-        },
-      ]
-    );
+  const handleReject = (choreId: number) => {
+    const chore = pendingChores.find(c => c.id === choreId);
+    if (chore) {
+      setChoreToReject(chore);
+      setRejectModalVisible(true);
+    }
+  };
+
+  const handleRejectConfirm = async (rejectionReason: string) => {
+    if (!choreToReject) return;
+
+    try {
+      await choreAPI.rejectChore(choreToReject.id, rejectionReason);
+      
+      // Remove from pending list
+      setPendingChores(prev => prev.filter(c => c.id !== choreToReject.id));
+      
+      // Close modal
+      setRejectModalVisible(false);
+      setChoreToReject(null);
+      
+      const childName = getChildName(choreToReject.id);
+      Alert.alert(
+        'Chore Rejected',
+        `"${choreToReject.title}" has been rejected. ${childName} will need to complete it again.`
+      );
+    } catch (error) {
+      console.error('Failed to reject chore:', error);
+      Alert.alert('Error', 'Failed to reject chore');
+      fetchData(); // Refresh on error to restore state
+    }
+  };
+
+  const handleRejectCancel = () => {
+    setRejectModalVisible(false);
+    setChoreToReject(null);
   };
 
   const toggleChoreSelection = (choreId: number) => {
@@ -422,6 +439,14 @@ const ApprovalsScreen: React.FC = () => {
           })
         )}
       </ScrollView>
+
+      <RejectChoreModal
+        visible={rejectModalVisible}
+        choreTitle={choreToReject?.title || ''}
+        childName={choreToReject ? getChildName(choreToReject.id) : ''}
+        onReject={handleRejectConfirm}
+        onCancel={handleRejectCancel}
+      />
     </View>
   );
 };

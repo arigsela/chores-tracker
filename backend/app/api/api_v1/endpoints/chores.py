@@ -4,7 +4,7 @@ from typing import List, Optional, Dict, Any
 from datetime import datetime, timedelta
 
 from ....db.base import get_db
-from ....schemas.chore import ChoreCreate, ChoreResponse, ChoreUpdate, ChoreApprove, ChoreDisable
+from ....schemas.chore import ChoreCreate, ChoreResponse, ChoreUpdate, ChoreApprove, ChoreDisable, ChoreReject
 from ....dependencies.auth import get_current_user
 from ....dependencies.services import ChoreServiceDep
 from ....models.user import User
@@ -877,6 +877,89 @@ async def approve_chore(
         chore_id=chore_id,
         parent_id=current_user.id,
         reward_value=approval_data.reward_value
+    )
+    return updated_chore
+
+@router.post(
+    "/{chore_id}/reject",
+    response_model=ChoreResponse,
+    summary="Reject a completed chore",
+    description="""
+    Reject a chore that has been marked as completed by a child.
+    
+    **Access**: Parents only (must be the chore creator)
+    
+    **Workflow**:
+    1. Child marks chore as completed
+    2. Parent reviews and rejects with reason
+    3. Chore status reverts to incomplete
+    4. Child can see rejection reason and redo the chore
+    
+    **Rejection behavior**:
+    - Chore is_completed becomes False
+    - completion_date is reset to None
+    - rejection_reason is stored for child to view
+    """,
+    responses={
+        200: {
+            "description": "Chore rejected successfully",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "id": 1,
+                        "title": "Clean Room",
+                        "is_completed": False,
+                        "is_approved": False,
+                        "completion_date": None,
+                        "rejection_reason": "Please clean more thoroughly and organize items properly"
+                    }
+                }
+            }
+        },
+        400: {
+            "description": "Chore not completed or already approved",
+            "content": {
+                "application/json": {
+                    "example": {"detail": "Chore must be completed before rejection"}
+                }
+            }
+        },
+        403: {
+            "description": "Only parents can reject chores"
+        },
+        404: {
+            "description": "Chore not found"
+        },
+        422: {
+            "description": "Rejection reason is required"
+        }
+    }
+)
+async def reject_chore(
+    chore_id: int = Path(..., description="The ID of the chore to reject"),
+    rejection_data: ChoreReject = Body(..., description="Rejection data with reason"),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    chore_service: ChoreServiceDep = None
+):
+    """
+    Reject a completed chore with a reason.
+    
+    The chore will be reset to incomplete status and the child can redo it.
+    """
+    # Only parents can reject chores
+    if not current_user.is_parent:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only parents can reject chores"
+        )
+    
+    # Service will handle all business logic
+    updated_chore = await chore_service.reject_chore(
+        db,
+        chore_id=chore_id,
+        parent_id=current_user.id,
+        rejection_reason=rejection_data.rejection_reason
     )
     return updated_chore
 

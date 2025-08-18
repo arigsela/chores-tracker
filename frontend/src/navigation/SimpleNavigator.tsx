@@ -9,8 +9,10 @@ import { ChildrenScreen } from '@/screens/ChildrenScreen';
 import { BalanceScreen } from '@/screens/BalanceScreen';
 import { ProfileScreen } from '@/screens/ProfileScreen';
 import ApprovalsScreen from '@/screens/ApprovalsScreen';
+import { AllowanceSummaryScreen } from '@/screens/AllowanceSummaryScreen';
+import { StatisticsScreen } from '@/screens/StatisticsScreen';
 
-type TabName = 'Home' | 'Chores' | 'Children' | 'Approvals' | 'Balance' | 'Profile';
+type TabName = 'Home' | 'Chores' | 'Children' | 'Approvals' | 'Balance' | 'Profile' | 'Reports' | 'Statistics';
 type AuthScreen = 'login' | 'register';
 
 export const SimpleNavigator: React.FC = () => {
@@ -37,6 +39,10 @@ export const SimpleNavigator: React.FC = () => {
         return isParent ? <ChildrenScreen /> : <BalanceScreen />;
       case 'Approvals':
         return isParent ? <ApprovalsScreen /> : <BalanceScreen />;
+      case 'Reports':
+        return isParent ? <AllowanceSummaryScreen /> : <BalanceScreen />;
+      case 'Statistics':
+        return isParent ? <StatisticsScreen /> : <BalanceScreen />;
       case 'Balance':
         return <BalanceScreen />;
       case 'Profile':
@@ -99,6 +105,16 @@ export const SimpleNavigator: React.FC = () => {
               <Text style={styles.tabIcon}>✔️</Text>
               <Text style={[styles.tabLabel, activeTab === 'Approvals' && styles.activeTabLabel]}>
                 Approvals
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.tab, activeTab === 'Reports' && styles.activeTab]}
+              onPress={() => setActiveTab('Reports')}
+            >
+              <Text style={styles.tabIcon}>📊</Text>
+              <Text style={[styles.tabLabel, activeTab === 'Reports' && styles.activeTabLabel]}>
+                Reports
               </Text>
             </TouchableOpacity>
           </>
@@ -168,7 +184,7 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   tabLabel: {
-    fontSize: 11,
+    fontSize: 10,
     color: '#999',
   },
   activeTabLabel: {

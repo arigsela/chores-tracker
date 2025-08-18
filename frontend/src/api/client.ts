@@ -119,4 +119,5 @@ export const authAPI = {
   },
 };
 
+export { apiClient };
 export default apiClient;

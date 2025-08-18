@@ -45,6 +45,12 @@ class ChoreBase(BaseModel):
         le=1000,
         json_schema_extra={"example": 5.5}
     )
+    rejection_reason: Optional[str] = Field(
+        None,
+        description="Reason for rejecting the chore completion",
+        max_length=500,
+        json_schema_extra={"example": "Please clean more thoroughly and organize items properly"}
+    )
     is_range_reward: bool = Field(
         False,
         description="Whether this chore has a range-based reward (parent chooses amount during approval)",
@@ -160,6 +166,11 @@ class ChoreUpdate(BaseModel):
         None,
         description="Enable/disable the chore"
     )
+    rejection_reason: Optional[str] = Field(
+        None,
+        description="Reason for rejecting the chore completion",
+        max_length=500
+    )
 
 class ChoreResponse(ChoreBase):
     """Schema for chore responses including all fields."""
@@ -259,6 +270,16 @@ class ChoreDisable(BaseModel):
         True,
         description="Disable the chore (always true)",
         json_schema_extra={"example": True}
+    )
+
+class ChoreReject(BaseModel):
+    """Schema for rejecting a completed chore."""
+    rejection_reason: str = Field(
+        ...,
+        description="Reason for rejecting the chore completion",
+        min_length=1,
+        max_length=500,
+        json_schema_extra={"example": "Please clean more thoroughly and organize items properly"}
     )
 
 # Avoid circular imports - import at end and rebuild

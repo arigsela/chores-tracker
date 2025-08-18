@@ -16,6 +16,7 @@ export interface Chore {
   completion_date?: string | null; // Backend uses this field name
   approved_at?: string | null;
   approval_reward?: number | null;
+  rejection_reason?: string | null;
   created_at: string;
   created_by_id?: number;
   creator_id?: number; // Backend uses this field name
@@ -89,6 +90,19 @@ export const choreAPI = {
       return response.data;
     } catch (error) {
       console.error('Failed to approve chore:', error);
+      throw error;
+    }
+  },
+
+  rejectChore: async (choreId: number, rejectionReason: string): Promise<Chore> => {
+    try {
+      const data = {
+        rejection_reason: rejectionReason
+      };
+      const response = await apiClient.post(`/chores/${choreId}/reject`, data);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to reject chore:', error);
       throw error;
     }
   },
