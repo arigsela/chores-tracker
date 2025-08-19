@@ -85,9 +85,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const login = async (username: string, password: string) => {
     try {
       setIsLoading(true);
-      console.log('AuthContext: Starting login for', username);
       const response = await authAPI.login(username, password);
-      console.log('AuthContext: Login response:', response);
       
       // Extract user data from the response
       const userData: User = {
@@ -98,11 +96,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         full_name: response.user.full_name || undefined,
       };
       
-      console.log('AuthContext: Storing user data:', userData);
       await AsyncStorage.setItem(USER_KEY, JSON.stringify(userData));
       setUser(userData);
       setIsAuthenticated(true);
-      console.log('AuthContext: Login complete, isAuthenticated:', true);
     } catch (error) {
       console.error('AuthContext: Login error:', error);
       throw error;
@@ -115,12 +111,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       setIsLoading(true);
       await authAPI.logout();
-      await AsyncStorage.removeItem(USER_KEY);
-      setUser(null);
-      setIsAuthenticated(false);
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
+      // Always clear local state regardless of API success/failure
+      try {
+        await AsyncStorage.removeItem(USER_KEY);
+      } catch (storageError) {
+        console.error('Storage cleanup error:', storageError);
+      }
+      setUser(null);
+      setIsAuthenticated(false);
       setIsLoading(false);
     }
   };
