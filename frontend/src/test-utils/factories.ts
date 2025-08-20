@@ -269,17 +269,18 @@ export const createMockApiResponse = <T>(data: T, status = 200) => ({
   config: {} as any,
 });
 
-export const createMockApiError = (message = 'API Error', status = 500) => ({
-  response: {
+export const createMockApiError = (message = 'API Error', status = 500) => {
+  const error = new Error(message);
+  (error as any).response = {
     data: {
       detail: message,
     },
     status,
     statusText: status === 401 ? 'Unauthorized' : 'Internal Server Error',
-  },
-  message,
-  isAxiosError: true,
-});
+  };
+  (error as any).isAxiosError = true;
+  return error;
+};
 
 // Login response factory
 export const createMockLoginResponse = (user: MockUser = createMockParent()) => 

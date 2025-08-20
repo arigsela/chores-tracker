@@ -4,12 +4,21 @@
  */
 
 import React from 'react';
-import { fireEvent, waitFor } from '@testing-library/react-native';
+import { render, fireEvent, waitFor } from '@testing-library/react-native';
 import { HomeScreen } from '../HomeScreen';
 import { choreAPI } from '../../api/chores';
 import { User } from '../../api/users';
 import { renderWithCustomUser, renderWithProviders } from '../../test-utils';
 import { createMockUser, createMockChore } from '../../test-utils/factories';
+
+// Mock the useAuth hook to prevent AuthProvider context errors
+jest.mock('../../contexts/AuthContext', () => ({
+  ...jest.requireActual('../../contexts/AuthContext'),
+  useAuth: jest.fn(),
+}));
+
+const { useAuth } = require('../../contexts/AuthContext');
+const mockedUseAuth = useAuth as jest.MockedFunction<typeof useAuth>;
 
 // Mock the choreAPI
 jest.mock('../../api/chores', () => ({
@@ -56,35 +65,44 @@ describe('HomeScreen Component', () => {
     jest.clearAllMocks();
     mockedChoreAPI.getPendingApprovalChores.mockResolvedValue([]);
     mockedChoreAPI.getMyChores.mockResolvedValue([]);
+    
+    // Set up default mock for useAuth
+    mockedUseAuth.mockReturnValue({
+      isAuthenticated: true,
+      isLoading: false,
+      user: createMockUser({ username: 'testuser', role: 'parent' }),
+      login: jest.fn(),
+      logout: jest.fn(),
+      checkAuthStatus: jest.fn(),
+    });
   });
 
   describe('Basic Rendering', () => {
     it('should render welcome message with username', () => {
       const user = createMockUser({ username: 'testparent' });
+      mockedUseAuth.mockReturnValue({
+        isAuthenticated: true,
+        isLoading: false,
+        user,
+        login: jest.fn(),
+        logout: jest.fn(),
+        checkAuthStatus: jest.fn(),
+      });
 
-      const { getByText } = renderWithCustomUser(
-        <HomeScreen onNavigate={mockOnNavigate} />,
-        user
-      );
+      const { getByText } = render(<HomeScreen onNavigate={mockOnNavigate} />);
 
       expect(getByText('Welcome back,')).toBeTruthy();
       expect(getByText('testparent!')).toBeTruthy();
     });
 
     it('should render Quick Actions section', () => {
-      const { getByText } = renderWithProviders(
-        <HomeScreen onNavigate={mockOnNavigate} />,
-        { authenticated: true, userRole: 'parent' }
-      );
+      const { getByText } = render(<HomeScreen onNavigate={mockOnNavigate} />);
 
       expect(getByText('Quick Actions')).toBeTruthy();
     });
 
     it('should render ActivityFeed component', () => {
-      const { getByTestId } = renderWithProviders(
-        <HomeScreen onNavigate={mockOnNavigate} />,
-        { authenticated: true, userRole: 'parent' }
-      );
+      const { getByTestId } = render(<HomeScreen onNavigate={mockOnNavigate} />);
 
       const activityFeed = getByTestId('activity-feed');
       expect(activityFeed).toBeTruthy();
@@ -106,10 +124,16 @@ describe('HomeScreen Component', () => {
       mockedChoreAPI.getPendingApprovalChores.mockResolvedValue(pendingChores);
       mockedChoreAPI.getMyChores.mockResolvedValue(allChores);
 
-      const { getByText, getByTestId } = renderWithCustomUser(
-        <HomeScreen onNavigate={mockOnNavigate} />,
-        parentUser
-      );
+      mockedUseAuth.mockReturnValue({
+        isAuthenticated: true,
+        isLoading: false,
+        user: parentUser,
+        login: jest.fn(),
+        logout: jest.fn(),
+        checkAuthStatus: jest.fn(),
+      });
+
+      const { getByText, getByTestId } = render(<HomeScreen onNavigate={mockOnNavigate} />);
 
       await waitFor(() => {
         expect(getByText('Pending Approvals')).toBeTruthy();

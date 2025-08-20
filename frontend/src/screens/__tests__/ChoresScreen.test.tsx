@@ -11,6 +11,15 @@ import { AuthContext } from '../../contexts/AuthContext';
 import { choreAPI, Chore } from '../../api/chores';
 import { User } from '../../api/users';
 
+// Mock the useAuth hook to prevent AuthProvider context errors
+jest.mock('../../contexts/AuthContext', () => ({
+  ...jest.requireActual('../../contexts/AuthContext'),
+  useAuth: jest.fn(),
+}));
+
+const { useAuth } = require('../../contexts/AuthContext');
+const mockedUseAuth = useAuth as jest.MockedFunction<typeof useAuth>;
+
 // Mock the Alert module
 jest.mock('react-native', () => {
   const RN = jest.requireActual('react-native');
@@ -111,6 +120,7 @@ const TestWrapper: React.FC<{ children: React.ReactNode; user?: User | null }> =
     user,
     login: jest.fn(),
     logout: jest.fn(),
+    checkAuthStatus: jest.fn(),
     isAuthenticated: !!user,
     isLoading: false,
   };

@@ -15,29 +15,6 @@ interface CustomRenderOptions extends Omit<RenderOptions, 'wrapper'> {
   userRole?: 'parent' | 'child';
 }
 
-// Mock AuthProvider for testing
-const MockAuthProvider: React.FC<{ 
-  children: React.ReactNode; 
-  value: AuthContextType;
-}> = ({ children, value }) => {
-  // Create a mock context that doesn't actually call APIs
-  const mockValue: AuthContextType = {
-    ...value,
-    login: jest.fn().mockResolvedValue(undefined),
-    logout: jest.fn().mockResolvedValue(undefined),
-    checkAuthStatus: jest.fn().mockResolvedValue(undefined),
-  };
-
-  // Use React Context directly for testing
-  const AuthContext = React.createContext<AuthContextType | undefined>(undefined);
-  
-  return (
-    <AuthContext.Provider value={mockValue}>
-      {children}
-    </AuthContext.Provider>
-  );
-};
-
 /**
  * Custom render function that wraps components with necessary providers
  */
@@ -61,11 +38,9 @@ export const renderWithProviders = (
     contextValue = mockAuthContext;
   }
 
-  // Wrapper component with providers
+  // Simple wrapper - tests should mock useAuth directly
   const Wrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-    <MockAuthProvider value={contextValue}>
-      {children}
-    </MockAuthProvider>
+    <>{children}</>
   );
 
   // Render with wrapper

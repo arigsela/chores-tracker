@@ -42,9 +42,9 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
       });
 
       if (offset === 0) {
-        setActivities(response.activities);
+        setActivities(response.activities || []);
       } else {
-        setActivities(prev => [...prev, ...response.activities]);
+        setActivities(prev => [...prev, ...(response.activities || [])]);
       }
       
       setHasMore(response.has_more);
@@ -71,11 +71,11 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
   }, [fetchActivities]);
 
   const handleLoadMore = useCallback(() => {
-    if (!loadingMore && hasMore && activities.length > 0) {
+    if (!loadingMore && hasMore && (activities?.length || 0) > 0) {
       setLoadingMore(true);
-      fetchActivities(activities.length);
+      fetchActivities(activities?.length || 0);
     }
-  }, [loadingMore, hasMore, activities.length, fetchActivities]);
+  }, [loadingMore, hasMore, activities?.length, fetchActivities]);
 
   const handleActivityPress = (activity: Activity) => {
     if (onActivityPress) {
@@ -83,13 +83,13 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
     } else {
       // Default behavior: show activity details
       const details = [];
-      if (activity.activity_data.chore_title) {
+      if (activity.activity_data?.chore_title) {
         details.push(`Chore: ${activity.activity_data.chore_title}`);
       }
-      if (activity.activity_data.reward_amount !== undefined) {
+      if (activity.activity_data?.reward_amount !== undefined) {
         details.push(`Amount: $${activity.activity_data.reward_amount.toFixed(2)}`);
       }
-      if (activity.activity_data.rejection_reason) {
+      if (activity.activity_data?.rejection_reason) {
         details.push(`Reason: ${activity.activity_data.rejection_reason}`);
       }
 
@@ -140,7 +140,7 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
     );
   };
 
-  if (loading && activities.length === 0) {
+  if (loading && (activities?.length || 0) === 0) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#2196f3" />
@@ -149,7 +149,7 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
     );
   }
 
-  if (error && activities.length === 0) {
+  if (error && (activities?.length || 0) === 0) {
     return renderErrorState();
   }
 
@@ -158,16 +158,16 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
       {showHeader && (
         <View style={styles.header}>
           <Text style={styles.title}>Recent Activity</Text>
-          {activities.length > 0 && (
+          {(activities?.length || 0) > 0 && (
             <Text style={styles.subtitle}>
-              {activities.length} recent {activities.length === 1 ? 'activity' : 'activities'}
+              {activities?.length || 0} recent {(activities?.length || 0) === 1 ? 'activity' : 'activities'}
             </Text>
           )}
         </View>
       )}
       
       <FlatList
-        data={activities}
+        data={activities || []}
         renderItem={renderActivityCard}
         keyExtractor={(item) => `activity-${item.id}`}
         showsVerticalScrollIndicator={false}
@@ -183,7 +183,7 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
         onEndReachedThreshold={0.5}
         ListEmptyComponent={renderEmptyState}
         ListFooterComponent={renderLoadingFooter}
-        contentContainerStyle={activities.length === 0 ? styles.emptyContainer : styles.listContainer}
+        contentContainerStyle={(activities?.length || 0) === 0 ? styles.emptyContainer : styles.listContainer}
         scrollEnabled={true}
         nestedScrollEnabled={true}
       />

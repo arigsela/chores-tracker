@@ -39,14 +39,14 @@ export const FinancialSummaryCards: React.FC<FinancialSummaryCardsProps> = ({
   };
 
   const getChildrenWithBalances = () => {
-    if (!summaryData) return [];
-    return summaryData.child_summaries.filter(child => child.balance_due > 0);
+    if (!summaryData || !summaryData.child_summaries) return [];
+    return summaryData.child_summaries.filter(child => (child.balance_due || 0) > 0);
   };
 
   const getPendingChoresTotalValue = () => {
-    if (!summaryData) return 0;
+    if (!summaryData || !summaryData.child_summaries) return 0;
     return summaryData.child_summaries.reduce(
-      (total, child) => total + child.pending_chores_value, 
+      (total, child) => total + (child.pending_chores_value || 0), 
       0
     );
   };
@@ -60,7 +60,7 @@ export const FinancialSummaryCards: React.FC<FinancialSummaryCardsProps> = ({
     );
   }
 
-  if (error || !summaryData) {
+  if (error || !summaryData || !summaryData.family_summary) {
     return (
       <View style={styles.errorContainer}>
         <Text style={styles.errorText}>Unable to load financial summary</Text>
@@ -90,10 +90,10 @@ export const FinancialSummaryCards: React.FC<FinancialSummaryCardsProps> = ({
         {/* Primary Financial Metrics */}
         <View style={styles.primaryMetrics}>
           <View style={[styles.metricCard, styles.balanceCard]}>
-            <Text style={styles.primaryAmount}>{formatCurrency(family_summary.total_balance_due)}</Text>
+            <Text style={styles.primaryAmount}>{formatCurrency(family_summary.total_balance_due || 0)}</Text>
             <Text style={styles.primaryLabel}>Total Balance Due</Text>
             <Text style={styles.metricSubtext}>
-              {childrenWithBalances.length} of {family_summary.total_children} children have balances
+              {childrenWithBalances.length} of {family_summary.total_children || 0} children have balances
             </Text>
           </View>
         </View>
@@ -102,7 +102,7 @@ export const FinancialSummaryCards: React.FC<FinancialSummaryCardsProps> = ({
         <View style={styles.secondaryMetrics}>
           <View style={styles.smallMetricCard}>
             <Text style={[styles.secondaryAmount, styles.earningsAmount]}>
-              {formatCurrency(family_summary.total_earned)}
+              {formatCurrency(family_summary.total_earned || 0)}
             </Text>
             <Text style={styles.secondaryLabel}>Total Earned</Text>
           </View>
@@ -110,9 +110,9 @@ export const FinancialSummaryCards: React.FC<FinancialSummaryCardsProps> = ({
           <View style={styles.smallMetricCard}>
             <Text style={[
               styles.secondaryAmount, 
-              family_summary.total_adjustments >= 0 ? styles.positiveAmount : styles.negativeAmount
+              (family_summary.total_adjustments || 0) >= 0 ? styles.positiveAmount : styles.negativeAmount
             ]}>
-              {formatCurrency(family_summary.total_adjustments)}
+              {formatCurrency(family_summary.total_adjustments || 0)}
             </Text>
             <Text style={styles.secondaryLabel}>Adjustments</Text>
           </View>
@@ -136,7 +136,7 @@ export const FinancialSummaryCards: React.FC<FinancialSummaryCardsProps> = ({
                 <View key={child.id} style={styles.childBalanceItem}>
                   <Text style={styles.childBalanceName}>{child.username}</Text>
                   <Text style={styles.childBalanceAmount}>
-                    {formatCurrency(child.balance_due)}
+                    {formatCurrency(child.balance_due || 0)}
                   </Text>
                 </View>
               ))}
@@ -147,11 +147,11 @@ export const FinancialSummaryCards: React.FC<FinancialSummaryCardsProps> = ({
         {/* Quick Stats */}
         <View style={styles.quickStats}>
           <View style={styles.quickStat}>
-            <Text style={styles.quickStatValue}>{family_summary.total_completed_chores}</Text>
+            <Text style={styles.quickStatValue}>{family_summary.total_completed_chores || 0}</Text>
             <Text style={styles.quickStatLabel}>Chores Completed</Text>
           </View>
           <View style={styles.quickStat}>
-            <Text style={styles.quickStatValue}>{family_summary.total_children}</Text>
+            <Text style={styles.quickStatValue}>{family_summary.total_children || 0}</Text>
             <Text style={styles.quickStatLabel}>Children</Text>
           </View>
         </View>

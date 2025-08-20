@@ -6,11 +6,24 @@
 
 import axios from 'axios';
 import { choreAPI, ChoreStatus } from '../chores';
-import { resetAllMocks, createMockChore, createMockApiResponse, createMockApiError } from '../../test-utils';
+import { resetAllMocks } from '../../test-utils';
+import { createMockChore, createMockApiResponse, createMockApiError } from '../../test-utils/factories';
 
-// Get the mocked axios and client instance
-const mockedAxios = axios as jest.Mocked<typeof axios>;
-const mockApiClient = (mockedAxios.create as jest.Mock).mock.results[0]?.value;
+// Mock the API client module directly
+jest.mock('../client', () => ({
+  __esModule: true,
+  default: {
+    get: jest.fn(),
+    post: jest.fn(),
+    put: jest.fn(),
+    delete: jest.fn(),
+    patch: jest.fn(),
+  },
+}));
+
+// Import the mocked client
+import apiClient from '../client';
+const mockApiClient = apiClient as jest.Mocked<typeof apiClient>;
 
 describe('Chores API Module', () => {
   beforeEach(() => {

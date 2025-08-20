@@ -27,6 +27,7 @@ const mockLogin = jest.fn();
 const createMockAuthContext = (overrides = {}) => ({
   login: mockLogin,
   logout: jest.fn(),
+  checkAuthStatus: jest.fn(),
   user: null,
   isAuthenticated: false,
   isLoading: false,
