@@ -1,25 +1,75 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Form, Body, Header, Response, Request, Query, Path
+from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
 from fastapi.security import OAuth2PasswordRequestForm
-from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
 import re
 from sqlalchemy import text
 from ....core.config import settings
 
 from ....db.base import get_db
-from ....schemas.user import UserCreate, UserResponse, Token
+from ....schemas.user import UserCreate, UserResponse, Token, ChildAllowanceSummary
 from ....core.security.jwt import create_access_token, verify_token
 from ....dependencies.auth import get_current_user
 from ....dependencies.services import UserServiceDep
+from ....repositories.user import UserRepository
 from ....models.user import User
 from ....middleware.rate_limit import limit_login, limit_register, limit_api_endpoint_default
 
 router = APIRouter()
+# Convenience: get children for current parent (JSON)
+@router.get(
+    "/my-children",
+    response_model=List[UserResponse],
+    summary="Get children for current parent",
+    description="""
+    Get all child accounts for the authenticated parent.
+    
+    This is a convenience over `/users/children/{parent_id}` that infers the parent
+    from the current authenticated user.
+    """,
+    tags=["users"],
+    responses={
+        200: {
+            "description": "List of child accounts for current parent",
+            "content": {
+                "application/json": {
+                    "example": [
+                        {
+                            "id": 2,
+                            "username": "child_user",
+                            "email": "child@example.com",
+                            "is_parent": False,
+                            "is_active": True,
+                            "parent_id": 1
+                        }
+                    ]
+                }
+            }
+        },
+        403: {"description": "Only parents can list their children"}
+    }
+)
+async def read_my_children(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    user_service: UserServiceDep = None
+):
+    """
+    Get children for the current authenticated parent.
+    """
+    if not current_user.is_parent:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only parents can list their children"
+        )
+    # Prefer repository call to avoid issues if service injection differs
+    children = await UserRepository().get_children(db, parent_id=current_user.id)
+    return children
+
 
 # Templates
-templates = Jinja2Templates(directory=settings.TEMPLATES_DIR)
+# templates = Jinja2Templates(directory=settings.TEMPLATES_DIR)  # No longer needed for REST API
 
 # Simple email validation pattern
 EMAIL_PATTERN = re.compile(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$")
@@ -193,18 +243,7 @@ async def register_user(
             detail=str(e)
         )
     
-    # Check if this is from a form (HTMX request)
-    # accept_header = authorization and "text/html" in authorization
-    
-    # If child account and from form, return HTML success message
-    if not is_parent_bool:
-        return templates.TemplateResponse(
-            "components/child_account_created.html",
-            {"request": Request(scope={"type": "http", "headers": []}, receive=None), "username": username},
-            status_code=status.HTTP_201_CREATED
-        )
-    
-    # Otherwise return the user data for API clients
+    # Return JSON response for REST API
     return user
 
 # Keep the JSON-based endpoint for backward compatibility and API clients
@@ -497,6 +536,91 @@ async def read_children(
     children = await user_service.repository.get_children(db, parent_id=parent_id)
     return children
 
+@router.get(
+    "/allowance-summary",
+    response_model=List[ChildAllowanceSummary],
+    summary="Get allowance summary for current parent",
+    description="""
+    Returns per-child allowance summary for the authenticated parent, including
+    completed_chores, total_earned, total_adjustments, paid_out, and balance_due.
+    """,
+    tags=["users"],
+    responses={
+        200: {
+            "description": "Per-child allowance summary",
+            "content": {
+                "application/json": {
+                    "example": [
+                        {
+                            "id": 2,
+                            "username": "child_user",
+                            "completed_chores": 5,
+                            "total_earned": 12.5,
+                            "total_adjustments": -2.0,
+                            "paid_out": 0.0,
+                            "balance_due": 10.5
+                        }
+                    ]
+                }
+            }
+        },
+        403: {"description": "Only parents can access allowance summary"}
+    }
+)
+async def read_parent_allowance_summary(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if not current_user.is_parent:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only parents can access allowance summary",
+        )
+
+    # Reuse repository logic already used by HTML route in main.py
+    from ....repositories.user import UserRepository
+    from ....repositories.chore import ChoreRepository
+    from ....repositories.reward_adjustment import RewardAdjustmentRepository
+
+    user_repo = UserRepository()
+    chore_repo = ChoreRepository()
+    adjustment_repo = RewardAdjustmentRepository()
+
+    children = await user_repo.get_children(db, parent_id=current_user.id)
+
+    # Helper function to get final reward amount (matches frontend logic)
+    def get_final_reward_amount(chore):
+        # For approved chores, prioritize approval_reward field
+        if chore.approval_reward is not None:
+            return chore.approval_reward
+        # Fallback to reward field (legacy and fixed rewards)
+        return chore.reward or 0
+
+    summary: List[ChildAllowanceSummary] = []
+    for child in children:
+        chores = await chore_repo.get_by_assignee(db, assignee_id=child.id)
+        completed_chores = len([c for c in chores if c.is_completed and c.is_approved])
+        total_earned = sum(get_final_reward_amount(c) for c in chores if c.is_completed and c.is_approved)
+        total_adjustments = float(
+            await adjustment_repo.calculate_total_adjustments(db, child_id=child.id)
+        )
+        paid_out = 0.0
+        balance_due = total_earned + total_adjustments - paid_out
+
+        summary.append(
+            ChildAllowanceSummary(
+                id=child.id,
+                username=child.username,
+                completed_chores=completed_chores,
+                total_earned=float(total_earned),
+                total_adjustments=float(total_adjustments),
+                paid_out=float(paid_out),
+                balance_due=float(balance_due),
+            )
+        )
+
+    return summary
+
 @router.post(
     "/children/{child_id}/reset-password",
     response_model=UserResponse,
@@ -576,7 +700,7 @@ async def reset_child_password(
             detail=f"Error resetting password: {str(e)}"
         )
 
-@router.post("/html/children/{child_id}/reset-password", response_class=HTMLResponse)
+@router.post("/html/children/{child_id}/reset-password")
 async def reset_child_password_html(
     request: Request,
     child_id: int,
@@ -664,26 +788,23 @@ async def reset_child_password_html(
         # Database troubleshooting is now handled at the service level
         print(f"DEBUG [31-32]: Service completed all database operations")
         
-        # Return success HTML
-        print(f"DEBUG [33]: Returning success HTML")
-        return templates.TemplateResponse(
-            "components/password_reset_dialog.html",
-            {
-                "request": Request(scope={"type": "http", "headers": []}, receive=None),
+        # Return success JSON
+        print(f"DEBUG [33]: Returning success JSON")
+        return JSONResponse(
+            content={
                 "success": True,
+                "message": f"Password reset successfully for user {updated_child.username}",
                 "username": updated_child.username
             },
             status_code=status.HTTP_200_OK
         )
     except ValueError as e:
         print(f"DEBUG [ERROR]: Password reset failed with ValueError: {str(e)}")
-        # Return error HTML
-        return templates.TemplateResponse(
-            "components/password_reset_dialog.html",
-            {
-                "request": Request(scope={"type": "http", "headers": []}, receive=None),
+        # Return error JSON
+        return JSONResponse(
+            content={
                 "success": False,
-                "error_message": str(e)
+                "error": str(e)
             },
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY
         )
@@ -692,13 +813,11 @@ async def reset_child_password_html(
         import traceback
         traceback.print_exc()
         
-        # Return error HTML
-        return templates.TemplateResponse(
-            "components/password_reset_dialog.html",
-            {
-                "request": Request(scope={"type": "http", "headers": []}, receive=None),
+        # Return error JSON
+        return JSONResponse(
+            content={
                 "success": False,
-                "error_message": f"An unexpected error occurred: {str(e)}"
+                "error": f"An unexpected error occurred: {str(e)}"
             },
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
         )

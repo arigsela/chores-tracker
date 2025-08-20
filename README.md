@@ -1,6 +1,22 @@
 # Chores Tracker
 
-A modern web application for families to manage household chores, built with FastAPI, SQLAlchemy, and HTMX.
+A modern web application for families to manage household chores, built with FastAPI backend and React Native Web frontend.
+
+## 🎉 HTMX Migration Complete!
+
+**The HTMX/Server-side rendered UI has been successfully retired in favor of React Native Web.**
+
+### Migration Status
+- **Phase 1-5**: ✅ COMPLETED - React Native Web frontend developed with 90% feature parity
+- **Phase 5.2**: ✅ COMPLETED - Deprecation notices and migration documentation added
+- **Phase 6**: ⏭️ NEXT - CI/CD setup for new frontend
+- **Phase 7**: ✅ COMPLETED (2025-08-11) - HTMX code removed, backend cleaned up
+
+### Architecture
+- **Backend**: FastAPI REST API (JSON only) at `http://localhost:8000`
+- **Frontend**: React Native Web at `http://localhost:8081`
+- **Database**: MySQL with SQLAlchemy 2.0
+- **Authentication**: JWT tokens with 8-day expiry
 
 ## 🚀 Project Status
 

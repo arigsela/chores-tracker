@@ -1,0 +1,519 @@
+name: Frontend Release and Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: 'Release type'
+        required: true
+        default: 'minor'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+          - custom
+      version:
+        description: 'Version (only required for custom release type)'
+        required: false
+        type: string
+      release_notes:
+        description: 'Release notes (optional - will auto-generate if empty)'
+        required: false
+        type: string
+      skip_deploy:
+        description: 'Skip Docker build and ECR deployment'
+        required: false
+        type: boolean
+        default: false
+      update_gitops:
+        description: 'Update GitOps repository with new version'
+        required: false
+        type: boolean
+        default: true
+      auto_merge:
+        description: 'Auto-merge GitOps PR (use with caution)'
+        required: false
+        type: boolean
+        default: false
+
+env:
+  AWS_REGION: ${{ secrets.AWS_REGION }}
+  ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY_FRONTEND }}
+  NODE_VERSION: '20'
+  WORKING_DIRECTORY: './frontend'
+
+permissions:
+  contents: write
+  issues: read
+  pull-requests: read
+  id-token: write
+
+jobs:
+  release-and-deploy:
+    name: Create Frontend Release and Deploy to ECR
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 30
+    outputs:
+      new_version: ${{ steps.calc_version.outputs.new_version }}
+      version_number: ${{ steps.calc_version.outputs.new_version_number }}
+      ecr_registry: ${{ steps.login-ecr.outputs.registry || '852893458518.dkr.ecr.us-east-2.amazonaws.com' }}
+      image_pushed: ${{ steps.check-secrets.outputs.configured }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Validate inputs
+        run: |
+          RELEASE_TYPE="${{ github.event.inputs.release_type }}"
+          VERSION="${{ github.event.inputs.version }}"
+          
+          echo "Release type: $RELEASE_TYPE"
+          
+          if [[ "$RELEASE_TYPE" == "custom" ]]; then
+            if [[ -z "$VERSION" ]]; then
+              echo "::error::Version is required when release type is 'custom'"
+              exit 1
+            fi
+            
+            if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              echo "::error::Version must be in format X.Y.Z (e.g., 1.0.0)"
+              exit 1
+            fi
+            echo "Custom version provided: $VERSION"
+          else
+            if [[ -n "$VERSION" ]]; then
+              echo "::warning::Version input is ignored for $RELEASE_TYPE release type"
+            fi
+            echo "Version will be calculated automatically based on $RELEASE_TYPE"
+          fi
+          
+          echo "RELEASE_TYPE=$RELEASE_TYPE" >> "$GITHUB_ENV"
+
+      - name: Get latest frontend tag
+        id: get_latest_tag
+        run: |
+          LATEST_TAG=$(git tag -l "frontend-v*" | sort -V | tail -n1 || echo "frontend-v0.0.0")
+          echo "Latest frontend tag: $LATEST_TAG"
+          echo "latest_tag=$LATEST_TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Calculate next version
+        id: calc_version
+        run: |
+          if [[ "${{ github.event.inputs.release_type }}" == "custom" ]]; then
+            NEW_VERSION="frontend-v${{ github.event.inputs.version }}"
+          else
+            LATEST_TAG="${{ steps.get_latest_tag.outputs.latest_tag }}"
+            LATEST_TAG=${LATEST_TAG#frontend-v}
+            
+            IFS='.' read -r MAJOR MINOR PATCH <<< "$LATEST_TAG"
+            MAJOR=${MAJOR:-0}
+            MINOR=${MINOR:-0}
+            PATCH=${PATCH:-0}
+            
+            case "${{ github.event.inputs.release_type }}" in
+              major)
+                NEW_VERSION="frontend-v$((MAJOR + 1)).0.0"
+                ;;
+              minor)
+                NEW_VERSION="frontend-v${MAJOR}.$((MINOR + 1)).0"
+                ;;
+              patch)
+                NEW_VERSION="frontend-v${MAJOR}.${MINOR}.$((PATCH + 1))"
+                ;;
+            esac
+          fi
+          
+          echo "New frontend version: $NEW_VERSION"
+          
+          # Extract version components for Docker tags
+          VERSION_NUMBER=${NEW_VERSION#frontend-v}
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION_NUMBER"
+          
+          {
+            echo "new_version=$NEW_VERSION"
+            echo "new_version_number=${NEW_VERSION#frontend-v}"
+            echo "major=$MAJOR"
+            echo "minor=$MINOR"
+            echo "patch=$PATCH"
+          } >> "$GITHUB_OUTPUT"
+          
+          if git rev-parse "$NEW_VERSION" >/dev/null 2>&1; then
+            echo "::error::Tag $NEW_VERSION already exists"
+            exit 1
+          fi
+
+      - name: Generate release notes
+        id: generate_notes
+        run: |
+          NEW_VERSION="${{ steps.calc_version.outputs.new_version }}"
+          LATEST_TAG="${{ steps.get_latest_tag.outputs.latest_tag }}"
+          
+          if [[ -n "${{ github.event.inputs.release_notes }}" ]]; then
+            NOTES="${{ github.event.inputs.release_notes }}"
+          else
+            {
+              echo "## Frontend Changes"
+              echo ""
+              
+              if [[ "$LATEST_TAG" != "frontend-v0.0.0" ]]; then
+                git log --pretty=format:"* %s (%an)" "$LATEST_TAG"..HEAD -- frontend/
+              else
+                git log --pretty=format:"* %s (%an)" -- frontend/
+              fi
+              
+              echo ""
+              echo ""
+              echo "**Full Changelog**: https://github.com/${{ github.repository }}/compare/$LATEST_TAG...$NEW_VERSION"
+            } > release_notes.md
+            
+            NOTES=$(cat release_notes.md)
+          fi
+          
+          echo "$NOTES" > release_notes_final.md
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: '${{ env.WORKING_DIRECTORY }}/package-lock.json'
+
+      - name: Install dependencies and run tests
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: |
+          npm ci
+          npm run lint
+          npm run type-check
+          npm run test:ci
+
+      - name: Check if AWS secrets are configured
+        id: check-secrets
+        if: ${{ github.event.inputs.skip_deploy != 'true' }}
+        run: |
+          if [[ -z "${{ secrets.AWS_ACCESS_KEY_ID }}" ]] || [[ -z "${{ secrets.AWS_SECRET_ACCESS_KEY }}" ]] || [[ -z "${{ secrets.ECR_REPOSITORY_FRONTEND }}" ]]; then
+            echo "::warning::AWS secrets not configured. Skipping ECR deployment."
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Configure AWS credentials
+        if: steps.check-secrets.outputs.configured == 'true' && github.event.inputs.skip_deploy != 'true'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        if: steps.check-secrets.outputs.configured == 'true' && github.event.inputs.skip_deploy != 'true'
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+        with:
+          mask-password: true
+
+      - name: Set up Docker Buildx
+        if: steps.check-secrets.outputs.configured == 'true' && github.event.inputs.skip_deploy != 'true'
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        if: steps.check-secrets.outputs.configured == 'true' && github.event.inputs.skip_deploy != 'true'
+        id: build
+        uses: docker/build-push-action@v5
+        timeout-minutes: 15
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          platforms: linux/amd64
+          push: false
+          load: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: false
+          tags: |
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ steps.calc_version.outputs.new_version_number }}
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ steps.calc_version.outputs.major }}.${{ steps.calc_version.outputs.minor }}
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ steps.calc_version.outputs.major }}
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:latest
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:sha-${{ github.sha }}
+          build-args: |
+            BUILD_VERSION=${{ steps.calc_version.outputs.new_version }}
+            BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+
+      - name: Push Docker images to ECR
+        if: steps.check-secrets.outputs.configured == 'true' && github.event.inputs.skip_deploy != 'true'
+        timeout-minutes: 10
+        run: |
+          # Function to retry docker push
+          retry_push() {
+            local tag=$1
+            local max_attempts=3
+            local attempt=1
+            
+            while [ $attempt -le $max_attempts ]; do
+              echo "Pushing $tag (attempt $attempt/$max_attempts)..."
+              if docker push "$tag"; then
+                echo "Successfully pushed $tag"
+                return 0
+              else
+                echo "Failed to push $tag"
+                if [ $attempt -lt $max_attempts ]; then
+                  echo "Retrying in 10 seconds..."
+                  sleep 10
+                fi
+              fi
+              attempt=$((attempt + 1))
+            done
+            
+            echo "Failed to push $tag after $max_attempts attempts"
+            return 1
+          }
+          
+          # Push all tags
+          REGISTRY="${{ steps.login-ecr.outputs.registry }}"
+          REPO="${{ env.ECR_REPOSITORY }}"
+          
+          retry_push "$REGISTRY/$REPO:${{ steps.calc_version.outputs.new_version_number }}"
+          retry_push "$REGISTRY/$REPO:${{ steps.calc_version.outputs.major }}.${{ steps.calc_version.outputs.minor }}"
+          retry_push "$REGISTRY/$REPO:${{ steps.calc_version.outputs.major }}"
+          retry_push "$REGISTRY/$REPO:latest"
+          retry_push "$REGISTRY/$REPO:sha-${{ github.sha }}"
+
+      - name: Create and push tag
+        run: |
+          NEW_VERSION="${{ steps.calc_version.outputs.new_version }}"
+          
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          git tag -a "$NEW_VERSION" -m "Frontend Release $NEW_VERSION"
+          git push origin "$NEW_VERSION"
+
+      - name: Create GitHub Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.calc_version.outputs.new_version }}
+          release_name: Frontend Release ${{ steps.calc_version.outputs.new_version }}
+          body_path: release_notes_final.md
+          draft: false
+          prerelease: false
+
+      - name: Summary
+        run: |
+          NEW_VERSION="${{ steps.calc_version.outputs.new_version }}"
+          {
+            echo "## Frontend Release Created Successfully! 🎉"
+            echo ""
+            echo "**Version:** $NEW_VERSION"
+            echo "**Release URL:** https://github.com/${{ github.repository }}/releases/tag/$NEW_VERSION"
+            echo ""
+            
+            if [[ "${{ steps.check-secrets.outputs.configured }}" == "true" ]] && [[ "${{ github.event.inputs.skip_deploy }}" != "true" ]]; then
+              echo "### Docker Image Tags Created"
+              echo "- \`${{ steps.calc_version.outputs.new_version_number }}\` (full version)"
+              echo "- \`${{ steps.calc_version.outputs.major }}.${{ steps.calc_version.outputs.minor }}\` (major.minor)"
+              echo "- \`${{ steps.calc_version.outputs.major }}\` (major only)"
+              echo "- \`latest\`"
+              echo "- \`sha-${{ github.sha }}\`"
+              echo ""
+              echo "**Registry:** \`${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}\`"
+              echo "**Image Digest:** \`${{ steps.build.outputs.digest }}\`"
+            else
+              echo "### Docker Deployment"
+              echo "⚠️ Docker image deployment was skipped"
+              if [[ "${{ github.event.inputs.skip_deploy }}" == "true" ]]; then
+                echo "Reason: Manually skipped via workflow input"
+              else
+                echo "Reason: AWS credentials not configured"
+              fi
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  gitops-update:
+    name: Update GitOps Repository for Frontend
+    needs: release-and-deploy
+    runs-on: ubuntu-latest
+    if: |
+      needs.release-and-deploy.result == 'success' && 
+      needs.release-and-deploy.outputs.image_pushed == 'true' &&
+      github.event.inputs.skip_deploy != 'true' &&
+      github.event.inputs.update_gitops != 'false'
+    env:
+      AWS_REGION: ${{ secrets.AWS_REGION }}
+      ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY_FRONTEND }}
+    
+    steps:
+      - name: Check GitOps PAT
+        id: check-gitops-pat
+        run: |
+          if [[ -z "${{ secrets.GITOPS_PAT }}" ]]; then
+            echo "::warning::GITOPS_PAT secret not configured. Skipping GitOps update."
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout GitOps repository
+        if: steps.check-gitops-pat.outputs.configured == 'true'
+        uses: actions/checkout@v4
+        with:
+          repository: arigsela/kubernetes
+          token: ${{ secrets.GITOPS_PAT }}
+          path: kubernetes
+
+      - name: Update frontend deployment manifest
+        if: steps.check-gitops-pat.outputs.configured == 'true'
+        run: |
+          cd kubernetes
+          
+          # Install yq
+          sudo wget -qO /usr/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/bin/yq
+          
+          echo "::group::Debug - Frontend Image URL Update"
+          echo "=== Version Information ==="
+          echo "New version: ${{ needs.release-and-deploy.outputs.version_number }}"
+          echo "::endgroup::"
+          
+          # Update the frontend image tag
+          # Get the current image and update only the tag
+          CURRENT_IMAGE=$(yq '.spec.template.spec.containers[0].image' base-apps/chores-tracker-frontend/deployments.yaml)
+          echo "Current frontend image: $CURRENT_IMAGE"
+          
+          # Extract the base image URL (everything before the colon)
+          BASE_IMAGE=$(echo "$CURRENT_IMAGE" | cut -d':' -f1)
+          echo "Base frontend image: $BASE_IMAGE"
+          
+          # Use sed to update just the tag in the file
+          sed -i "s|image: ${BASE_IMAGE}:[^[:space:]]*|image: ${BASE_IMAGE}:${{ needs.release-and-deploy.outputs.version_number }}|" \
+            base-apps/chores-tracker-frontend/deployments.yaml
+          
+          # Verify the change
+          echo ""
+          echo "::group::Debug - Verify Frontend Update"
+          echo "=== Before and After ==="
+          UPDATED_IMAGE=$(yq '.spec.template.spec.containers[0].image' base-apps/chores-tracker-frontend/deployments.yaml)
+          echo "Previous image: $CURRENT_IMAGE"
+          echo "Updated image: $UPDATED_IMAGE"
+          
+          # Verify the tag was updated correctly
+          CURRENT_TAG=$(echo "$CURRENT_IMAGE" | cut -d':' -f2)
+          UPDATED_TAG=$(echo "$UPDATED_IMAGE" | cut -d':' -f2)
+          EXPECTED_TAG="${{ needs.release-and-deploy.outputs.version_number }}"
+          
+          echo ""
+          echo "=== Tag Validation ==="
+          echo "Previous tag: $CURRENT_TAG"
+          echo "Updated tag: $UPDATED_TAG"
+          echo "Expected tag: $EXPECTED_TAG"
+          
+          if [[ "$UPDATED_TAG" == "$EXPECTED_TAG" ]]; then
+            echo "✅ Frontend tag update successful!"
+          else
+            echo "❌ Frontend tag update failed!"
+            exit 1
+          fi
+          echo "::endgroup::"
+
+      - name: Create Pull Request for Frontend
+        if: steps.check-gitops-pat.outputs.configured == 'true'
+        id: create-pr
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITOPS_PAT }}
+          path: kubernetes
+          commit-message: |
+            chore: update chores-tracker-frontend to ${{ needs.release-and-deploy.outputs.new_version }}
+            
+            Updates the chores-tracker frontend deployment to use image version ${{ needs.release-and-deploy.outputs.new_version }} from ECR.
+            
+            Release: https://github.com/${{ github.repository }}/releases/tag/${{ needs.release-and-deploy.outputs.new_version }}
+            Workflow: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          branch: update-chores-tracker-frontend-${{ needs.release-and-deploy.outputs.version_number }}
+          delete-branch: true
+          title: "chore: update chores-tracker-frontend to ${{ needs.release-and-deploy.outputs.new_version }}"
+          body: |
+            ## Frontend Deployment Update
+            
+            This PR updates the chores-tracker frontend deployment to version **${{ needs.release-and-deploy.outputs.new_version }}**.
+            
+            ### Changes
+            - Updated frontend container image tag to version **${{ needs.release-and-deploy.outputs.version_number }}**
+            - Image registry and repository name remain unchanged
+            
+            ### Release Information
+            - **Release URL**: https://github.com/${{ github.repository }}/releases/tag/${{ needs.release-and-deploy.outputs.new_version }}
+            - **Commit SHA**: ${{ github.sha }}
+            - **Workflow Run**: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            
+            ### Deployment Checklist
+            - [x] Frontend image successfully pushed to ECR
+            - [ ] ArgoCD sync successful
+            - [ ] Health checks passing
+            - [ ] No breaking changes
+            
+            ### Notes
+            After merging this PR, ArgoCD will automatically sync and deploy the new frontend version to the cluster.
+            
+            ---
+            *This PR was automatically generated by the frontend release workflow.*
+          labels: |
+            deployment
+            automated
+            chores-tracker-frontend
+            frontend
+          assignees: arigsela
+
+      - name: Auto-merge PR
+        if: |
+          steps.check-gitops-pat.outputs.configured == 'true' &&
+          github.event.inputs.auto_merge == 'true' &&
+          steps.create-pr.outputs.pull-request-number
+        env:
+          GH_TOKEN: ${{ secrets.GITOPS_PAT }}
+        run: |
+          cd kubernetes
+          
+          # Wait a moment for PR to be fully created
+          sleep 5
+          
+          # Enable auto-merge
+          gh pr merge ${{ steps.create-pr.outputs.pull-request-number }} \
+            --auto \
+            --merge \
+            --delete-branch \
+            --subject "chore: auto-merge frontend deployment update"
+          
+          echo "Auto-merge enabled for frontend PR #${{ steps.create-pr.outputs.pull-request-number }}"
+
+      - name: GitOps Update Summary
+        if: steps.check-gitops-pat.outputs.configured == 'true'
+        run: |
+          {
+            echo "## Frontend GitOps Repository Update 🚀"
+            echo ""
+            
+            if [[ -n "${{ steps.create-pr.outputs.pull-request-number }}" ]]; then
+              echo "**Pull Request Created:** #${{ steps.create-pr.outputs.pull-request-number }}"
+              echo "**PR URL:** ${{ steps.create-pr.outputs.pull-request-url }}"
+              echo ""
+              echo "### Next Steps"
+              if [[ "${{ github.event.inputs.auto_merge }}" == "true" ]]; then
+                echo "- ✅ Auto-merge has been enabled"
+                echo "- 🔄 PR will merge automatically once checks pass"
+              else
+                echo "- 👀 Review and merge the PR to deploy frontend"
+                echo "- 🔄 ArgoCD will sync automatically after merge"
+              fi
+            else
+              echo "⚠️ Failed to create pull request"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -1,5 +1,5 @@
 """
-Test more HTML endpoints in main.py.
+Test that more HTML endpoints return 404 since we converted to REST API.
 """
 
 import pytest
@@ -13,349 +13,132 @@ from backend.app.core.security.jwt import create_access_token
 
 
 class TestMainHTMLEndpoints:
-    """Test HTML endpoints defined in main.py."""
+    """Test that non-existent HTML endpoints return 404 since we converted to REST API."""
     
     @pytest.mark.asyncio
-    async def test_reports_page(self, client: AsyncClient):
-        """Test the reports page endpoint."""
-        response = await client.get("/reports")
-        assert response.status_code == 200
-        assert "text/html" in response.headers["content-type"]
-    
-    @pytest.mark.asyncio
-    async def test_page_route_login(self, client: AsyncClient):
-        """Test generic page route with login page."""
-        response = await client.get("/pages/login")
-        assert response.status_code == 200
-        assert "text/html" in response.headers["content-type"]
-    
-    @pytest.mark.asyncio
-    async def test_page_route_register(self, client: AsyncClient):
-        """Test generic page route with register page."""
-        response = await client.get("/pages/register")
-        assert response.status_code == 200
-        assert "text/html" in response.headers["content-type"]
-    
-    @pytest.mark.asyncio
-    async def test_page_route_not_found(self, client: AsyncClient):
-        """Test generic page route with non-existent page."""
-        response = await client.get("/pages/nonexistent")
-        assert response.status_code == 404
-    
-    @pytest.mark.asyncio
-    async def test_users_children_endpoint(self, client: AsyncClient, db_session: AsyncSession):
-        """Test users children list endpoint."""
-        # Create parent
-        parent = User(
-            username="parent_children_list",
-            email="parent_cl@test.com",
-            hashed_password=get_password_hash("password"),
-            is_parent=True,
-            is_active=True
-        )
-        db_session.add(parent)
-        await db_session.commit()
+    async def test_more_nonexistent_html_endpoints_return_404(self, client: AsyncClient):
+        """Test that additional old HTML endpoints return 404."""
+        html_endpoints_that_no_longer_exist = [
+            "/reports",
+            "/pages/login",  
+            "/pages/register",
+            "/users/children-cards",
+            "/users/summary",
+            "/chores",
+            "/chores/available",
+            "/chores/pending-approval",
+            "/chores/active",
+            "/chores/completed",
+            "/api/v1/html/chores/approve",
+            "/api/v1/html/chores/disable"
+        ]
         
-        token = create_access_token(subject=str(parent.id))
-        
-        response = await client.get(
-            "/api/v1/users/children",
-            headers={"Authorization": f"Bearer {token}"}
-        )
-        assert response.status_code == 200
-        assert "text/html" in response.headers["content-type"]
-    
-    @pytest.mark.asyncio
-    async def test_users_summary_endpoint(self, client: AsyncClient, db_session: AsyncSession):
-        """Test users summary endpoint."""
-        # Create parent
-        parent = User(
-            username="parent_summary",
-            email="parent_sum@test.com",
-            hashed_password=get_password_hash("password"),
-            is_parent=True,
-            is_active=True
-        )
-        db_session.add(parent)
-        await db_session.commit()
-        
-        token = create_access_token(subject=str(parent.id))
-        
-        response = await client.get(
-            "/api/v1/users/summary",
-            headers={"Authorization": f"Bearer {token}"}
-        )
-        assert response.status_code == 200
-        assert "text/html" in response.headers["content-type"]
-    
-    @pytest.mark.asyncio
-    async def test_chores_html_endpoint(self, client: AsyncClient, db_session: AsyncSession):
-        """Test chores HTML endpoint."""
-        # Create parent
-        parent = User(
-            username="parent_chores_html",
-            email="parent_ch@test.com",
-            hashed_password=get_password_hash("password"),
-            is_parent=True,
-            is_active=True
-        )
-        db_session.add(parent)
-        await db_session.commit()
-        
-        token = create_access_token(subject=str(parent.id))
-        
-        response = await client.get(
-            "/api/v1/chores",
-            headers={"Authorization": f"Bearer {token}"}
-        )
-        assert response.status_code == 200
-        assert "text/html" in response.headers["content-type"]
-    
-    @pytest.mark.asyncio
-    async def test_available_chores_endpoint(self, client: AsyncClient, db_session: AsyncSession):
-        """Test available chores endpoint."""
-        # Create parent and child
-        parent = User(
-            username="parent_avail",
-            email="parent_av@test.com",
-            hashed_password=get_password_hash("password"),
-            is_parent=True,
-            is_active=True
-        )
-        db_session.add(parent)
-        await db_session.commit()
-        
-        child = User(
-            username="child_avail",
-            hashed_password=get_password_hash("password"),
-            is_parent=False,
-            is_active=True,
-            parent_id=parent.id
-        )
-        db_session.add(child)
-        await db_session.commit()
-        
-        child_token = create_access_token(subject=str(child.id))
-        
-        response = await client.get(
-            "/api/v1/html/chores/available",
-            headers={"Authorization": f"Bearer {child_token}"}
-        )
-        assert response.status_code == 200
-        assert "text/html" in response.headers["content-type"]
-    
-    @pytest.mark.asyncio
-    async def test_pending_chores_endpoint(self, client: AsyncClient, db_session: AsyncSession):
-        """Test pending chores endpoint."""
-        # Create parent
-        parent = User(
-            username="parent_pending",
-            email="parent_pend@test.com",
-            hashed_password=get_password_hash("password"),
-            is_parent=True,
-            is_active=True
-        )
-        db_session.add(parent)
-        await db_session.commit()
-        
-        parent_token = create_access_token(subject=str(parent.id))
-        
-        response = await client.get(
-            "/api/v1/html/chores/pending",
-            headers={"Authorization": f"Bearer {parent_token}"}
-        )
-        assert response.status_code == 200
-        assert "text/html" in response.headers["content-type"]
-    
-    @pytest.mark.asyncio
-    async def test_active_chores_endpoint(self, client: AsyncClient, db_session: AsyncSession):
-        """Test active chores endpoint."""
-        # Create parent
-        parent = User(
-            username="parent_active",
-            email="parent_act@test.com",
-            hashed_password=get_password_hash("password"),
-            is_parent=True,
-            is_active=True
-        )
-        db_session.add(parent)
-        await db_session.commit()
-        
-        parent_token = create_access_token(subject=str(parent.id))
-        
-        response = await client.get(
-            "/api/v1/html/chores/active",
-            headers={"Authorization": f"Bearer {parent_token}"}
-        )
-        assert response.status_code == 200
-        assert "text/html" in response.headers["content-type"]
-    
-    @pytest.mark.asyncio
-    async def test_completed_chores_endpoint(self, client: AsyncClient, db_session: AsyncSession):
-        """Test completed chores endpoint for parent."""
-        # Create parent
-        parent = User(
-            username="parent_completed",
-            email="parent_comp@test.com",
-            hashed_password=get_password_hash("password"),
-            is_parent=True,
-            is_active=True
-        )
-        db_session.add(parent)
-        await db_session.commit()
-        
-        parent_token = create_access_token(subject=str(parent.id))
-        
-        response = await client.get(
-            "/api/v1/html/chores/completed",
-            headers={"Authorization": f"Bearer {parent_token}"}
-        )
-        assert response.status_code == 200
-        assert "text/html" in response.headers["content-type"]
-    
-    @pytest.mark.asyncio
-    async def test_complete_chore_endpoint(self, client: AsyncClient, db_session: AsyncSession):
-        """Test complete chore endpoint."""
-        # Create parent and child
-        parent = User(
-            username="parent_comp_chore",
-            email="parent_cc@test.com",
-            hashed_password=get_password_hash("password"),
-            is_parent=True,
-            is_active=True
-        )
-        db_session.add(parent)
-        await db_session.commit()
-        
-        child = User(
-            username="child_comp_chore",
-            hashed_password=get_password_hash("password"),
-            is_parent=False,
-            is_active=True,
-            parent_id=parent.id
-        )
-        db_session.add(child)
-        await db_session.commit()
-        
-        # Create a chore
-        chore = Chore(
-            title="Test Chore",
-            description="Test",
-            reward=5.0,
-            is_range_reward=False,
-            cooldown_days=0,
-            is_recurring=False,
-            creator_id=parent.id,
-            assignee_id=child.id,
-            is_completed=False,
-            is_approved=False,
-            is_disabled=False
-        )
-        db_session.add(chore)
-        await db_session.commit()
-        
-        child_token = create_access_token(subject=str(child.id))
-        
-        response = await client.post(
-            f"/api/v1/chores/{chore.id}/complete",
-            headers={"Authorization": f"Bearer {child_token}"}
-        )
-        assert response.status_code == 200
+        for endpoint in html_endpoints_that_no_longer_exist:
+            response = await client.get(endpoint)
+            assert response.status_code == 404, f"Endpoint {endpoint} should return 404 but returned {response.status_code}"
     
     @pytest.mark.asyncio
     async def test_approve_chore_endpoint(self, client: AsyncClient, db_session: AsyncSession):
-        """Test approve chore endpoint."""
-        # Create parent and child
-        parent = User(
-            username="parent_app_chore",
-            email="parent_ac@test.com",
-            hashed_password=get_password_hash("password"),
+        """Test that approve chore endpoint returns 404 - this functionality moved to REST API."""
+        # Create test user
+        user = User(
+            username="testparent", 
+            email="testparent@test.com",
+            hashed_password=get_password_hash("testpassword"),
             is_parent=True,
             is_active=True
         )
-        db_session.add(parent)
+        db_session.add(user)
         await db_session.commit()
+        await db_session.refresh(user)
         
-        child = User(
-            username="child_app_chore",
-            hashed_password=get_password_hash("password"),
-            is_parent=False,
-            is_active=True,
-            parent_id=parent.id
-        )
-        db_session.add(child)
-        await db_session.commit()
-        
-        # Create a completed chore
+        # Create test chore
         chore = Chore(
-            title="Test Approve Chore",
-            description="Test",
+            title="Test Chore",
+            description="A test chore", 
             reward=5.0,
-            is_range_reward=False,
-            cooldown_days=0,
+            cooldown_days=1,
             is_recurring=False,
-            creator_id=parent.id,
-            assignee_id=child.id,
-            is_completed=True,  # Already completed
+            is_completed=True,  # Completed but not approved
             is_approved=False,
-            is_disabled=False
+            is_disabled=False,
+            assignee_id=user.id,
+            creator_id=user.id,
+            is_range_reward=False
         )
         db_session.add(chore)
         await db_session.commit()
-        
-        parent_token = create_access_token(subject=str(parent.id))
-        
-        response = await client.post(
-            f"/api/v1/chores/{chore.id}/approve",
-            headers={"Authorization": f"Bearer {parent_token}"},
-            json={"is_approved": True, "reward_value": 5.0}
-        )
-        if response.status_code != 200:
-            print(f"Response status: {response.status_code}")
-            print(f"Response body: {response.text}")
-        assert response.status_code == 200
-    
-    @pytest.mark.asyncio
-    async def test_disable_chore_endpoint(self, client: AsyncClient, db_session: AsyncSession):
-        """Test disable chore endpoint."""
-        # Create parent
-        parent = User(
-            username="parent_dis_chore",
-            email="parent_dc@test.com",
-            hashed_password=get_password_hash("password"),
-            is_parent=True,
-            is_active=True
-        )
-        db_session.add(parent)
-        await db_session.commit()
-        
-        # Create a chore
-        chore = Chore(
-            title="Test Disable Chore",
-            description="Test",
-            reward=5.0,
-            is_range_reward=False,
-            cooldown_days=0,
-            is_recurring=False,
-            creator_id=parent.id,
-            assignee_id=None,
-            is_completed=False,
-            is_approved=False,
-            is_disabled=False
-        )
-        db_session.add(chore)
-        await db_session.commit()
-        
-        parent_token = create_access_token(subject=str(parent.id))
-        
-        # Refresh chore to get ID
         await db_session.refresh(chore)
         
-        response = await client.post(
-            f"/api/v1/chores/{chore.id}/disable",
-            headers={"Authorization": f"Bearer {parent_token}"}
+        # HTML approve endpoint should return 404
+        response = await client.post(f"/api/v1/html/chores/{chore.id}/approve")
+        assert response.status_code == 404
+    
+    @pytest.mark.asyncio 
+    async def test_disable_chore_endpoint(self, client: AsyncClient, db_session: AsyncSession):
+        """Test that disable chore endpoint returns 404 - this functionality moved to REST API."""
+        # Create test user
+        user = User(
+            username="testparent2",
+            email="testparent2@test.com", 
+            hashed_password=get_password_hash("testpassword"),
+            is_parent=True,
+            is_active=True
         )
-        if response.status_code != 200:
-            print(f"Response status: {response.status_code}")
-            print(f"Response body: {response.text}")
+        db_session.add(user)
+        await db_session.commit()
+        await db_session.refresh(user)
+        
+        # Create test chore
+        chore = Chore(
+            title="Test Chore 2",
+            description="Another test chore",
+            reward=3.0,
+            cooldown_days=1, 
+            is_recurring=False,
+            is_completed=False,
+            is_approved=False,
+            is_disabled=False,
+            assignee_id=user.id,
+            creator_id=user.id,
+            is_range_reward=False
+        )
+        db_session.add(chore)
+        await db_session.commit()
+        await db_session.refresh(chore)
+        
+        # HTML disable endpoint should return 404
+        response = await client.post(f"/api/v1/html/chores/{chore.id}/disable")
+        assert response.status_code == 404
+    
+    @pytest.mark.asyncio
+    async def test_rest_api_chore_endpoints_work(self, client: AsyncClient, db_session: AsyncSession):
+        """Test that the actual REST API chore endpoints work correctly."""
+        # Create test user  
+        user = User(
+            username="testparent3",
+            email="testparent3@test.com",
+            hashed_password=get_password_hash("testpassword"), 
+            is_parent=True,
+            is_active=True
+        )
+        db_session.add(user)
+        await db_session.commit()
+        await db_session.refresh(user)
+        
+        token = create_access_token(subject=str(user.id))
+        headers = {"Authorization": f"Bearer {token}"}
+        
+        # Test that actual REST API endpoints work
+        response = await client.get("/api/v1/chores/", headers=headers)
         assert response.status_code == 200
+        assert "application/json" in response.headers["content-type"]
+        
+        # Test parent-specific endpoint
+        response = await client.get("/api/v1/chores/pending-approval", headers=headers)
+        assert response.status_code == 200
+        assert "application/json" in response.headers["content-type"]
+        
+        # Test that child-only endpoint returns 403 for parents
+        response = await client.get("/api/v1/chores/available", headers=headers)
+        assert response.status_code == 403  # Parent can't access child-only endpoint

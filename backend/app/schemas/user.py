@@ -133,3 +133,57 @@ class UserBalanceResponse(BaseModel):
         description="Total value of chores pending approval",
         json_schema_extra={"example": 10.00}
     )
+
+
+class ChildAllowanceSummary(BaseModel):
+    """Per-child allowance summary for parent dashboard/API."""
+    model_config = ConfigDict(
+        from_attributes=True,
+        json_schema_extra={
+            "example": {
+                "id": 2,
+                "username": "child_user",
+                "completed_chores": 5,
+                "total_earned": 25.50,
+                "total_adjustments": -2.00,
+                "paid_out": 0.00,
+                "balance_due": 23.50
+            }
+        }
+    )
+    
+    id: int = Field(
+        ...,
+        description="Child user ID",
+        json_schema_extra={"example": 2}
+    )
+    username: str = Field(
+        ...,
+        description="Child username",
+        json_schema_extra={"example": "child_user"}
+    )
+    completed_chores: int = Field(
+        ...,
+        description="Number of completed & approved chores",
+        json_schema_extra={"example": 5}
+    )
+    total_earned: float = Field(
+        ...,
+        description="Total earned from approved chores",
+        json_schema_extra={"example": 25.50}
+    )
+    total_adjustments: float = Field(
+        ...,
+        description="Sum of reward adjustments (bonuses/deductions)",
+        json_schema_extra={"example": -2.00}
+    )
+    paid_out: float = Field(
+        ...,
+        description="Total amount paid out (currently 0 if not tracked)",
+        json_schema_extra={"example": 0.00}
+    )
+    balance_due: float = Field(
+        ...,
+        description="Computed balance due to the child",
+        json_schema_extra={"example": 23.50}
+    )

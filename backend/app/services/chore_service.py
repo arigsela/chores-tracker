@@ -12,6 +12,7 @@ from ..models.user import User
 from ..repositories.chore import ChoreRepository
 from ..repositories.user import UserRepository
 from ..core.unit_of_work import UnitOfWork
+from .activity_service import ActivityService
 
 
 class ChoreService(BaseService[Chore, ChoreRepository]):
@@ -21,6 +22,7 @@ class ChoreService(BaseService[Chore, ChoreRepository]):
         """Initialize chore service."""
         super().__init__(ChoreRepository())
         self.user_repo = UserRepository()
+        self.activity_service = ActivityService()
     
     async def create_chore(
         self,
@@ -68,7 +70,27 @@ class ChoreService(BaseService[Chore, ChoreRepository]):
         chore_data["creator_id"] = creator_id
         
         # Create chore
-        return await self.repository.create(db, obj_in=chore_data)
+        chore = await self.repository.create(db, obj_in=chore_data)
+        
+        # Log activity
+        try:
+            reward_amount = None
+            if not chore_data.get("is_range_reward"):
+                reward_amount = chore_data.get("reward")
+            
+            await self.activity_service.log_chore_created(
+                db,
+                parent_id=creator_id,
+                child_id=assignee_id,
+                chore_id=chore.id,
+                chore_title=chore.title,
+                reward_amount=reward_amount
+            )
+        except Exception as e:
+            # Don't fail chore creation if activity logging fails
+            print(f"Failed to log chore creation activity: {e}")
+        
+        return chore
     
     async def get_chores_for_user(
         self,
@@ -196,6 +218,18 @@ class ChoreService(BaseService[Chore, ChoreRepository]):
         # Mark as completed
         updated_chore = await self.repository.mark_completed(db, chore_id=chore_id)
         
+        # Log activity
+        try:
+            await self.activity_service.log_chore_completed(
+                db,
+                child_id=user_id,
+                chore_id=chore_id,
+                chore_title=updated_chore.title
+            )
+        except Exception as e:
+            # Don't fail chore completion if activity logging fails
+            print(f"Failed to log chore completion activity: {e}")
+        
         return updated_chore
     
     async def approve_chore(
@@ -256,12 +290,108 @@ class ChoreService(BaseService[Chore, ChoreRepository]):
                     status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                     detail=f"Reward value must be between {chore.min_reward} and {chore.max_reward}"
                 )
+            update_data["approval_reward"] = reward_value
+            # Also update the reward field to the final approved amount
             update_data["reward"] = reward_value
         
         # Approve chore
         updated_chore = await self.repository.update(
             db, id=chore_id, obj_in=update_data
         )
+        
+        # Log activity
+        try:
+            final_reward = reward_value if reward_value is not None else chore.reward
+            await self.activity_service.log_chore_approved(
+                db,
+                parent_id=parent_id,
+                child_id=chore.assignee_id or chore.assigned_to_id,
+                chore_id=chore_id,
+                chore_title=updated_chore.title,
+                reward_amount=final_reward or 0.0
+            )
+        except Exception as e:
+            # Don't fail chore approval if activity logging fails
+            print(f"Failed to log chore approval activity: {e}")
+        
+        return updated_chore
+    
+    async def reject_chore(
+        self,
+        db: AsyncSession,
+        *,
+        chore_id: int,
+        parent_id: int,
+        rejection_reason: str
+    ) -> Chore:
+        """
+        Reject a completed chore.
+        
+        Business rules:
+        - Only parent who created the chore can reject
+        - Chore must be completed but not approved
+        - Rejection reason is required
+        """
+        chore = await self.get(db, id=chore_id)
+        if not chore:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Chore not found"
+            )
+        
+        # Check if user is the creator
+        if chore.creator_id != parent_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You can only reject chores you created"
+            )
+        
+        # Check if chore is completed
+        if not chore.is_completed:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Chore must be completed before rejection"
+            )
+        
+        # Check if already approved
+        if chore.is_approved:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Cannot reject already approved chore"
+            )
+        
+        # Validate rejection reason
+        if not rejection_reason.strip():
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Rejection reason is required"
+            )
+        
+        # Reject chore - reset completion status and add rejection reason
+        update_data = {
+            "is_completed": False,
+            "completion_date": None,
+            "rejection_reason": rejection_reason.strip()
+        }
+        
+        # Reject chore
+        updated_chore = await self.repository.update(
+            db, id=chore_id, obj_in=update_data
+        )
+        
+        # Log activity
+        try:
+            await self.activity_service.log_chore_rejected(
+                db,
+                parent_id=parent_id,
+                child_id=chore.assignee_id or chore.assigned_to_id,
+                chore_id=chore_id,
+                chore_title=updated_chore.title,
+                rejection_reason=rejection_reason
+            )
+        except Exception as e:
+            # Don't fail chore rejection if activity logging fails
+            print(f"Failed to log chore rejection activity: {e}")
         
         return updated_chore
     
@@ -500,6 +630,8 @@ class ChoreService(BaseService[Chore, ChoreRepository]):
                     raise ValueError("Reward value is required for range-based rewards")
                 if reward_value < chore.min_reward or reward_value > chore.max_reward:
                     raise ValueError(f"Reward must be between {chore.min_reward} and {chore.max_reward}")
+                update_data["approval_reward"] = reward_value
+                # Also update the reward field to the final approved amount
                 update_data["reward"] = reward_value
             
             # Approve the chore

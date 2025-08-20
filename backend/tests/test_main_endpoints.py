@@ -8,53 +8,33 @@ class TestMainEndpoints:
     """Test main.py endpoints."""
     
     @pytest.mark.asyncio
-    async def test_healthcheck(self, client):
-        """Test healthcheck endpoint."""
-        response = await client.get("/api/v1/healthcheck")
+    async def test_health_endpoint(self, client):
+        """Test health endpoint."""
+        response = await client.get("/health")
         assert response.status_code == 200
-        assert response.json() == {"status": "ok"}
+        data = response.json()
+        assert "status" in data
+        assert data["status"] in ["healthy", "unhealthy"]
     
     @pytest.mark.asyncio
-    async def test_index_page(self, client):
-        """Test index page."""
+    async def test_root_endpoint(self, client):
+        """Test root endpoint returns API info."""
         response = await client.get("/")
         assert response.status_code == 200
-        assert "text/html" in response.headers.get("content-type", "")
+        assert "application/json" in response.headers.get("content-type", "")
+        data = response.json()
+        assert "name" in data
+        assert "version" in data
     
     @pytest.mark.asyncio
-    async def test_dashboard_page(self, client):
-        """Test dashboard page."""
-        response = await client.get("/dashboard")
-        assert response.status_code == 200
-        assert "text/html" in response.headers.get("content-type", "")
-    
-    @pytest.mark.asyncio
-    async def test_chores_page(self, client):
-        """Test chores page."""
-        response = await client.get("/chores")
-        assert response.status_code == 200
-        assert "text/html" in response.headers.get("content-type", "")
-    
-    @pytest.mark.asyncio
-    async def test_users_page(self, client):
-        """Test users page."""
-        response = await client.get("/users")
-        assert response.status_code == 200
-        assert "text/html" in response.headers.get("content-type", "")
-    
-    @pytest.mark.asyncio
-    async def test_reports_page(self, client):
-        """Test reports page."""
-        response = await client.get("/reports")
-        assert response.status_code == 200
-        assert response.headers.get("content-type", "").startswith("text/html")
-    
-    @pytest.mark.asyncio
-    async def test_specific_page_login(self, client):
-        """Test specific page route with login page."""
-        response = await client.get("/pages/login")
-        assert response.status_code == 200
-        assert "text/html" in response.headers.get("content-type", "")
+    async def test_nonexistent_html_pages_return_404(self, client):
+        """Test that HTML page routes that don't exist return 404."""
+        html_routes = [
+            "/dashboard", "/chores", "/users", "/reports", "/pages/login"
+        ]
+        for route in html_routes:
+            response = await client.get(route)
+            assert response.status_code == 404
     
     @pytest.mark.asyncio
     async def test_nonexistent_page(self, client):

@@ -217,3 +217,66 @@ class RewardAdjustmentService(BaseService[RewardAdjustment, RewardAdjustmentRepo
             )
         
         return await self.repository.calculate_total_adjustments(db, child_id=child_id)
+
+    async def get_all_adjustments(
+        self,
+        db: AsyncSession,
+        *,
+        current_user_id: int,
+        parent_id: Optional[int] = None,
+        child_id: Optional[int] = None,
+        skip: int = 0,
+        limit: int = 100
+    ) -> List[RewardAdjustment]:
+        """
+        Get all adjustments for a parent with optional filtering.
+        
+        Business rules:
+        - Parents can view all adjustments they've created
+        - Children cannot view adjustments (MVP restriction)
+        - Optional filtering by child_id
+        """
+        # Get current user and validate they're a parent
+        current_user = await self.user_repository.get(db, id=current_user_id)
+        if not current_user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Current user not found"
+            )
+        
+        if not current_user.is_parent:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Children cannot view reward adjustments"
+            )
+        
+        # If child_id is specified, validate the relationship
+        if child_id:
+            child = await self.user_repository.get(db, id=child_id)
+            if not child:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Child user not found"
+                )
+            
+            if child.parent_id != current_user_id:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="You can only view adjustments for your own children"
+                )
+            
+            # Get adjustments for specific child
+            return await self.repository.get_by_child_id(
+                db,
+                child_id=child_id,
+                skip=skip,
+                limit=limit
+            )
+        else:
+            # Get all adjustments created by this parent
+            return await self.repository.get_by_parent_id(
+                db,
+                parent_id=current_user_id,
+                skip=skip,
+                limit=limit
+            )
