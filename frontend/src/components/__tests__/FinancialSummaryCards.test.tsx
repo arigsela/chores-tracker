@@ -119,12 +119,13 @@ describe('FinancialSummaryCards Component', () => {
     });
 
     it('should display secondary financial metrics', async () => {
-      const { getByText } = render(<FinancialSummaryCards />);
+      const { getByText, getAllByText } = render(<FinancialSummaryCards />);
 
       await waitFor(() => {
         expect(getByText('$150.00')).toBeTruthy(); // Total earned
         expect(getByText('Total Earned')).toBeTruthy();
-        expect(getByText('$25.00')).toBeTruthy(); // Total adjustments
+        const adjustmentAmounts = getAllByText('$25.00');
+        expect(adjustmentAmounts.length).toBeGreaterThan(0); // May appear multiple times (adjustments + child balance)
         expect(getByText('Adjustments')).toBeTruthy();
       });
     });
@@ -177,7 +178,7 @@ describe('FinancialSummaryCards Component', () => {
 
   describe('Children with Balances Display', () => {
     it('should display children with balances', async () => {
-      const { getByText } = render(<FinancialSummaryCards />);
+      const { getByText, getAllByText } = render(<FinancialSummaryCards />);
 
       await waitFor(() => {
         expect(getByText('Balances Due:')).toBeTruthy();
@@ -186,7 +187,8 @@ describe('FinancialSummaryCards Component', () => {
         expect(getByText('bob')).toBeTruthy();
         expect(getByText('$65.00')).toBeTruthy();
         expect(getByText('charlie')).toBeTruthy();
-        expect(getByText('$25.00')).toBeTruthy();
+        const amounts25 = getAllByText('$25.00');
+        expect(amounts25.length).toBeGreaterThan(0); // Charlie's balance (and possibly adjustments)
       });
     });
 
@@ -482,10 +484,11 @@ describe('FinancialSummaryCards Component', () => {
 
       mockedReportsAPI.getAllowanceSummary.mockResolvedValueOnce(emptyData);
 
-      const { getByText, queryByText } = render(<FinancialSummaryCards />);
+      const { getByText, queryByText, getAllByText } = render(<FinancialSummaryCards />);
 
       await waitFor(() => {
-        expect(getByText('$0.00')).toBeTruthy();
+        const zeroAmounts = getAllByText('$0.00');
+        expect(zeroAmounts.length).toBeGreaterThan(0); // Multiple $0.00 amounts expected
         expect(getByText('0 of 0 children have balances')).toBeTruthy();
         expect(queryByText('Balances Due:')).toBeNull();
       });
@@ -549,11 +552,12 @@ describe('FinancialSummaryCards Component', () => {
 
       mockedReportsAPI.getAllowanceSummary.mockResolvedValueOnce(dataWithUndefinedFields);
 
-      const { getByText } = render(<FinancialSummaryCards />);
+      const { getByText, getAllByText } = render(<FinancialSummaryCards />);
 
       await waitFor(() => {
         expect(getByText('Family Financial Summary')).toBeTruthy();
-        expect(getByText('$100.00')).toBeTruthy();
+        const hundredAmounts = getAllByText('$100.00');
+        expect(hundredAmounts.length).toBeGreaterThan(0); // Both earned and balance_due are $100.00
       });
     });
 
