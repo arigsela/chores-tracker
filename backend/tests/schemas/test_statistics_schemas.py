@@ -52,8 +52,8 @@ class TestWeeklyStatsResponseSchema:
         # Assert
         assert response.weeks_analyzed == 4
         assert len(response.weekly_data) == 1
-        assert response.summary["trend_direction"] == "increasing"
-        assert response.weekly_data[0]["total_earned"] == 25.5
+        assert response.summary.trend_direction == "increasing"
+        assert response.weekly_data[0].total_earned == 25.5
     
     def test_weekly_stats_with_zero_values(self):
         """Test weekly stats with zero earnings and chores."""
@@ -85,8 +85,8 @@ class TestWeeklyStatsResponseSchema:
         response = WeeklyStatsResponse(**zero_data)
         
         # Assert
-        assert response.summary["total_earned"] == 0.0
-        assert response.summary["trend_direction"] == "stable"
+        assert response.summary.total_earned == 0.0
+        assert response.summary.trend_direction == "stable"
     
     def test_weekly_stats_invalid_trend_direction(self):
         """Test validation fails with invalid trend direction."""
@@ -182,9 +182,9 @@ class TestMonthlyStatsResponseSchema:
         
         # Assert
         assert response.months_analyzed == 6
-        assert response.monthly_data[0]["year"] == 2025
-        assert response.monthly_data[0]["month_number"] == 8
-        assert response.summary["average_per_month"] == 7.5
+        assert response.monthly_data[0].year == 2025
+        assert response.monthly_data[0].month_number == 8
+        assert response.summary.average_per_month == 7.5
     
     def test_monthly_stats_invalid_month_number(self):
         """Test validation with invalid month number."""
@@ -291,8 +291,8 @@ class TestTrendAnalysisResponseSchema:
         
         # Assert
         assert response.period == "monthly"
-        assert response.chore_completion_trend["direction"] == "increasing"
-        assert response.earnings_trend["consistency_score"] == 85.7
+        assert response.chore_completion_trend.direction == "increasing"
+        assert response.earnings_trend.consistency_score == 85.7
         assert len(response.insights) == 2
     
     def test_trend_analysis_invalid_period(self):
@@ -345,8 +345,8 @@ class TestTrendAnalysisResponseSchema:
         response = TrendAnalysisResponse(**valid_data)
         
         # Assert
-        assert response.chore_completion_trend["growth_rate"] == 999999.0
-        assert response.earnings_trend["growth_rate"] == -95.5
+        assert response.chore_completion_trend.growth_rate == 999999.0
+        assert response.earnings_trend.growth_rate == -95.5
     
     def test_trend_analysis_consistency_score_boundaries(self):
         """Test consistency score boundary validation."""
@@ -412,7 +412,7 @@ class TestComparisonStatsResponseSchema:
         
         # Assert
         assert response.comparison_type == "this_vs_last_month"
-        assert response.changes["chores_change"] == 25.0
+        assert response.changes.chores_change == 25.0
         assert len(response.insights) == 2
     
     def test_comparison_stats_invalid_comparison_type(self):
@@ -538,8 +538,8 @@ class TestSchemaEdgeCases:
         response = WeeklyStatsResponse(**large_values_data)
         
         # Assert
-        assert response.weekly_data[0]["total_earned"] == 999999.99
-        assert response.summary["total_adjustments"] == 100000.00
+        assert response.weekly_data[0].total_earned == 999999.99
+        assert response.summary.total_adjustments == 100000.00
     
     def test_very_small_decimal_values(self):
         """Test schemas handle very small decimal values."""
@@ -572,8 +572,8 @@ class TestSchemaEdgeCases:
         response = MonthlyStatsResponse(**small_values_data)
         
         # Assert
-        assert response.monthly_data[0]["total_earned"] == 0.01
-        assert response.monthly_data[0]["total_adjustments"] == 0.001
+        assert response.monthly_data[0].total_earned == 0.01
+        assert response.monthly_data[0].total_adjustments == 0.001
     
     def test_unicode_text_in_insights(self):
         """Test schemas handle unicode text in insights."""

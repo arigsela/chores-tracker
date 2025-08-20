@@ -44,22 +44,10 @@ class TestChoreSchemas:
             "updated_at": datetime.now()
         }
         chore = ChoreResponse(**chore_data)
-        assert chore.assignee is None
-        assert chore.creator is None
-        
-        # Test with relations
-        user_data = {
-            "id": 1,
-            "username": "parent_user",
-            "email": "parent@example.com",
-            "is_parent": True,
-            "is_active": True
-        }
-        chore_data["assignee"] = UserResponse(**user_data)
-        chore_data["creator"] = UserResponse(**user_data)
-        chore = ChoreResponse(**chore_data)
-        assert chore.assignee.username == "parent_user"
-        assert chore.creator.username == "parent_user"
+        # Note: assignee and creator fields are commented out in ChoreResponse 
+        # to avoid SQLAlchemy lazy loading issues. Test IDs instead.
+        assert chore.assignee_id == 2
+        assert chore.creator_id == 1
     
     def test_chore_approve_range_validation(self):
         """Test ChoreApprove schema for range rewards."""
