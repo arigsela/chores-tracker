@@ -144,22 +144,18 @@ jobs:
     - name: Install dependencies
       run: npm ci
 
-    - name: Run integration tests with coverage
+    - name: Run integration tests
       run: |
         echo "🔗 Running integration tests..."
-        npm run test:integration -- --coverage --watchAll=false --passWithNoTests
+        npm run test:integration
       env:
         CI: true
 
-    - name: Upload integration test coverage
+    - name: Integration tests completed
       if: success()
-      uses: codecov/codecov-action@v4
-      with:
-        files: './frontend/coverage/lcov.info'
-        flags: frontend-integration
-        name: frontend-integration-coverage
-        directory: './frontend'
-        fail_ci_if_error: false
+      run: |
+        echo "✅ Integration tests passed successfully"
+        echo "Integration tests focus on workflow testing and do not generate coverage reports"
 
   # Full test suite with comprehensive coverage
   full-coverage:
