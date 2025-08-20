@@ -203,38 +203,54 @@ jobs:
     steps:
     - name: Generate test summary
       run: |
-        echo "## 📊 Frontend Test Results" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
-        echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
-        echo "| Quality Checks | ${{ needs.quality-checks.result }} |" >> $GITHUB_STEP_SUMMARY
-        echo "| Unit Tests | ${{ needs.unit-tests.result }} |" >> $GITHUB_STEP_SUMMARY
-        echo "| Integration Tests | ${{ needs.integration-tests.result }} |" >> $GITHUB_STEP_SUMMARY
-        echo "| Full Coverage | ${{ needs.full-coverage.result }} |" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
+        {
+          echo "## 📊 Frontend Test Results"
+          echo ""
+          echo "| Job | Status |"
+          echo "|-----|--------|"
+          echo "| Quality Checks | ${{ needs.quality-checks.result }} |"
+          echo "| Unit Tests | ${{ needs.unit-tests.result }} |"
+          echo "| Integration Tests | ${{ needs.integration-tests.result }} |"
+          echo "| Full Coverage | ${{ needs.full-coverage.result }} |"
+          echo ""
+        } >> "$GITHUB_STEP_SUMMARY"
         
-        if [[ "${{ needs.quality-checks.result }}" == "success" && 
-              "${{ needs.unit-tests.result }}" == "success" && 
-              "${{ needs.integration-tests.result }}" == "success" && 
-              "${{ needs.full-coverage.result }}" == "success" ]]; then
-          echo "🎉 **All frontend tests passed!** 🎉" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ Code quality standards met" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ All unit tests passing" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ Integration tests successful" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ Coverage thresholds achieved" >> $GITHUB_STEP_SUMMARY
+        quality_result="${{ needs.quality-checks.result }}"
+        unit_result="${{ needs.unit-tests.result }}"
+        integration_result="${{ needs.integration-tests.result }}"
+        coverage_result="${{ needs.full-coverage.result }}"
+        
+        if [[ "$quality_result" == "success" && 
+              "$unit_result" == "success" && 
+              "$integration_result" == "success" && 
+              "$coverage_result" == "success" ]]; then
+          {
+            echo "🎉 **All frontend tests passed!** 🎉"
+            echo ""
+            echo "- ✅ Code quality standards met"
+            echo "- ✅ All unit tests passing"
+            echo "- ✅ Integration tests successful"
+            echo "- ✅ Coverage thresholds achieved"
+          } >> "$GITHUB_STEP_SUMMARY"
         else
-          echo "❌ **Some frontend tests failed** ❌" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Please check the individual job logs for details." >> $GITHUB_STEP_SUMMARY
+          {
+            echo "❌ **Some frontend tests failed** ❌"
+            echo ""
+            echo "Please check the individual job logs for details."
+          } >> "$GITHUB_STEP_SUMMARY"
         fi
 
     - name: Set overall status
       run: |
-        if [[ "${{ needs.quality-checks.result }}" == "success" && 
-              "${{ needs.unit-tests.result }}" == "success" && 
-              "${{ needs.integration-tests.result }}" == "success" && 
-              "${{ needs.full-coverage.result }}" == "success" ]]; then
+        quality_result="${{ needs.quality-checks.result }}"
+        unit_result="${{ needs.unit-tests.result }}"
+        integration_result="${{ needs.integration-tests.result }}"
+        coverage_result="${{ needs.full-coverage.result }}"
+        
+        if [[ "$quality_result" == "success" && 
+              "$unit_result" == "success" && 
+              "$integration_result" == "success" && 
+              "$coverage_result" == "success" ]]; then
           echo "✅ Frontend CI: All checks passed"
           exit 0
         else
