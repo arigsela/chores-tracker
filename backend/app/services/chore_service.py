@@ -291,6 +291,8 @@ class ChoreService(BaseService[Chore, ChoreRepository]):
                     detail=f"Reward value must be between {chore.min_reward} and {chore.max_reward}"
                 )
             update_data["approval_reward"] = reward_value
+            # Also update the reward field to the final approved amount
+            update_data["reward"] = reward_value
         
         # Approve chore
         updated_chore = await self.repository.update(
@@ -629,6 +631,8 @@ class ChoreService(BaseService[Chore, ChoreRepository]):
                 if reward_value < chore.min_reward or reward_value > chore.max_reward:
                     raise ValueError(f"Reward must be between {chore.min_reward} and {chore.max_reward}")
                 update_data["approval_reward"] = reward_value
+                # Also update the reward field to the final approved amount
+                update_data["reward"] = reward_value
             
             # Approve the chore
             approved_chore = await uow.chores.update(
