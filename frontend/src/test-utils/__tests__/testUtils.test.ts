@@ -139,16 +139,16 @@ describe('Test Utilities', () => {
     it('should create mock API error', () => {
       const error = createMockApiError('Test error', 404);
       
-      expect(error).toEqual({
-        response: {
-          data: {
-            detail: 'Test error',
-          },
-          status: 404,
-          statusText: 'Internal Server Error',
+      expect(error).toBeInstanceOf(Error);
+      expect(error.message).toBe('Test error');
+      expect(error).toHaveProperty('isAxiosError', true);
+      expect(error).toHaveProperty('response');
+      expect((error as any).response).toEqual({
+        data: {
+          detail: 'Test error',
         },
-        message: 'Test error',
-        isAxiosError: true,
+        status: 404,
+        statusText: 'Internal Server Error',
       });
     });
   });
