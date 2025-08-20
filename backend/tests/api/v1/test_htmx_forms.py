@@ -81,9 +81,11 @@ async def test_add_child_form_submission_success(client: AsyncClient, parent_tok
     print(f"\nAdd child form error: {response.status_code}")
     print(f"Response detail: {response.text}")
     assert response.status_code == 201
-    # Expecting HTML response, not JSON
-    assert "Success" in response.text
-    assert "newchild" in response.text
+    # Now expecting JSON response since we converted to REST API
+    data = response.json()
+    assert data["username"] == "newchild"
+    assert data["is_parent"] == False
+    assert data["parent_id"] == parent_id
 
 @pytest.mark.asyncio
 async def test_add_child_form_submission_missing_parent_id(client: AsyncClient, parent_token):
@@ -104,9 +106,11 @@ async def test_add_child_form_submission_missing_parent_id(client: AsyncClient, 
     )
     # The endpoint should automatically use the parent_id from the token
     assert response.status_code == 201
-    # Expecting HTML response, not JSON
-    assert "Success" in response.text
-    assert "childnoparent" in response.text
+    # Now expecting JSON response since we converted to REST API
+    data = response.json()
+    assert data["username"] == "childnoparent"
+    assert data["is_parent"] == False
+    assert data["parent_id"] is not None  # Should be set from token
 
 @pytest.mark.asyncio
 async def test_login_form_submission_success(client: AsyncClient, test_parent_user):

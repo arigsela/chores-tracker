@@ -1,9 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Form, Body, Header, Response, Request, Query, Path
+from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
 from fastapi.security import OAuth2PasswordRequestForm
-from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
 import re
 from sqlalchemy import text
 from ....core.config import settings
@@ -70,7 +69,7 @@ async def read_my_children(
 
 
 # Templates
-templates = Jinja2Templates(directory=settings.TEMPLATES_DIR)
+# templates = Jinja2Templates(directory=settings.TEMPLATES_DIR)  # No longer needed for REST API
 
 # Simple email validation pattern
 EMAIL_PATTERN = re.compile(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$")
@@ -244,18 +243,7 @@ async def register_user(
             detail=str(e)
         )
     
-    # Check if this is from a form (HTMX request)
-    # accept_header = authorization and "text/html" in authorization
-    
-    # If child account and from form, return HTML success message
-    if not is_parent_bool:
-        return templates.TemplateResponse(
-            "components/child_account_created.html",
-            {"request": Request(scope={"type": "http", "headers": []}, receive=None), "username": username},
-            status_code=status.HTTP_201_CREATED
-        )
-    
-    # Otherwise return the user data for API clients
+    # Return JSON response for REST API
     return user
 
 # Keep the JSON-based endpoint for backward compatibility and API clients
@@ -712,7 +700,7 @@ async def reset_child_password(
             detail=f"Error resetting password: {str(e)}"
         )
 
-@router.post("/html/children/{child_id}/reset-password", response_class=HTMLResponse)
+@router.post("/html/children/{child_id}/reset-password")
 async def reset_child_password_html(
     request: Request,
     child_id: int,
@@ -800,26 +788,23 @@ async def reset_child_password_html(
         # Database troubleshooting is now handled at the service level
         print(f"DEBUG [31-32]: Service completed all database operations")
         
-        # Return success HTML
-        print(f"DEBUG [33]: Returning success HTML")
-        return templates.TemplateResponse(
-            "components/password_reset_dialog.html",
-            {
-                "request": Request(scope={"type": "http", "headers": []}, receive=None),
+        # Return success JSON
+        print(f"DEBUG [33]: Returning success JSON")
+        return JSONResponse(
+            content={
                 "success": True,
+                "message": f"Password reset successfully for user {updated_child.username}",
                 "username": updated_child.username
             },
             status_code=status.HTTP_200_OK
         )
     except ValueError as e:
         print(f"DEBUG [ERROR]: Password reset failed with ValueError: {str(e)}")
-        # Return error HTML
-        return templates.TemplateResponse(
-            "components/password_reset_dialog.html",
-            {
-                "request": Request(scope={"type": "http", "headers": []}, receive=None),
+        # Return error JSON
+        return JSONResponse(
+            content={
                 "success": False,
-                "error_message": str(e)
+                "error": str(e)
             },
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY
         )
@@ -828,13 +813,11 @@ async def reset_child_password_html(
         import traceback
         traceback.print_exc()
         
-        # Return error HTML
-        return templates.TemplateResponse(
-            "components/password_reset_dialog.html",
-            {
-                "request": Request(scope={"type": "http", "headers": []}, receive=None),
+        # Return error JSON
+        return JSONResponse(
+            content={
                 "success": False,
-                "error_message": f"An unexpected error occurred: {str(e)}"
+                "error": f"An unexpected error occurred: {str(e)}"
             },
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
