@@ -11,6 +11,7 @@ from decimal import Decimal
 from typing import Dict, Any, List
 from unittest.mock import Mock, AsyncMock, patch
 
+from fastapi import HTTPException
 from backend.app.api.api_v1.endpoints.reports import get_allowance_summary, export_allowance_summary, get_reward_history
 from backend.app.models.user import User
 from backend.app.models.chore import Chore
@@ -639,12 +640,16 @@ class TestErrorHandling:
         invalid_date = "not-a-date"
         
         # Act & Assert
-        with pytest.raises(ValueError):
+        with pytest.raises(HTTPException) as exc_info:
             await get_allowance_summary(
                 date_from=invalid_date,
                 current_user=mock_parent_user,
                 db=mock_db_session
             )
+        
+        # Verify it's a 400 error with appropriate message
+        assert exc_info.value.status_code == 400
+        assert "Invalid date format" in exc_info.value.detail
 
 
 class TestConcurrentCalculations:
