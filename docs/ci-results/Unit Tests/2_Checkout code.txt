@@ -1,0 +1,88 @@
+﻿2025-08-20T16:00:16.8708670Z ##[group]Run actions/checkout@v4
+2025-08-20T16:00:16.8710124Z with:
+2025-08-20T16:00:16.8710952Z   repository: arigsela/chores-tracker
+2025-08-20T16:00:16.8712299Z   token: ***
+2025-08-20T16:00:16.8713035Z   ssh-strict: true
+2025-08-20T16:00:16.8713795Z   ssh-user: git
+2025-08-20T16:00:16.8714851Z   persist-credentials: true
+2025-08-20T16:00:16.8715743Z   clean: true
+2025-08-20T16:00:16.8716530Z   sparse-checkout-cone-mode: true
+2025-08-20T16:00:16.8717503Z   fetch-depth: 1
+2025-08-20T16:00:16.8718262Z   fetch-tags: false
+2025-08-20T16:00:16.8719063Z   show-progress: true
+2025-08-20T16:00:16.8719859Z   lfs: false
+2025-08-20T16:00:16.8720580Z   submodules: false
+2025-08-20T16:00:16.8721366Z   set-safe-directory: true
+2025-08-20T16:00:16.8722497Z env:
+2025-08-20T16:00:16.8723183Z   NODE_VERSION: 20
+2025-08-20T16:00:16.8723995Z   WORKING_DIRECTORY: ./frontend
+2025-08-20T16:00:16.8725026Z ##[endgroup]
+2025-08-20T16:00:16.9892143Z Syncing repository: arigsela/chores-tracker
+2025-08-20T16:00:16.9896526Z ##[group]Getting Git version info
+2025-08-20T16:00:16.9898858Z Working directory is '/home/runner/work/chores-tracker/chores-tracker'
+2025-08-20T16:00:16.9902164Z [command]/usr/bin/git version
+2025-08-20T16:00:16.9922181Z git version 2.50.1
+2025-08-20T16:00:16.9948396Z ##[endgroup]
+2025-08-20T16:00:16.9963914Z Temporarily overriding HOME='/home/runner/work/_temp/9471c428-9852-4e09-8a70-74a3b0764cfb' before making global git config changes
+2025-08-20T16:00:16.9967153Z Adding repository directory to the temporary git global config as a safe directory
+2025-08-20T16:00:16.9969682Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/chores-tracker/chores-tracker
+2025-08-20T16:00:17.0005333Z Deleting the contents of '/home/runner/work/chores-tracker/chores-tracker'
+2025-08-20T16:00:17.0008745Z ##[group]Initializing the repository
+2025-08-20T16:00:17.0013317Z [command]/usr/bin/git init /home/runner/work/chores-tracker/chores-tracker
+2025-08-20T16:00:17.0075630Z hint: Using 'master' as the name for the initial branch. This default branch name
+2025-08-20T16:00:17.0078568Z hint: is subject to change. To configure the initial branch name to use in all
+2025-08-20T16:00:17.0080868Z hint: of your new repositories, which will suppress this warning, call:
+2025-08-20T16:00:17.0082269Z hint:
+2025-08-20T16:00:17.0083270Z hint: 	git config --global init.defaultBranch <name>
+2025-08-20T16:00:17.0085105Z hint:
+2025-08-20T16:00:17.0086288Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2025-08-20T16:00:17.0088317Z hint: 'development'. The just-created branch can be renamed via this command:
+2025-08-20T16:00:17.0090192Z hint:
+2025-08-20T16:00:17.0091004Z hint: 	git branch -m <name>
+2025-08-20T16:00:17.0091934Z hint:
+2025-08-20T16:00:17.0093184Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2025-08-20T16:00:17.0095573Z Initialized empty Git repository in /home/runner/work/chores-tracker/chores-tracker/.git/
+2025-08-20T16:00:17.0099248Z [command]/usr/bin/git remote add origin https://github.com/arigsela/chores-tracker
+2025-08-20T16:00:17.0126503Z ##[endgroup]
+2025-08-20T16:00:17.0128440Z ##[group]Disabling automatic garbage collection
+2025-08-20T16:00:17.0130110Z [command]/usr/bin/git config --local gc.auto 0
+2025-08-20T16:00:17.0159444Z ##[endgroup]
+2025-08-20T16:00:17.0161116Z ##[group]Setting up auth
+2025-08-20T16:00:17.0168831Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2025-08-20T16:00:17.0203928Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2025-08-20T16:00:17.0510956Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2025-08-20T16:00:17.0544287Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2025-08-20T16:00:17.0796794Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2025-08-20T16:00:17.0842428Z ##[endgroup]
+2025-08-20T16:00:17.0845128Z ##[group]Fetching the repository
+2025-08-20T16:00:17.0855233Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +7425ee200e7d63255eb28ae2bdb1ab891363f95a:refs/remotes/pull/41/merge
+2025-08-20T16:00:17.9870092Z From https://github.com/arigsela/chores-tracker
+2025-08-20T16:00:17.9872590Z  * [new ref]         7425ee200e7d63255eb28ae2bdb1ab891363f95a -> pull/41/merge
+2025-08-20T16:00:17.9935716Z ##[endgroup]
+2025-08-20T16:00:17.9938062Z ##[group]Determining the checkout info
+2025-08-20T16:00:17.9940608Z ##[endgroup]
+2025-08-20T16:00:17.9942421Z [command]/usr/bin/git sparse-checkout disable
+2025-08-20T16:00:17.9984861Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2025-08-20T16:00:18.0015016Z ##[group]Checking out the ref
+2025-08-20T16:00:18.0020638Z [command]/usr/bin/git checkout --progress --force refs/remotes/pull/41/merge
+2025-08-20T16:00:18.0380892Z Note: switching to 'refs/remotes/pull/41/merge'.
+2025-08-20T16:00:18.0382358Z 
+2025-08-20T16:00:18.0383453Z You are in 'detached HEAD' state. You can look around, make experimental
+2025-08-20T16:00:18.0386292Z changes and commit them, and you can discard any commits you make in this
+2025-08-20T16:00:18.0388131Z state without impacting any branches by switching back to a branch.
+2025-08-20T16:00:18.0389324Z 
+2025-08-20T16:00:18.0390341Z If you want to create a new branch to retain commits you create, you may
+2025-08-20T16:00:18.0392031Z do so (now or later) by using -c with the switch command. Example:
+2025-08-20T16:00:18.0393054Z 
+2025-08-20T16:00:18.0393445Z   git switch -c <new-branch-name>
+2025-08-20T16:00:18.0394361Z 
+2025-08-20T16:00:18.0394753Z Or undo this operation with:
+2025-08-20T16:00:18.0395427Z 
+2025-08-20T16:00:18.0395763Z   git switch -
+2025-08-20T16:00:18.0396359Z 
+2025-08-20T16:00:18.0397145Z Turn off this advice by setting config variable advice.detachedHead to false
+2025-08-20T16:00:18.0398694Z 
+2025-08-20T16:00:18.0399979Z HEAD is now at 7425ee2 Merge 3268993e5e3a6425fe1e99d2f688d9eec86bf235 into bbe44a1c2a2f15d52c13cc436ed7e6f923d23874
+2025-08-20T16:00:18.0404391Z ##[endgroup]
+2025-08-20T16:00:18.0439810Z [command]/usr/bin/git log -1 --format=%H
+2025-08-20T16:00:18.0491596Z 7425ee200e7d63255eb28ae2bdb1ab891363f95a

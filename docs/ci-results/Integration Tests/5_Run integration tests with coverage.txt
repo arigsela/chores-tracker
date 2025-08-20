@@ -1,0 +1,1373 @@
+﻿2025-08-20T16:00:30.2689394Z ##[group]Run echo "🔗 Running integration tests..."
+2025-08-20T16:00:30.2689801Z [36;1mecho "🔗 Running integration tests..."[0m
+2025-08-20T16:00:30.2690231Z [36;1mnpm run test:integration -- --coverage --watchAll=false --passWithNoTests[0m
+2025-08-20T16:00:30.2730112Z shell: /usr/bin/bash -e {0}
+2025-08-20T16:00:30.2730350Z env:
+2025-08-20T16:00:30.2730515Z   NODE_VERSION: 20
+2025-08-20T16:00:30.2730706Z   WORKING_DIRECTORY: ./frontend
+2025-08-20T16:00:30.2730916Z   CI: true
+2025-08-20T16:00:30.2731079Z ##[endgroup]
+2025-08-20T16:00:30.2788602Z 🔗 Running integration tests...
+2025-08-20T16:00:30.3813102Z 
+2025-08-20T16:00:30.3813578Z > frontend@1.0.0 test:integration
+2025-08-20T16:00:30.3814386Z > jest --testPathPattern='integration' --passWithNoTests --coverage --watchAll=false --passWithNoTests
+2025-08-20T16:00:30.3814878Z 
+2025-08-20T16:00:40.0229507Z FAIL src/__tests__/integration/approvalWorkflow.test.tsx (8.291 s)
+2025-08-20T16:00:40.0232246Z   ● Approval Workflow Integration Tests › Activity Feed Integration › should display approval activity in feed
+2025-08-20T16:00:40.0238134Z 
+2025-08-20T16:00:40.0238603Z     expect(element).toHaveTextContent()
+2025-08-20T16:00:40.0238833Z 
+2025-08-20T16:00:40.0239000Z     Expected element to have text content:
+2025-08-20T16:00:40.0239332Z       Clean bedroom approved by Parent
+2025-08-20T16:00:40.0239773Z     Received:
+2025-08-20T16:00:40.0240206Z       Clean bedroom approved by Parent$10.00
+2025-08-20T16:00:40.0240545Z 
+2025-08-20T16:00:40.0241003Z     [0m [90m 423 |[39m
+2025-08-20T16:00:40.0241677Z      [90m 424 |[39m       [90m// Verify activity details[39m
+2025-08-20T16:00:40.0243252Z     [31m[1m>[22m[39m[90m 425 |[39m       expect(getByTestId([32m'activity-1'[39m))[33m.[39mtoHaveTextContent([32m'Clean bedroom approved by Parent'[39m)[33m;[39m
+2025-08-20T16:00:40.0244654Z      [90m     |[39m                                         [31m[1m^[22m[39m
+2025-08-20T16:00:40.0245883Z      [90m 426 |[39m       expect(getByTestId([32m'activity-1'[39m))[33m.[39mtoHaveTextContent([32m'$10.00'[39m)[33m;[39m
+2025-08-20T16:00:40.0246791Z      [90m 427 |[39m       
+2025-08-20T16:00:40.0248275Z      [90m 428 |[39m       expect(getByTestId([32m'activity-2'[39m))[33m.[39mtoHaveTextContent([32m'Make bed completed by Child'[39m)[33m;[39m[0m
+2025-08-20T16:00:40.0249098Z 
+2025-08-20T16:00:40.0249674Z       at Object.toHaveTextContent (src/__tests__/integration/approvalWorkflow.test.tsx:425:41)
+2025-08-20T16:00:40.0250837Z       at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+2025-08-20T16:00:40.0251818Z       at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+2025-08-20T16:00:40.0252310Z 
+2025-08-20T16:00:40.5198574Z FAIL src/__tests__/integration/authFlow.test.tsx (8.892 s)
+2025-08-20T16:00:40.5201802Z   ● Authentication Flow Integration Tests › Authentication State Transitions › should transition to home screen after successful parent login
+2025-08-20T16:00:40.5203146Z 
+2025-08-20T16:00:40.5203478Z     Unable to find an element with testID: login-screen
+2025-08-20T16:00:40.5203843Z 
+2025-08-20T16:00:40.5204105Z     [36m<View>[39m
+2025-08-20T16:00:40.5204518Z       [36m<View>[39m
+2025-08-20T16:00:40.5204897Z         [36m<Text>[39m
+2025-08-20T16:00:40.5205345Z           [0mChores Tracker[0m
+2025-08-20T16:00:40.5205775Z         [36m</Text>[39m
+2025-08-20T16:00:40.5206168Z       [36m</View>[39m
+2025-08-20T16:00:40.5206551Z       [36m<View>[39m
+2025-08-20T16:00:40.5206920Z         [36m<View[39m
+2025-08-20T16:00:40.5207630Z           [33mtestID[39m=[32m"home-screen"[39m
+2025-08-20T16:00:40.5208138Z         [36m>[39m
+2025-08-20T16:00:40.5208523Z           [36m<Text[39m
+2025-08-20T16:00:40.5209062Z             [33mtestID[39m=[32m"welcome-message"[39m
+2025-08-20T16:00:40.5209566Z           [36m>[39m
+2025-08-20T16:00:40.5209954Z             [0mWelcome, [0m
+2025-08-20T16:00:40.5210459Z             [0mtestparent[0m
+2025-08-20T16:00:40.5210908Z             [0m![0m
+2025-08-20T16:00:40.5211631Z           [36m</Text>[39m
+2025-08-20T16:00:40.5212035Z           [36m<Text[39m
+2025-08-20T16:00:40.5212539Z             [33mtestID[39m=[32m"user-role"[39m
+2025-08-20T16:00:40.5213046Z           [36m>[39m
+2025-08-20T16:00:40.5213428Z             [0mRole: [0m
+2025-08-20T16:00:40.5213825Z             [0munknown[0m
+2025-08-20T16:00:40.5214215Z           [36m</Text>[39m
+2025-08-20T16:00:40.5214597Z           [36m<View[39m
+2025-08-20T16:00:40.5215185Z             [33maccessible[39m=[32m{true}[39m
+2025-08-20T16:00:40.5215763Z             [33mtestID[39m=[32m"logout-button"[39m
+2025-08-20T16:00:40.5216289Z           [36m>[39m
+2025-08-20T16:00:40.5216670Z             [36m<Text>[39m
+2025-08-20T16:00:40.5217331Z               [0mLogout[0m
+2025-08-20T16:00:40.5218017Z             [36m</Text>[39m
+2025-08-20T16:00:40.5218425Z           [36m</View>[39m
+2025-08-20T16:00:40.5218836Z           [36m<View[39m
+2025-08-20T16:00:40.5219389Z             [33maccessible[39m=[32m{true}[39m
+2025-08-20T16:00:40.5220054Z             [33mtestID[39m=[32m"navigate-chores"[39m
+2025-08-20T16:00:40.5220786Z           [36m>[39m
+2025-08-20T16:00:40.5221212Z             [36m<Text>[39m
+2025-08-20T16:00:40.5221685Z               [0mGo to Chores[0m
+2025-08-20T16:00:40.5222126Z             [36m</Text>[39m
+2025-08-20T16:00:40.5222451Z           [36m</View>[39m
+2025-08-20T16:00:40.5222702Z         [36m</View>[39m
+2025-08-20T16:00:40.5222933Z       [36m</View>[39m
+2025-08-20T16:00:40.5223158Z       [36m<View>[39m
+2025-08-20T16:00:40.5223373Z         [36m<View[39m
+2025-08-20T16:00:40.5223657Z           [33maccessible[39m=[32m{true}[39m
+2025-08-20T16:00:40.5223932Z         [36m>[39m
+2025-08-20T16:00:40.5224146Z           [36m<Text>[39m
+2025-08-20T16:00:40.5224577Z             [0m🏠[0m
+2025-08-20T16:00:40.5224813Z           [36m</Text>[39m
+2025-08-20T16:00:40.5225068Z           [36m<Text>[39m
+2025-08-20T16:00:40.5225300Z             [0mHome[0m
+2025-08-20T16:00:40.5225544Z           [36m</Text>[39m
+2025-08-20T16:00:40.5225774Z         [36m</View>[39m
+2025-08-20T16:00:40.5226002Z         [36m<View[39m
+2025-08-20T16:00:40.5226287Z           [33maccessible[39m=[32m{true}[39m
+2025-08-20T16:00:40.5226559Z         [36m>[39m
+2025-08-20T16:00:40.5226772Z           [36m<Text>[39m
+2025-08-20T16:00:40.5226998Z             [0m✅[0m
+2025-08-20T16:00:40.5227493Z           [36m</Text>[39m
+2025-08-20T16:00:40.5227734Z           [36m<Text>[39m
+2025-08-20T16:00:40.5227966Z             [0mChores[0m
+2025-08-20T16:00:40.5228194Z           [36m</Text>[39m
+2025-08-20T16:00:40.5228426Z         [36m</View>[39m
+2025-08-20T16:00:40.5228710Z         [36m<View[39m
+2025-08-20T16:00:40.5229021Z           [33maccessible[39m=[32m{true}[39m
+2025-08-20T16:00:40.5229294Z         [36m>[39m
+2025-08-20T16:00:40.5229496Z           [36m<Text>[39m
+2025-08-20T16:00:40.5229909Z             [0m💰[0m
+2025-08-20T16:00:40.5230135Z           [36m</Text>[39m
+2025-08-20T16:00:40.5230374Z           [36m<Text>[39m
+2025-08-20T16:00:40.5230597Z             [0mBalance[0m
+2025-08-20T16:00:40.5230823Z           [36m</Text>[39m
+2025-08-20T16:00:40.5231050Z         [36m</View>[39m
+2025-08-20T16:00:40.5231273Z         [36m<View[39m
+2025-08-20T16:00:40.5231543Z           [33maccessible[39m=[32m{true}[39m
+2025-08-20T16:00:40.5231810Z         [36m>[39m
+2025-08-20T16:00:40.5232016Z           [36m<Text>[39m
+2025-08-20T16:00:40.5232239Z             [0m👤[0m
+2025-08-20T16:00:40.5232454Z           [36m</Text>[39m
+2025-08-20T16:00:40.5232682Z           [36m<Text>[39m
+2025-08-20T16:00:40.5232909Z             [0mProfile[0m
+2025-08-20T16:00:40.5233137Z           [36m</Text>[39m
+2025-08-20T16:00:40.5233371Z         [36m</View>[39m
+2025-08-20T16:00:40.5233594Z       [36m</View>[39m
+2025-08-20T16:00:40.5233806Z     [36m</View>[39m
+2025-08-20T16:00:40.5233929Z 
+2025-08-20T16:00:40.5234041Z     [0m [90m 258 |[39m
+2025-08-20T16:00:40.5234337Z      [90m 259 |[39m       [90m// Start at login[39m
+2025-08-20T16:00:40.5235112Z     [31m[1m>[22m[39m[90m 260 |[39m       expect(getByTestId([32m'login-screen'[39m))[33m.[39mtoBeTruthy()[33m;[39m
+2025-08-20T16:00:40.5235620Z      [90m     |[39m              [31m[1m^[22m[39m
+2025-08-20T16:00:40.5235891Z      [90m 261 |[39m
+2025-08-20T16:00:40.5236187Z      [90m 262 |[39m       [90m// Perform mock login[39m
+2025-08-20T16:00:40.5236652Z      [90m 263 |[39m       [36mawait[39m act([36masync[39m () [33m=>[39m {[0m
+2025-08-20T16:00:40.5236892Z 
+2025-08-20T16:00:40.5237371Z       at Object.getByTestId (src/__tests__/integration/authFlow.test.tsx:260:14)
+2025-08-20T16:00:40.5237967Z       at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+2025-08-20T16:00:40.5238491Z       at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+2025-08-20T16:00:40.5238948Z       at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+2025-08-20T16:00:40.5239456Z       at Object.<anonymous> (node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+2025-08-20T16:00:40.5239771Z 
+2025-08-20T16:00:40.5240308Z   ● Authentication Flow Integration Tests › Authentication State Transitions › should show parent-specific tabs after parent login
+2025-08-20T16:00:40.5240764Z 
+2025-08-20T16:00:40.5240941Z     Unable to find an element with testID: mock-login-success
+2025-08-20T16:00:40.5241173Z 
+2025-08-20T16:00:40.5241272Z     [36m<View>[39m
+2025-08-20T16:00:40.5241491Z       [36m<View>[39m
+2025-08-20T16:00:40.5241709Z         [36m<Text>[39m
+2025-08-20T16:00:40.5241965Z           [0mChores Tracker[0m
+2025-08-20T16:00:40.5242212Z         [36m</Text>[39m
+2025-08-20T16:00:40.5242454Z       [36m</View>[39m
+2025-08-20T16:00:40.5242666Z       [36m<View>[39m
+2025-08-20T16:00:40.5242879Z         [36m<View[39m
+2025-08-20T16:00:40.5243169Z           [33mtestID[39m=[32m"home-screen"[39m
+2025-08-20T16:00:40.5243445Z         [36m>[39m
+2025-08-20T16:00:40.5243658Z           [36m<Text[39m
+2025-08-20T16:00:40.5243963Z             [33mtestID[39m=[32m"welcome-message"[39m
+2025-08-20T16:00:40.5244248Z           [36m>[39m
+2025-08-20T16:00:40.5244470Z             [0mWelcome, [0m
+2025-08-20T16:00:40.5244729Z             [0mtestparent[0m
+2025-08-20T16:00:40.5244963Z             [0m![0m
+2025-08-20T16:00:40.5245178Z           [36m</Text>[39m
+2025-08-20T16:00:40.5245408Z           [36m<Text[39m
+2025-08-20T16:00:40.5245682Z             [33mtestID[39m=[32m"user-role"[39m
+2025-08-20T16:00:40.5245953Z           [36m>[39m
+2025-08-20T16:00:40.5246165Z             [0mRole: [0m
+2025-08-20T16:00:40.5246391Z             [0munknown[0m
+2025-08-20T16:00:40.5246610Z           [36m</Text>[39m
+2025-08-20T16:00:40.5246832Z           [36m<View[39m
+2025-08-20T16:00:40.5247332Z             [33maccessible[39m=[32m{true}[39m
+2025-08-20T16:00:40.5248047Z             [33mtestID[39m=[32m"logout-button"[39m
+2025-08-20T16:00:40.5248525Z           [36m>[39m
+2025-08-20T16:00:40.5248796Z             [36m<Text>[39m
+2025-08-20T16:00:40.5249043Z               [0mLogout[0m
+2025-08-20T16:00:40.5249282Z             [36m</Text>[39m
+2025-08-20T16:00:40.5249516Z           [36m</View>[39m
+2025-08-20T16:00:40.5249732Z           [36m<View[39m
+2025-08-20T16:00:40.5250012Z             [33maccessible[39m=[32m{true}[39m
+2025-08-20T16:00:40.5250365Z             [33mtestID[39m=[32m"navigate-chores"[39m
+2025-08-20T16:00:40.5250647Z           [36m>[39m
+2025-08-20T16:00:40.5250857Z             [36m<Text>[39m
+2025-08-20T16:00:40.5251117Z               [0mGo to Chores[0m
+2025-08-20T16:00:40.5251374Z             [36m</Text>[39m
+2025-08-20T16:00:40.5251610Z           [36m</View>[39m
+2025-08-20T16:00:40.5251934Z         [36m</View>[39m
+2025-08-20T16:00:40.5252194Z       [36m</View>[39m
+2025-08-20T16:00:40.5252462Z       [36m<View>[39m
+2025-08-20T16:00:40.5252708Z         [36m<View[39m
+2025-08-20T16:00:40.5252984Z           [33maccessible[39m=[32m{true}[39m
+2025-08-20T16:00:40.5253394Z         [36m>[39m
+2025-08-20T16:00:40.5253605Z           [36m<Text>[39m
+2025-08-20T16:00:40.5253839Z             [0m🏠[0m
+2025-08-20T16:00:40.5254054Z           [36m</Text>[39m
+2025-08-20T16:00:40.5254279Z           [36m<Text>[39m
+2025-08-20T16:00:40.5254492Z             [0mHome[0m
+2025-08-20T16:00:40.5254713Z           [36m</Text>[39m
+2025-08-20T16:00:40.5254936Z         [36m</View>[39m
+2025-08-20T16:00:40.5255153Z         [36m<View[39m
+2025-08-20T16:00:40.5255416Z           [33maccessible[39m=[32m{true}[39m
+2025-08-20T16:00:40.5255678Z         [36m>[39m
+2025-08-20T16:00:40.5255885Z           [36m<Text>[39m
+2025-08-20T16:00:40.5256105Z             [0m✅[0m
+2025-08-20T16:00:40.5256312Z           [36m</Text>[39m
+2025-08-20T16:00:40.5256536Z           [36m<Text>[39m
+2025-08-20T16:00:40.5256760Z             [0mChores[0m
+2025-08-20T16:00:40.5256989Z           [36m</Text>[39m
+2025-08-20T16:00:40.5257471Z         [36m</View>[39m
+2025-08-20T16:00:40.5257708Z         [36m<View[39m
+2025-08-20T16:00:40.5257976Z           [33maccessible[39m=[32m{true}[39m
+2025-08-20T16:00:40.5258234Z         [36m>[39m
+2025-08-20T16:00:40.5258435Z           [36m<Text>[39m
+2025-08-20T16:00:40.5258658Z             [0m💰[0m
+2025-08-20T16:00:40.5258874Z           [36m</Text>[39m
+2025-08-20T16:00:40.5259101Z           [36m<Text>[39m
+2025-08-20T16:00:40.5259319Z             [0mBalance[0m
+2025-08-20T16:00:40.5259543Z           [36m</Text>[39m
+2025-08-20T16:00:40.5259767Z         [36m</View>[39m
+2025-08-20T16:00:40.5259988Z         [36m<View[39m
+2025-08-20T16:00:40.5260251Z           [33maccessible[39m=[32m{true}[39m
+2025-08-20T16:00:40.5260514Z         [36m>[39m
+2025-08-20T16:00:40.5260720Z           [36m<Text>[39m
+2025-08-20T16:00:40.5260942Z             [0m👤[0m
+2025-08-20T16:00:40.5261147Z           [36m</Text>[39m
+2025-08-20T16:00:40.5261377Z           [36m<Text>[39m
+2025-08-20T16:00:40.5261602Z             [0mProfile[0m
+2025-08-20T16:00:40.5261840Z           [36m</Text>[39m
+2025-08-20T16:00:40.5262058Z         [36m</View>[39m
+2025-08-20T16:00:40.5262280Z       [36m</View>[39m
+2025-08-20T16:00:40.5262493Z     [36m</View>[39m
+2025-08-20T16:00:40.5262608Z 
+2025-08-20T16:00:40.5262799Z     [0m [90m 293 |[39m       [90m// Perform login[39m
+2025-08-20T16:00:40.5263239Z      [90m 294 |[39m       [36mawait[39m act([36masync[39m () [33m=>[39m {
+2025-08-20T16:00:40.5263877Z     [31m[1m>[22m[39m[90m 295 |[39m         fireEvent[33m.[39mpress(getByTestId([32m'mock-login-success'[39m))[33m;[39m
+2025-08-20T16:00:40.5264416Z      [90m     |[39m                         [31m[1m^[22m[39m
+2025-08-20T16:00:40.5264752Z      [90m 296 |[39m       })[33m;[39m
+2025-08-20T16:00:40.5265009Z      [90m 297 |[39m
+2025-08-20T16:00:40.5265336Z      [90m 298 |[39m       [36mawait[39m waitFor(() [33m=>[39m {[0m
+2025-08-20T16:00:40.5265685Z 
+2025-08-20T16:00:40.5265893Z       at getByTestId (src/__tests__/integration/authFlow.test.tsx:295:25)
+2025-08-20T16:00:40.5266421Z       at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+2025-08-20T16:00:40.5266940Z       at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+2025-08-20T16:00:40.5267618Z       at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+2025-08-20T16:00:40.5268042Z       at node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12
+2025-08-20T16:00:40.5268494Z       at callback (node_modules/@testing-library/react-native/src/act.ts:31:24)
+2025-08-20T16:00:40.5269099Z       at Object.<anonymous>.process.env.NODE_ENV.exports.act (node_modules/react/cjs/react.development.js:790:22)
+2025-08-20T16:00:40.5269728Z       at actImplementation (node_modules/@testing-library/react-native/src/act.ts:30:25)
+2025-08-20T16:00:40.5270247Z       at Object.<anonymous> (src/__tests__/integration/authFlow.test.tsx:294:16)
+2025-08-20T16:00:40.5270779Z       at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+2025-08-20T16:00:40.5271417Z       at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+2025-08-20T16:00:40.5271848Z       at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+2025-08-20T16:00:40.5272335Z       at Object.<anonymous> (node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+2025-08-20T16:00:40.5272642Z 
+2025-08-20T16:00:40.5273181Z   ● Authentication Flow Integration Tests › Authentication State Transitions › should show child-specific interface after child login
+2025-08-20T16:00:40.5273636Z 
+2025-08-20T16:00:40.5273811Z     Unable to find an element with testID: mock-login-success
+2025-08-20T16:00:40.5274031Z 
+2025-08-20T16:00:40.5274137Z     [36m<View>[39m
+2025-08-20T16:00:40.5274354Z       [36m<View>[39m
+2025-08-20T16:00:40.5274567Z         [36m<Text>[39m
+2025-08-20T16:00:40.5274822Z           [0mChores Tracker[0m
+2025-08-20T16:00:40.5275081Z         [36m</Text>[39m
+2025-08-20T16:00:40.5275306Z       [36m</View>[39m
+2025-08-20T16:00:40.5275523Z       [36m<View>[39m
+2025-08-20T16:00:40.5275735Z         [36m<View[39m
+2025-08-20T16:00:40.5276014Z           [33mtestID[39m=[32m"home-screen"[39m
+2025-08-20T16:00:40.5276286Z         [36m>[39m
+2025-08-20T16:00:40.5276486Z           [36m<Text[39m
+2025-08-20T16:00:40.5276788Z             [33mtestID[39m=[32m"welcome-message"[39m
+2025-08-20T16:00:40.5277224Z           [36m>[39m
+2025-08-20T16:00:40.5277455Z             [0mWelcome, [0m
+2025-08-20T16:00:40.5277715Z             [0mtestparent[0m
+2025-08-20T16:00:40.5277954Z             [0m![0m
+2025-08-20T16:00:40.5278169Z           [36m</Text>[39m
+2025-08-20T16:00:40.5278396Z           [36m<Text[39m
+2025-08-20T16:00:40.5278677Z             [33mtestID[39m=[32m"user-role"[39m
+2025-08-20T16:00:40.5278949Z           [36m>[39m
+2025-08-20T16:00:40.5279162Z             [0mRole: [0m
+2025-08-20T16:00:40.5279400Z             [0munknown[0m
+2025-08-20T16:00:40.5279629Z           [36m</Text>[39m
+2025-08-20T16:00:40.5279859Z           [36m<View[39m
+2025-08-20T16:00:40.5280141Z             [33maccessible[39m=[32m{true}[39m
+2025-08-20T16:00:40.5280489Z             [33mtestID[39m=[32m"logout-button"[39m
+2025-08-20T16:00:40.5280767Z           [36m>[39m
+2025-08-20T16:00:40.5280977Z             [36m<Text>[39m
+2025-08-20T16:00:40.5281217Z               [0mLogout[0m
+2025-08-20T16:00:40.5281455Z             [36m</Text>[39m
+2025-08-20T16:00:40.5281698Z           [36m</View>[39m
+2025-08-20T16:00:40.5281918Z           [36m<View[39m
+2025-08-20T16:00:40.5282195Z             [33maccessible[39m=[32m{true}[39m
+2025-08-20T16:00:40.5282545Z             [33mtestID[39m=[32m"navigate-chores"[39m
+2025-08-20T16:00:40.5282824Z           [36m>[39m
+2025-08-20T16:00:40.5283029Z             [36m<Text>[39m
+2025-08-20T16:00:40.5283288Z               [0mGo to Chores[0m
+2025-08-20T16:00:40.5283705Z             [36m</Text>[39m
+2025-08-20T16:00:40.5283939Z           [36m</View>[39m
+2025-08-20T16:00:40.5284156Z         [36m</View>[39m
+2025-08-20T16:00:40.5284383Z       [36m</View>[39m
+2025-08-20T16:00:40.5284598Z       [36m<View>[39m
+2025-08-20T16:00:40.5284809Z         [36m<View[39m
+2025-08-20T16:00:40.5285084Z           [33maccessible[39m=[32m{true}[39m
+2025-08-20T16:00:40.5285342Z         [36m>[39m
+2025-08-20T16:00:40.5285549Z           [36m<Text>[39m
+2025-08-20T16:00:40.5285775Z             [0m🏠[0m
+2025-08-20T16:00:40.5285986Z           [36m</Text>[39m
+2025-08-20T16:00:40.5286226Z           [36m<Text>[39m
+2025-08-20T16:00:40.5286452Z             [0mHome[0m
+2025-08-20T16:00:40.5286670Z           [36m</Text>[39m
+2025-08-20T16:00:40.5286899Z         [36m</View>[39m
+2025-08-20T16:00:40.5287227Z         [36m<View[39m
+2025-08-20T16:00:40.5287497Z           [33maccessible[39m=[32m{true}[39m
+2025-08-20T16:00:40.5287757Z         [36m>[39m
+2025-08-20T16:00:40.5287974Z           [36m<Text>[39m
+2025-08-20T16:00:40.5288196Z             [0m✅[0m
+2025-08-20T16:00:40.5288408Z           [36m</Text>[39m
+2025-08-20T16:00:40.5288760Z           [36m<Text>[39m
+2025-08-20T16:00:40.5288985Z             [0mChores[0m
+2025-08-20T16:00:40.5289209Z           [36m</Text>[39m
+2025-08-20T16:00:40.5289434Z         [36m</View>[39m
+2025-08-20T16:00:40.5289650Z         [36m<View[39m
+2025-08-20T16:00:40.5289916Z           [33maccessible[39m=[32m{true}[39m
+2025-08-20T16:00:40.5290180Z         [36m>[39m
+2025-08-20T16:00:40.5290390Z           [36m<Text>[39m
+2025-08-20T16:00:40.5290603Z             [0m💰[0m
+2025-08-20T16:00:40.5290816Z           [36m</Text>[39m
+2025-08-20T16:00:40.5291041Z           [36m<Text>[39m
+2025-08-20T16:00:40.5291266Z             [0mBalance[0m
+2025-08-20T16:00:40.5291488Z           [36m</Text>[39m
+2025-08-20T16:00:40.5291710Z         [36m</View>[39m
+2025-08-20T16:00:40.5291927Z         [36m<View[39m
+2025-08-20T16:00:40.5292191Z           [33maccessible[39m=[32m{true}[39m
+2025-08-20T16:00:40.5292462Z         [36m>[39m
+2025-08-20T16:00:40.5292664Z           [36m<Text>[39m
+2025-08-20T16:00:40.5292891Z             [0m👤[0m
+2025-08-20T16:00:40.5293104Z           [36m</Text>[39m
+2025-08-20T16:00:40.5293326Z           [36m<Text>[39m
+2025-08-20T16:00:40.5293547Z             [0mProfile[0m
+2025-08-20T16:00:40.5293785Z           [36m</Text>[39m
+2025-08-20T16:00:40.5294002Z         [36m</View>[39m
+2025-08-20T16:00:40.5294224Z       [36m</View>[39m
+2025-08-20T16:00:40.5294435Z     [36m</View>[39m
+2025-08-20T16:00:40.5294549Z 
+2025-08-20T16:00:40.5294733Z     [0m [90m 324 |[39m       [90m// Perform login[39m
+2025-08-20T16:00:40.5295165Z      [90m 325 |[39m       [36mawait[39m act([36masync[39m () [33m=>[39m {
+2025-08-20T16:00:40.5295799Z     [31m[1m>[22m[39m[90m 326 |[39m         fireEvent[33m.[39mpress(getByTestId([32m'mock-login-success'[39m))[33m;[39m
+2025-08-20T16:00:40.5296332Z      [90m     |[39m                         [31m[1m^[22m[39m
+2025-08-20T16:00:40.5296668Z      [90m 327 |[39m       })[33m;[39m
+2025-08-20T16:00:40.5296930Z      [90m 328 |[39m
+2025-08-20T16:00:40.5297359Z      [90m 329 |[39m       [36mawait[39m waitFor(() [33m=>[39m {[0m
+2025-08-20T16:00:40.5297573Z 
+2025-08-20T16:00:40.5297774Z       at getByTestId (src/__tests__/integration/authFlow.test.tsx:326:25)
+2025-08-20T16:00:40.5298318Z       at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+2025-08-20T16:00:40.5298837Z       at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+2025-08-20T16:00:40.5299273Z       at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+2025-08-20T16:00:40.5299692Z       at node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12
+2025-08-20T16:00:40.5300137Z       at callback (node_modules/@testing-library/react-native/src/act.ts:31:24)
+2025-08-20T16:00:40.5300738Z       at Object.<anonymous>.process.env.NODE_ENV.exports.act (node_modules/react/cjs/react.development.js:790:22)
+2025-08-20T16:00:40.5301489Z       at actImplementation (node_modules/@testing-library/react-native/src/act.ts:30:25)
+2025-08-20T16:00:40.5302015Z       at Object.<anonymous> (src/__tests__/integration/authFlow.test.tsx:325:16)
+2025-08-20T16:00:40.5302539Z       at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+2025-08-20T16:00:40.5303048Z       at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+2025-08-20T16:00:40.5303480Z       at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+2025-08-20T16:00:40.5303966Z       at Object.<anonymous> (node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+2025-08-20T16:00:40.5304270Z 
+2025-08-20T16:00:40.5304727Z   ● Authentication Flow Integration Tests › Login Error Handling Integration › should handle login failures gracefully
+2025-08-20T16:00:40.5305133Z 
+2025-08-20T16:00:40.5305297Z     Unable to find an element with testID: mock-login-error
+2025-08-20T16:00:40.5305522Z 
+2025-08-20T16:00:40.5305627Z     [36m<View>[39m
+2025-08-20T16:00:40.5305840Z       [36m<View>[39m
+2025-08-20T16:00:40.5306172Z         [36m<Text>[39m
+2025-08-20T16:00:40.5306429Z           [0mChores Tracker[0m
+2025-08-20T16:00:40.5306676Z         [36m</Text>[39m
+2025-08-20T16:00:40.5306896Z       [36m</View>[39m
+2025-08-20T16:00:40.5307207Z       [36m<View>[39m
+2025-08-20T16:00:40.5307422Z         [36m<View[39m
+2025-08-20T16:00:40.5307699Z           [33mtestID[39m=[32m"home-screen"[39m
+2025-08-20T16:00:40.5307975Z         [36m>[39m
+2025-08-20T16:00:40.5308176Z           [36m<Text[39m
+2025-08-20T16:00:40.5308477Z             [33mtestID[39m=[32m"welcome-message"[39m
+2025-08-20T16:00:40.5308758Z           [36m>[39m
+2025-08-20T16:00:40.5308981Z             [0mWelcome, [0m
+2025-08-20T16:00:40.5309246Z             [0mtestparent[0m
+2025-08-20T16:00:40.5309480Z             [0m![0m
+2025-08-20T16:00:40.5309692Z           [36m</Text>[39m
+2025-08-20T16:00:40.5309927Z           [36m<Text[39m
+2025-08-20T16:00:40.5310201Z             [33mtestID[39m=[32m"user-role"[39m
+2025-08-20T16:00:40.5310482Z           [36m>[39m
+2025-08-20T16:00:40.5310695Z             [0mRole: [0m
+2025-08-20T16:00:40.5310925Z             [0munknown[0m
+2025-08-20T16:00:40.5311151Z           [36m</Text>[39m
+2025-08-20T16:00:40.5311373Z           [36m<View[39m
+2025-08-20T16:00:40.5311652Z             [33maccessible[39m=[32m{true}[39m
+2025-08-20T16:00:40.5311999Z             [33mtestID[39m=[32m"logout-button"[39m
+2025-08-20T16:00:40.5312276Z           [36m>[39m
+2025-08-20T16:00:40.5312483Z             [36m<Text>[39m
+2025-08-20T16:00:40.5312722Z               [0mLogout[0m
+2025-08-20T16:00:40.5312957Z             [36m</Text>[39m
+2025-08-20T16:00:40.5313191Z           [36m</View>[39m
+2025-08-20T16:00:40.5313408Z           [36m<View[39m
+2025-08-20T16:00:40.5313680Z             [33maccessible[39m=[32m{true}[39m
+2025-08-20T16:00:40.5314022Z             [33mtestID[39m=[32m"navigate-chores"[39m
+2025-08-20T16:00:40.5314311Z           [36m>[39m
+2025-08-20T16:00:40.5314514Z             [36m<Text>[39m
+2025-08-20T16:00:40.5314779Z               [0mGo to Chores[0m
+2025-08-20T16:00:40.5315033Z             [36m</Text>[39m
+2025-08-20T16:00:40.5315265Z           [36m</View>[39m
+2025-08-20T16:00:40.5315479Z         [36m</View>[39m
+2025-08-20T16:00:40.5315699Z       [36m</View>[39m
+2025-08-20T16:00:40.5315912Z       [36m<View>[39m
+2025-08-20T16:00:40.5316123Z         [36m<View[39m
+2025-08-20T16:00:40.5316383Z           [33maccessible[39m=[32m{true}[39m
+2025-08-20T16:00:40.5316648Z         [36m>[39m
+2025-08-20T16:00:40.5316862Z           [36m<Text>[39m
+2025-08-20T16:00:40.5317187Z             [0m🏠[0m
+2025-08-20T16:00:40.5317402Z           [36m</Text>[39m
+2025-08-20T16:00:40.5317620Z           [36m<Text>[39m
+2025-08-20T16:00:40.5317840Z             [0mHome[0m
+2025-08-20T16:00:40.5318062Z           [36m</Text>[39m
+2025-08-20T16:00:40.5318430Z         [36m</View>[39m
+2025-08-20T16:00:40.5318646Z         [36m<View[39m
+2025-08-20T16:00:40.5318916Z           [33maccessible[39m=[32m{true}[39m
+2025-08-20T16:00:40.5319187Z         [36m>[39m
+2025-08-20T16:00:40.5319394Z           [36m<Text>[39m
+2025-08-20T16:00:40.5319607Z             [0m✅[0m
+2025-08-20T16:00:40.5319819Z           [36m</Text>[39m
+2025-08-20T16:00:40.5320040Z           [36m<Text>[39m
+2025-08-20T16:00:40.5320264Z             [0mChores[0m
+2025-08-20T16:00:40.5320482Z           [36m</Text>[39m
+2025-08-20T16:00:40.5320704Z         [36m</View>[39m
+2025-08-20T16:00:40.5320921Z         [36m<View[39m
+2025-08-20T16:00:40.5321190Z           [33maccessible[39m=[32m{true}[39m
+2025-08-20T16:00:40.5321442Z         [36m>[39m
+2025-08-20T16:00:40.5321645Z           [36m<Text>[39m
+2025-08-20T16:00:40.5321864Z             [0m💰[0m
+2025-08-20T16:00:40.5322077Z           [36m</Text>[39m
+2025-08-20T16:00:40.5322295Z           [36m<Text>[39m
+2025-08-20T16:00:40.5322527Z             [0mBalance[0m
+2025-08-20T16:00:40.5322754Z           [36m</Text>[39m
+2025-08-20T16:00:40.5322977Z         [36m</View>[39m
+2025-08-20T16:00:40.5323322Z         [36m<View[39m
+2025-08-20T16:00:40.5323591Z           [33maccessible[39m=[32m{true}[39m
+2025-08-20T16:00:40.5323851Z         [36m>[39m
+2025-08-20T16:00:40.5324063Z           [36m<Text>[39m
+2025-08-20T16:00:40.5324281Z             [0m👤[0m
+2025-08-20T16:00:40.5324493Z           [36m</Text>[39m
+2025-08-20T16:00:40.5324714Z           [36m<Text>[39m
+2025-08-20T16:00:40.5324939Z             [0mProfile[0m
+2025-08-20T16:00:40.5325165Z           [36m</Text>[39m
+2025-08-20T16:00:40.5325380Z         [36m</View>[39m
+2025-08-20T16:00:40.5325595Z       [36m</View>[39m
+2025-08-20T16:00:40.5325803Z     [36m</View>[39m
+2025-08-20T16:00:40.5325911Z 
+2025-08-20T16:00:40.5326129Z     [0m [90m 352 |[39m       [90m// Attempt login with error[39m
+2025-08-20T16:00:40.5326570Z      [90m 353 |[39m       [36mawait[39m act([36masync[39m () [33m=>[39m {
+2025-08-20T16:00:40.5327311Z     [31m[1m>[22m[39m[90m 354 |[39m         fireEvent[33m.[39mpress(getByTestId([32m'mock-login-error'[39m))[33m;[39m
+2025-08-20T16:00:40.5327855Z      [90m     |[39m                         [31m[1m^[22m[39m
+2025-08-20T16:00:40.5328189Z      [90m 355 |[39m       })[33m;[39m
+2025-08-20T16:00:40.5328442Z      [90m 356 |[39m
+2025-08-20T16:00:40.5328765Z      [90m 357 |[39m       [90m// Should remain on login screen[39m[0m
+2025-08-20T16:00:40.5328991Z 
+2025-08-20T16:00:40.5329197Z       at getByTestId (src/__tests__/integration/authFlow.test.tsx:354:25)
+2025-08-20T16:00:40.5329722Z       at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+2025-08-20T16:00:40.5330244Z       at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+2025-08-20T16:00:40.5330687Z       at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+2025-08-20T16:00:40.5331105Z       at node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12
+2025-08-20T16:00:40.5331561Z       at callback (node_modules/@testing-library/react-native/src/act.ts:31:24)
+2025-08-20T16:00:40.5332164Z       at Object.<anonymous>.process.env.NODE_ENV.exports.act (node_modules/react/cjs/react.development.js:790:22)
+2025-08-20T16:00:40.5332793Z       at actImplementation (node_modules/@testing-library/react-native/src/act.ts:30:25)
+2025-08-20T16:00:40.5333311Z       at Object.<anonymous> (src/__tests__/integration/authFlow.test.tsx:353:16)
+2025-08-20T16:00:40.5333837Z       at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+2025-08-20T16:00:40.5334340Z       at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+2025-08-20T16:00:40.5334780Z       at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+2025-08-20T16:00:40.5335270Z       at Object.<anonymous> (node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+2025-08-20T16:00:40.5335570Z 
+2025-08-20T16:00:40.5336163Z   ● Authentication Flow Integration Tests › Login Error Handling Integration › should handle network errors during login
+2025-08-20T16:00:40.5336584Z 
+2025-08-20T16:00:40.5336756Z     Unable to find an element with testID: mock-login-error
+2025-08-20T16:00:40.5336969Z 
+2025-08-20T16:00:40.5337174Z     [36m<View>[39m
+2025-08-20T16:00:40.5337390Z       [36m<View>[39m
+2025-08-20T16:00:40.5337608Z         [36m<Text>[39m
+2025-08-20T16:00:40.5337867Z           [0mChores Tracker[0m
+2025-08-20T16:00:40.5338114Z         [36m</Text>[39m
+2025-08-20T16:00:40.5338330Z       [36m</View>[39m
+2025-08-20T16:00:40.5338546Z       [36m<View>[39m
+2025-08-20T16:00:40.5338757Z         [36m<View[39m
+2025-08-20T16:00:40.5339036Z           [33mtestID[39m=[32m"home-screen"[39m
+2025-08-20T16:00:40.5339303Z         [36m>[39m
+2025-08-20T16:00:40.5339511Z           [36m<Text[39m
+2025-08-20T16:00:40.5339811Z             [33mtestID[39m=[32m"welcome-message"[39m
+2025-08-20T16:00:40.5340095Z           [36m>[39m
+2025-08-20T16:00:40.5340317Z             [0mWelcome, [0m
+2025-08-20T16:00:40.5340585Z             [0mtestparent[0m
+2025-08-20T16:00:40.5340969Z             [0m![0m
+2025-08-20T16:00:40.5341184Z           [36m</Text>[39m
+2025-08-20T16:00:40.5341406Z           [36m<Text[39m
+2025-08-20T16:00:40.5341685Z             [33mtestID[39m=[32m"user-role"[39m
+2025-08-20T16:00:40.5341954Z           [36m>[39m
+2025-08-20T16:00:40.5342172Z             [0mRole: [0m
+2025-08-20T16:00:40.5342400Z             [0munknown[0m
+2025-08-20T16:00:40.5342620Z           [36m</Text>[39m
+2025-08-20T16:00:40.5342842Z           [36m<View[39m
+2025-08-20T16:00:40.5343122Z             [33maccessible[39m=[32m{true}[39m
+2025-08-20T16:00:40.5343464Z             [33mtestID[39m=[32m"logout-button"[39m
+2025-08-20T16:00:40.5343733Z           [36m>[39m
+2025-08-20T16:00:40.5343946Z             [36m<Text>[39m
+2025-08-20T16:00:40.5344182Z               [0mLogout[0m
+2025-08-20T16:00:40.5344414Z             [36m</Text>[39m
+2025-08-20T16:00:40.5344653Z           [36m</View>[39m
+2025-08-20T16:00:40.5344876Z           [36m<View[39m
+2025-08-20T16:00:40.5345158Z             [33maccessible[39m=[32m{true}[39m
+2025-08-20T16:00:40.5345501Z             [33mtestID[39m=[32m"navigate-chores"[39m
+2025-08-20T16:00:40.5345776Z           [36m>[39m
+2025-08-20T16:00:40.5345988Z             [36m<Text>[39m
+2025-08-20T16:00:40.5346248Z               [0mGo to Chores[0m
+2025-08-20T16:00:40.5346502Z             [36m</Text>[39m
+2025-08-20T16:00:40.5346726Z           [36m</View>[39m
+2025-08-20T16:00:40.5346954Z         [36m</View>[39m
+2025-08-20T16:00:40.5347281Z       [36m</View>[39m
+2025-08-20T16:00:40.5347495Z       [36m<View>[39m
+2025-08-20T16:00:40.5347704Z         [36m<View[39m
+2025-08-20T16:00:40.5347967Z           [33maccessible[39m=[32m{true}[39m
+2025-08-20T16:00:40.5348231Z         [36m>[39m
+2025-08-20T16:00:40.5348439Z           [36m<Text>[39m
+2025-08-20T16:00:40.5348663Z             [0m🏠[0m
+2025-08-20T16:00:40.5348875Z           [36m</Text>[39m
+2025-08-20T16:00:40.5349100Z           [36m<Text>[39m
+2025-08-20T16:00:40.5349330Z             [0mHome[0m
+2025-08-20T16:00:40.5349549Z           [36m</Text>[39m
+2025-08-20T16:00:40.5349770Z         [36m</View>[39m
+2025-08-20T16:00:40.5369343Z         [36m<View[39m
+2025-08-20T16:00:40.5369848Z           [33maccessible[39m=[32m{true}[39m
+2025-08-20T16:00:40.5370154Z         [36m>[39m
+2025-08-20T16:00:40.5370384Z           [36m<Text>[39m
+2025-08-20T16:00:40.5370633Z             [0m✅[0m
+2025-08-20T16:00:40.5370869Z           [36m</Text>[39m
+2025-08-20T16:00:40.5371121Z           [36m<Text>[39m
+2025-08-20T16:00:40.5371356Z             [0mChores[0m
+2025-08-20T16:00:40.5371590Z           [36m</Text>[39m
+2025-08-20T16:00:40.5371834Z         [36m</View>[39m
+2025-08-20T16:00:40.5372072Z         [36m<View[39m
+2025-08-20T16:00:40.5372356Z           [33maccessible[39m=[32m{true}[39m
+2025-08-20T16:00:40.5372634Z         [36m>[39m
+2025-08-20T16:00:40.5373052Z           [36m<Text>[39m
+2025-08-20T16:00:40.5373298Z             [0m💰[0m
+2025-08-20T16:00:40.5373531Z           [36m</Text>[39m
+2025-08-20T16:00:40.5373771Z           [36m<Text>[39m
+2025-08-20T16:00:40.5374003Z             [0mBalance[0m
+2025-08-20T16:00:40.5374239Z           [36m</Text>[39m
+2025-08-20T16:00:40.5374469Z         [36m</View>[39m
+2025-08-20T16:00:40.5374704Z         [36m<View[39m
+2025-08-20T16:00:40.5374997Z           [33maccessible[39m=[32m{true}[39m
+2025-08-20T16:00:40.5375290Z         [36m>[39m
+2025-08-20T16:00:40.5375503Z           [36m<Text>[39m
+2025-08-20T16:00:40.5375733Z             [0m👤[0m
+2025-08-20T16:00:40.5375956Z           [36m</Text>[39m
+2025-08-20T16:00:40.5376186Z           [36m<Text>[39m
+2025-08-20T16:00:40.5376409Z             [0mProfile[0m
+2025-08-20T16:00:40.5376640Z           [36m</Text>[39m
+2025-08-20T16:00:40.5376866Z         [36m</View>[39m
+2025-08-20T16:00:40.5377301Z       [36m</View>[39m
+2025-08-20T16:00:40.5377542Z     [36m</View>[39m
+2025-08-20T16:00:40.5377664Z 
+2025-08-20T16:00:40.5377771Z     [0m [90m 370 |[39m
+2025-08-20T16:00:40.5378292Z      [90m 371 |[39m       [36mawait[39m act([36masync[39m () [33m=>[39m {
+2025-08-20T16:00:40.5378938Z     [31m[1m>[22m[39m[90m 372 |[39m         fireEvent[33m.[39mpress(getByTestId([32m'mock-login-error'[39m))[33m;[39m
+2025-08-20T16:00:40.5379488Z      [90m     |[39m                         [31m[1m^[22m[39m
+2025-08-20T16:00:40.5379828Z      [90m 373 |[39m       })[33m;[39m
+2025-08-20T16:00:40.5380082Z      [90m 374 |[39m
+2025-08-20T16:00:40.5380423Z      [90m 375 |[39m       [90m// Should remain on login screen[39m[0m
+2025-08-20T16:00:40.5380658Z 
+2025-08-20T16:00:40.5380875Z       at getByTestId (src/__tests__/integration/authFlow.test.tsx:372:25)
+2025-08-20T16:00:40.5381451Z       at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+2025-08-20T16:00:40.5381984Z       at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+2025-08-20T16:00:40.5382448Z       at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+2025-08-20T16:00:40.5382889Z       at node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12
+2025-08-20T16:00:40.5383351Z       at callback (node_modules/@testing-library/react-native/src/act.ts:31:24)
+2025-08-20T16:00:40.5383964Z       at Object.<anonymous>.process.env.NODE_ENV.exports.act (node_modules/react/cjs/react.development.js:790:22)
+2025-08-20T16:00:40.5384609Z       at actImplementation (node_modules/@testing-library/react-native/src/act.ts:30:25)
+2025-08-20T16:00:40.5385132Z       at Object.<anonymous> (src/__tests__/integration/authFlow.test.tsx:371:16)
+2025-08-20T16:00:40.5385670Z       at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+2025-08-20T16:00:40.5386190Z       at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+2025-08-20T16:00:40.5386633Z       at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+2025-08-20T16:00:40.5387296Z       at Object.<anonymous> (node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+2025-08-20T16:00:40.5387610Z 
+2025-08-20T16:00:40.5388081Z   ● Authentication Flow Integration Tests › Logout Integration Flow › should complete logout flow and return to login
+2025-08-20T16:00:40.5388485Z 
+2025-08-20T16:00:40.5388660Z     Unable to find an element with testID: mock-login-success
+2025-08-20T16:00:40.5388890Z 
+2025-08-20T16:00:40.5388997Z     [36m<View>[39m
+2025-08-20T16:00:40.5389214Z       [36m<View>[39m
+2025-08-20T16:00:40.5389438Z         [36m<Text>[39m
+2025-08-20T16:00:40.5389696Z           [0mChores Tracker[0m
+2025-08-20T16:00:40.5389946Z         [36m</Text>[39m
+2025-08-20T16:00:40.5390178Z       [36m</View>[39m
+2025-08-20T16:00:40.5390400Z       [36m<View>[39m
+2025-08-20T16:00:40.5390618Z         [36m<View[39m
+2025-08-20T16:00:40.5390894Z           [33mtestID[39m=[32m"home-screen"[39m
+2025-08-20T16:00:40.5391166Z         [36m>[39m
+2025-08-20T16:00:40.5391514Z           [36m<Text[39m
+2025-08-20T16:00:40.5391818Z             [33mtestID[39m=[32m"welcome-message"[39m
+2025-08-20T16:00:40.5392112Z           [36m>[39m
+2025-08-20T16:00:40.5392329Z             [0mWelcome, [0m
+2025-08-20T16:00:40.5392593Z             [0mtestparent[0m
+2025-08-20T16:00:40.5392828Z             [0m![0m
+2025-08-20T16:00:40.5393045Z           [36m</Text>[39m
+2025-08-20T16:00:40.5393272Z           [36m<Text[39m
+2025-08-20T16:00:40.5393561Z             [33mtestID[39m=[32m"user-role"[39m
+2025-08-20T16:00:40.5393836Z           [36m>[39m
+2025-08-20T16:00:40.5394060Z             [0mRole: [0m
+2025-08-20T16:00:40.5394290Z             [0munknown[0m
+2025-08-20T16:00:40.5394520Z           [36m</Text>[39m
+2025-08-20T16:00:40.5394746Z           [36m<View[39m
+2025-08-20T16:00:40.5395028Z             [33maccessible[39m=[32m{true}[39m
+2025-08-20T16:00:40.5395370Z             [33mtestID[39m=[32m"logout-button"[39m
+2025-08-20T16:00:40.5395652Z           [36m>[39m
+2025-08-20T16:00:40.5395870Z             [36m<Text>[39m
+2025-08-20T16:00:40.5396114Z               [0mLogout[0m
+2025-08-20T16:00:40.5396478Z             [36m</Text>[39m
+2025-08-20T16:00:40.5396712Z           [36m</View>[39m
+2025-08-20T16:00:40.5396940Z           [36m<View[39m
+2025-08-20T16:00:40.5397446Z             [33maccessible[39m=[32m{true}[39m
+2025-08-20T16:00:40.5397806Z             [33mtestID[39m=[32m"navigate-chores"[39m
+2025-08-20T16:00:40.5398082Z           [36m>[39m
+2025-08-20T16:00:40.5398327Z             [36m<Text>[39m
+2025-08-20T16:00:40.5398591Z               [0mGo to Chores[0m
+2025-08-20T16:00:40.5398849Z             [36m</Text>[39m
+2025-08-20T16:00:40.5399082Z           [36m</View>[39m
+2025-08-20T16:00:40.5399310Z         [36m</View>[39m
+2025-08-20T16:00:40.5399533Z       [36m</View>[39m
+2025-08-20T16:00:40.5399750Z       [36m<View>[39m
+2025-08-20T16:00:40.5399959Z         [36m<View[39m
+2025-08-20T16:00:40.5400468Z           [33maccessible[39m=[32m{true}[39m
+2025-08-20T16:00:40.5400904Z         [36m>[39m
+2025-08-20T16:00:40.5401122Z           [36m<Text>[39m
+2025-08-20T16:00:40.5401364Z             [0m🏠[0m
+2025-08-20T16:00:40.5401576Z           [36m</Text>[39m
+2025-08-20T16:00:40.5401803Z           [36m<Text>[39m
+2025-08-20T16:00:40.5402030Z             [0mHome[0m
+2025-08-20T16:00:40.5402255Z           [36m</Text>[39m
+2025-08-20T16:00:40.5402477Z         [36m</View>[39m
+2025-08-20T16:00:40.5402700Z         [36m<View[39m
+2025-08-20T16:00:40.5402974Z           [33maccessible[39m=[32m{true}[39m
+2025-08-20T16:00:40.5403237Z         [36m>[39m
+2025-08-20T16:00:40.5403438Z           [36m<Text>[39m
+2025-08-20T16:00:40.5403659Z             [0m✅[0m
+2025-08-20T16:00:40.5403873Z           [36m</Text>[39m
+2025-08-20T16:00:40.5404096Z           [36m<Text>[39m
+2025-08-20T16:00:40.5404312Z             [0mChores[0m
+2025-08-20T16:00:40.5404539Z           [36m</Text>[39m
+2025-08-20T16:00:40.5404763Z         [36m</View>[39m
+2025-08-20T16:00:40.5404988Z         [36m<View[39m
+2025-08-20T16:00:40.5405249Z           [33maccessible[39m=[32m{true}[39m
+2025-08-20T16:00:40.5405513Z         [36m>[39m
+2025-08-20T16:00:40.5405719Z           [36m<Text>[39m
+2025-08-20T16:00:40.5405938Z             [0m💰[0m
+2025-08-20T16:00:40.5406147Z           [36m</Text>[39m
+2025-08-20T16:00:40.5406368Z           [36m<Text>[39m
+2025-08-20T16:00:40.5406588Z             [0mBalance[0m
+2025-08-20T16:00:40.5406812Z           [36m</Text>[39m
+2025-08-20T16:00:40.5407208Z         [36m</View>[39m
+2025-08-20T16:00:40.5407466Z         [36m<View[39m
+2025-08-20T16:00:40.5407749Z           [33maccessible[39m=[32m{true}[39m
+2025-08-20T16:00:40.5408027Z         [36m>[39m
+2025-08-20T16:00:40.5408234Z           [36m<Text>[39m
+2025-08-20T16:00:40.5408464Z             [0m👤[0m
+2025-08-20T16:00:40.5408682Z           [36m</Text>[39m
+2025-08-20T16:00:40.5408914Z           [36m<Text>[39m
+2025-08-20T16:00:40.5409140Z             [0mProfile[0m
+2025-08-20T16:00:40.5409535Z           [36m</Text>[39m
+2025-08-20T16:00:40.5409756Z         [36m</View>[39m
+2025-08-20T16:00:40.5409986Z       [36m</View>[39m
+2025-08-20T16:00:40.5410200Z     [36m</View>[39m
+2025-08-20T16:00:40.5410312Z 
+2025-08-20T16:00:40.5410492Z     [0m [90m 394 |[39m       [90m// Login first[39m
+2025-08-20T16:00:40.5410919Z      [90m 395 |[39m       [36mawait[39m act([36masync[39m () [33m=>[39m {
+2025-08-20T16:00:40.5411554Z     [31m[1m>[22m[39m[90m 396 |[39m         fireEvent[33m.[39mpress(getByTestId([32m'mock-login-success'[39m))[33m;[39m
+2025-08-20T16:00:40.5412092Z      [90m     |[39m                         [31m[1m^[22m[39m
+2025-08-20T16:00:40.5412418Z      [90m 397 |[39m       })[33m;[39m
+2025-08-20T16:00:40.5412672Z      [90m 398 |[39m
+2025-08-20T16:00:40.5412994Z      [90m 399 |[39m       [36mawait[39m waitFor(() [33m=>[39m {[0m
+2025-08-20T16:00:40.5413205Z 
+2025-08-20T16:00:40.5413404Z       at getByTestId (src/__tests__/integration/authFlow.test.tsx:396:25)
+2025-08-20T16:00:40.5413929Z       at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+2025-08-20T16:00:40.5414567Z       at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+2025-08-20T16:00:40.5415006Z       at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+2025-08-20T16:00:40.5415432Z       at node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12
+2025-08-20T16:00:40.5415887Z       at callback (node_modules/@testing-library/react-native/src/act.ts:31:24)
+2025-08-20T16:00:40.5416493Z       at Object.<anonymous>.process.env.NODE_ENV.exports.act (node_modules/react/cjs/react.development.js:790:22)
+2025-08-20T16:00:40.5417306Z       at actImplementation (node_modules/@testing-library/react-native/src/act.ts:30:25)
+2025-08-20T16:00:40.5417830Z       at Object.<anonymous> (src/__tests__/integration/authFlow.test.tsx:395:16)
+2025-08-20T16:00:40.5418359Z       at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+2025-08-20T16:00:40.5418876Z       at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+2025-08-20T16:00:40.5419320Z       at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+2025-08-20T16:00:40.5419811Z       at Object.<anonymous> (node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+2025-08-20T16:00:40.5420107Z 
+2025-08-20T16:00:40.5420534Z   ● Authentication Flow Integration Tests › Logout Integration Flow › should handle logout errors gracefully
+2025-08-20T16:00:40.5420908Z 
+2025-08-20T16:00:40.5421082Z     Unable to find an element with testID: mock-login-success
+2025-08-20T16:00:40.5421309Z 
+2025-08-20T16:00:40.5421412Z     [36m<View>[39m
+2025-08-20T16:00:40.5421629Z       [36m<View>[39m
+2025-08-20T16:00:40.5421849Z         [36m<Text>[39m
+2025-08-20T16:00:40.5422108Z           [0mChores Tracker[0m
+2025-08-20T16:00:40.5422353Z         [36m</Text>[39m
+2025-08-20T16:00:40.5422576Z       [36m</View>[39m
+2025-08-20T16:00:40.5422806Z       [36m<View>[39m
+2025-08-20T16:00:40.5423021Z         [36m<View[39m
+2025-08-20T16:00:40.5423303Z           [33mtestID[39m=[32m"home-screen"[39m
+2025-08-20T16:00:40.5423575Z         [36m>[39m
+2025-08-20T16:00:40.5423782Z           [36m<Text[39m
+2025-08-20T16:00:40.5424081Z             [33mtestID[39m=[32m"welcome-message"[39m
+2025-08-20T16:00:40.5424357Z           [36m>[39m
+2025-08-20T16:00:40.5424577Z             [0mWelcome, [0m
+2025-08-20T16:00:40.5424839Z             [0mtestparent[0m
+2025-08-20T16:00:40.5425070Z             [0m![0m
+2025-08-20T16:00:40.5425279Z           [36m</Text>[39m
+2025-08-20T16:00:40.5425504Z           [36m<Text[39m
+2025-08-20T16:00:40.5425784Z             [33mtestID[39m=[32m"user-role"[39m
+2025-08-20T16:00:40.5426052Z           [36m>[39m
+2025-08-20T16:00:40.5426262Z             [0mRole: [0m
+2025-08-20T16:00:40.5426488Z             [0munknown[0m
+2025-08-20T16:00:40.5426712Z           [36m</Text>[39m
+2025-08-20T16:00:40.5427287Z           [36m<View[39m
+2025-08-20T16:00:40.5427585Z             [33maccessible[39m=[32m{true}[39m
+2025-08-20T16:00:40.5427944Z             [33mtestID[39m=[32m"logout-button"[39m
+2025-08-20T16:00:40.5428229Z           [36m>[39m
+2025-08-20T16:00:40.5428449Z             [36m<Text>[39m
+2025-08-20T16:00:40.5428684Z               [0mLogout[0m
+2025-08-20T16:00:40.5428915Z             [36m</Text>[39m
+2025-08-20T16:00:40.5429150Z           [36m</View>[39m
+2025-08-20T16:00:40.5429379Z           [36m<View[39m
+2025-08-20T16:00:40.5429653Z             [33maccessible[39m=[32m{true}[39m
+2025-08-20T16:00:40.5429995Z             [33mtestID[39m=[32m"navigate-chores"[39m
+2025-08-20T16:00:40.5430279Z           [36m>[39m
+2025-08-20T16:00:40.5430493Z             [36m<Text>[39m
+2025-08-20T16:00:40.5430759Z               [0mGo to Chores[0m
+2025-08-20T16:00:40.5431023Z             [36m</Text>[39m
+2025-08-20T16:00:40.5431257Z           [36m</View>[39m
+2025-08-20T16:00:40.5431495Z         [36m</View>[39m
+2025-08-20T16:00:40.5431717Z       [36m</View>[39m
+2025-08-20T16:00:40.5431930Z       [36m<View>[39m
+2025-08-20T16:00:40.5432273Z         [36m<View[39m
+2025-08-20T16:00:40.5432545Z           [33maccessible[39m=[32m{true}[39m
+2025-08-20T16:00:40.5432813Z         [36m>[39m
+2025-08-20T16:00:40.5433018Z           [36m<Text>[39m
+2025-08-20T16:00:40.5433255Z             [0m🏠[0m
+2025-08-20T16:00:40.5433479Z           [36m</Text>[39m
+2025-08-20T16:00:40.5433710Z           [36m<Text>[39m
+2025-08-20T16:00:40.5433929Z             [0mHome[0m
+2025-08-20T16:00:40.5434153Z           [36m</Text>[39m
+2025-08-20T16:00:40.5434378Z         [36m</View>[39m
+2025-08-20T16:00:40.5434602Z         [36m<View[39m
+2025-08-20T16:00:40.5434866Z           [33maccessible[39m=[32m{true}[39m
+2025-08-20T16:00:40.5435126Z         [36m>[39m
+2025-08-20T16:00:40.5435336Z           [36m<Text>[39m
+2025-08-20T16:00:40.5435554Z             [0m✅[0m
+2025-08-20T16:00:40.5435769Z           [36m</Text>[39m
+2025-08-20T16:00:40.5436000Z           [36m<Text>[39m
+2025-08-20T16:00:40.5436222Z             [0mChores[0m
+2025-08-20T16:00:40.5436452Z           [36m</Text>[39m
+2025-08-20T16:00:40.5436676Z         [36m</View>[39m
+2025-08-20T16:00:40.5436888Z         [36m<View[39m
+2025-08-20T16:00:40.5437368Z           [33maccessible[39m=[32m{true}[39m
+2025-08-20T16:00:40.5437636Z         [36m>[39m
+2025-08-20T16:00:40.5437840Z           [36m<Text>[39m
+2025-08-20T16:00:40.5438059Z             [0m💰[0m
+2025-08-20T16:00:40.5438274Z           [36m</Text>[39m
+2025-08-20T16:00:40.5438495Z           [36m<Text>[39m
+2025-08-20T16:00:40.5438717Z             [0mBalance[0m
+2025-08-20T16:00:40.5438934Z           [36m</Text>[39m
+2025-08-20T16:00:40.5439157Z         [36m</View>[39m
+2025-08-20T16:00:40.5439374Z         [36m<View[39m
+2025-08-20T16:00:40.5439643Z           [33maccessible[39m=[32m{true}[39m
+2025-08-20T16:00:40.5439901Z         [36m>[39m
+2025-08-20T16:00:40.5440107Z           [36m<Text>[39m
+2025-08-20T16:00:40.5440334Z             [0m👤[0m
+2025-08-20T16:00:40.5440549Z           [36m</Text>[39m
+2025-08-20T16:00:40.5440780Z           [36m<Text>[39m
+2025-08-20T16:00:40.5441007Z             [0mProfile[0m
+2025-08-20T16:00:40.5441232Z           [36m</Text>[39m
+2025-08-20T16:00:40.5441458Z         [36m</View>[39m
+2025-08-20T16:00:40.5441676Z       [36m</View>[39m
+2025-08-20T16:00:40.5441887Z     [36m</View>[39m
+2025-08-20T16:00:40.5442014Z 
+2025-08-20T16:00:40.5442196Z     [0m [90m 431 |[39m       [90m// Login first[39m
+2025-08-20T16:00:40.5442626Z      [90m 432 |[39m       [36mawait[39m act([36masync[39m () [33m=>[39m {
+2025-08-20T16:00:40.5443267Z     [31m[1m>[22m[39m[90m 433 |[39m         fireEvent[33m.[39mpress(getByTestId([32m'mock-login-success'[39m))[33m;[39m
+2025-08-20T16:00:40.5443805Z      [90m     |[39m                         [31m[1m^[22m[39m
+2025-08-20T16:00:40.5444130Z      [90m 434 |[39m       })[33m;[39m
+2025-08-20T16:00:40.5444521Z      [90m 435 |[39m
+2025-08-20T16:00:40.5444848Z      [90m 436 |[39m       [36mawait[39m waitFor(() [33m=>[39m {[0m
+2025-08-20T16:00:40.5445065Z 
+2025-08-20T16:00:40.5445270Z       at getByTestId (src/__tests__/integration/authFlow.test.tsx:433:25)
+2025-08-20T16:00:40.5445787Z       at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+2025-08-20T16:00:40.5446306Z       at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+2025-08-20T16:00:40.5446749Z       at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+2025-08-20T16:00:40.5447380Z       at node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12
+2025-08-20T16:00:40.5447851Z       at callback (node_modules/@testing-library/react-native/src/act.ts:31:24)
+2025-08-20T16:00:40.5448461Z       at Object.<anonymous>.process.env.NODE_ENV.exports.act (node_modules/react/cjs/react.development.js:790:22)
+2025-08-20T16:00:40.5449089Z       at actImplementation (node_modules/@testing-library/react-native/src/act.ts:30:25)
+2025-08-20T16:00:40.5449616Z       at Object.<anonymous> (src/__tests__/integration/authFlow.test.tsx:432:16)
+2025-08-20T16:00:40.5450277Z       at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+2025-08-20T16:00:40.5450788Z       at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+2025-08-20T16:00:40.5451227Z       at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+2025-08-20T16:00:40.5451716Z       at Object.<anonymous> (node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+2025-08-20T16:00:40.5452025Z 
+2025-08-20T16:00:40.5452478Z   ● Authentication Flow Integration Tests › Session Persistence Integration › should handle corrupted session data
+2025-08-20T16:00:40.5452877Z 
+2025-08-20T16:00:40.5453030Z     Unable to find an element with testID: login-screen
+2025-08-20T16:00:40.5453238Z 
+2025-08-20T16:00:40.5453337Z     [36m<View>[39m
+2025-08-20T16:00:40.5453552Z       [36m<View>[39m
+2025-08-20T16:00:40.5453782Z         [36m<Text>[39m
+2025-08-20T16:00:40.5454034Z           [0mChores Tracker[0m
+2025-08-20T16:00:40.5454287Z         [36m</Text>[39m
+2025-08-20T16:00:40.5454514Z       [36m</View>[39m
+2025-08-20T16:00:40.5454729Z       [36m<View>[39m
+2025-08-20T16:00:40.5454934Z         [36m<View[39m
+2025-08-20T16:00:40.5455207Z           [33mtestID[39m=[32m"home-screen"[39m
+2025-08-20T16:00:40.5455479Z         [36m>[39m
+2025-08-20T16:00:40.5455684Z           [36m<Text[39m
+2025-08-20T16:00:40.5455979Z             [33mtestID[39m=[32m"welcome-message"[39m
+2025-08-20T16:00:40.5456260Z           [36m>[39m
+2025-08-20T16:00:40.5456476Z             [0mWelcome, [0m
+2025-08-20T16:00:40.5456738Z             [0mtestparent[0m
+2025-08-20T16:00:40.5456967Z             [0m![0m
+2025-08-20T16:00:40.5457289Z           [36m</Text>[39m
+2025-08-20T16:00:40.5457514Z           [36m<Text[39m
+2025-08-20T16:00:40.5457790Z             [33mtestID[39m=[32m"user-role"[39m
+2025-08-20T16:00:40.5458061Z           [36m>[39m
+2025-08-20T16:00:40.5458275Z             [0mRole: [0m
+2025-08-20T16:00:40.5458510Z             [0munknown[0m
+2025-08-20T16:00:40.5458736Z           [36m</Text>[39m
+2025-08-20T16:00:40.5458956Z           [36m<View[39m
+2025-08-20T16:00:40.5459230Z             [33maccessible[39m=[32m{true}[39m
+2025-08-20T16:00:40.5459574Z             [33mtestID[39m=[32m"logout-button"[39m
+2025-08-20T16:00:40.5459853Z           [36m>[39m
+2025-08-20T16:00:40.5460068Z             [36m<Text>[39m
+2025-08-20T16:00:40.5460300Z               [0mLogout[0m
+2025-08-20T16:00:40.5460533Z             [36m</Text>[39m
+2025-08-20T16:00:40.5460765Z           [36m</View>[39m
+2025-08-20T16:00:40.5460987Z           [36m<View[39m
+2025-08-20T16:00:40.5461257Z             [33maccessible[39m=[32m{true}[39m
+2025-08-20T16:00:40.5461607Z             [33mtestID[39m=[32m"navigate-chores"[39m
+2025-08-20T16:00:40.5461888Z           [36m>[39m
+2025-08-20T16:00:40.5462104Z             [36m<Text>[39m
+2025-08-20T16:00:40.5462492Z               [0mGo to Chores[0m
+2025-08-20T16:00:40.5462743Z             [36m</Text>[39m
+2025-08-20T16:00:40.5462988Z           [36m</View>[39m
+2025-08-20T16:00:40.5463217Z         [36m</View>[39m
+2025-08-20T16:00:40.5463435Z       [36m</View>[39m
+2025-08-20T16:00:40.5463648Z       [36m<View>[39m
+2025-08-20T16:00:40.5463858Z         [36m<View[39m
+2025-08-20T16:00:40.5464131Z           [33maccessible[39m=[32m{true}[39m
+2025-08-20T16:00:40.5464399Z         [36m>[39m
+2025-08-20T16:00:40.5464605Z           [36m<Text>[39m
+2025-08-20T16:00:40.5464834Z             [0m🏠[0m
+2025-08-20T16:00:40.5465049Z           [36m</Text>[39m
+2025-08-20T16:00:40.5465274Z           [36m<Text>[39m
+2025-08-20T16:00:40.5465493Z             [0mHome[0m
+2025-08-20T16:00:40.5465713Z           [36m</Text>[39m
+2025-08-20T16:00:40.5465942Z         [36m</View>[39m
+2025-08-20T16:00:40.5466157Z         [36m<View[39m
+2025-08-20T16:00:40.5466420Z           [33maccessible[39m=[32m{true}[39m
+2025-08-20T16:00:40.5466690Z         [36m>[39m
+2025-08-20T16:00:40.5466895Z           [36m<Text>[39m
+2025-08-20T16:00:40.5467349Z             [0m✅[0m
+2025-08-20T16:00:40.5467561Z           [36m</Text>[39m
+2025-08-20T16:00:40.5467785Z           [36m<Text>[39m
+2025-08-20T16:00:40.5468008Z             [0mChores[0m
+2025-08-20T16:00:40.5468231Z           [36m</Text>[39m
+2025-08-20T16:00:40.5468449Z         [36m</View>[39m
+2025-08-20T16:00:40.5468664Z         [36m<View[39m
+2025-08-20T16:00:40.5468925Z           [33maccessible[39m=[32m{true}[39m
+2025-08-20T16:00:40.5469184Z         [36m>[39m
+2025-08-20T16:00:40.5469383Z           [36m<Text>[39m
+2025-08-20T16:00:40.5469601Z             [0m💰[0m
+2025-08-20T16:00:40.5469816Z           [36m</Text>[39m
+2025-08-20T16:00:40.5470042Z           [36m<Text>[39m
+2025-08-20T16:00:40.5470264Z             [0mBalance[0m
+2025-08-20T16:00:40.5470488Z           [36m</Text>[39m
+2025-08-20T16:00:40.5470709Z         [36m</View>[39m
+2025-08-20T16:00:40.5470936Z         [36m<View[39m
+2025-08-20T16:00:40.5471198Z           [33maccessible[39m=[32m{true}[39m
+2025-08-20T16:00:40.5471465Z         [36m>[39m
+2025-08-20T16:00:40.5471670Z           [36m<Text>[39m
+2025-08-20T16:00:40.5471890Z             [0m👤[0m
+2025-08-20T16:00:40.5472101Z           [36m</Text>[39m
+2025-08-20T16:00:40.5472321Z           [36m<Text>[39m
+2025-08-20T16:00:40.5472544Z             [0mProfile[0m
+2025-08-20T16:00:40.5472769Z           [36m</Text>[39m
+2025-08-20T16:00:40.5472987Z         [36m</View>[39m
+2025-08-20T16:00:40.5473204Z       [36m</View>[39m
+2025-08-20T16:00:40.5473413Z     [36m</View>[39m
+2025-08-20T16:00:40.5473527Z 
+2025-08-20T16:00:40.5473633Z     [0m [90m 486 |[39m
+2025-08-20T16:00:40.5473979Z      [90m 487 |[39m       [90m// Should fallback to login screen[39m
+2025-08-20T16:00:40.5474449Z     [31m[1m>[22m[39m[90m 488 |[39m       [36mawait[39m waitFor(() [33m=>[39m {
+2025-08-20T16:00:40.5474868Z      [90m     |[39m                    [31m[1m^[22m[39m
+2025-08-20T16:00:40.5475414Z      [90m 489 |[39m         expect(getByTestId([32m'login-screen'[39m))[33m.[39mtoBeTruthy()[33m;[39m
+2025-08-20T16:00:40.5476073Z      [90m 490 |[39m         expect(queryByTestId([32m'home-screen'[39m))[33m.[39mtoBeNull()[33m;[39m
+2025-08-20T16:00:40.5476524Z      [90m 491 |[39m       })[33m;[39m[0m
+2025-08-20T16:00:40.5476693Z 
+2025-08-20T16:00:40.5476921Z       at Object.<anonymous> (src/__tests__/integration/authFlow.test.tsx:488:20)
+2025-08-20T16:00:40.5477563Z       at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+2025-08-20T16:00:40.5478086Z       at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+2025-08-20T16:00:40.5478540Z       at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+2025-08-20T16:00:40.5479035Z       at Object.<anonymous> (node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+2025-08-20T16:00:40.5479460Z 
+2025-08-20T16:00:40.5480002Z   ● Authentication Flow Integration Tests › Cross-Screen Navigation Integration › should navigate between screens after authentication
+2025-08-20T16:00:40.5480471Z 
+2025-08-20T16:00:40.5480652Z     Unable to find an element with testID: mock-login-success
+2025-08-20T16:00:40.5480878Z 
+2025-08-20T16:00:40.5480982Z     [36m<View>[39m
+2025-08-20T16:00:40.5481203Z       [36m<View>[39m
+2025-08-20T16:00:40.5481425Z         [36m<Text>[39m
+2025-08-20T16:00:40.5481683Z           [0mChores Tracker[0m
+2025-08-20T16:00:40.5481933Z         [36m</Text>[39m
+2025-08-20T16:00:40.5482159Z       [36m</View>[39m
+2025-08-20T16:00:40.5482375Z       [36m<View>[39m
+2025-08-20T16:00:40.5482590Z         [36m<View[39m
+2025-08-20T16:00:40.5482866Z           [33mtestID[39m=[32m"home-screen"[39m
+2025-08-20T16:00:40.5483143Z         [36m>[39m
+2025-08-20T16:00:40.5483353Z           [36m<Text[39m
+2025-08-20T16:00:40.5483660Z             [33mtestID[39m=[32m"welcome-message"[39m
+2025-08-20T16:00:40.5483954Z           [36m>[39m
+2025-08-20T16:00:40.5484178Z             [0mWelcome, [0m
+2025-08-20T16:00:40.5484568Z             [0mtestparent[0m
+2025-08-20T16:00:40.5484807Z             [0m![0m
+2025-08-20T16:00:40.5485024Z           [36m</Text>[39m
+2025-08-20T16:00:40.5485254Z           [36m<Text[39m
+2025-08-20T16:00:40.5485534Z             [33mtestID[39m=[32m"user-role"[39m
+2025-08-20T16:00:40.5485808Z           [36m>[39m
+2025-08-20T16:00:40.5486024Z             [0mRole: [0m
+2025-08-20T16:00:40.5486248Z             [0munknown[0m
+2025-08-20T16:00:40.5486477Z           [36m</Text>[39m
+2025-08-20T16:00:40.5486703Z           [36m<View[39m
+2025-08-20T16:00:40.5486981Z             [33maccessible[39m=[32m{true}[39m
+2025-08-20T16:00:40.5487430Z             [33mtestID[39m=[32m"logout-button"[39m
+2025-08-20T16:00:40.5487713Z           [36m>[39m
+2025-08-20T16:00:40.5487932Z             [36m<Text>[39m
+2025-08-20T16:00:40.5488171Z               [0mLogout[0m
+2025-08-20T16:00:40.5488407Z             [36m</Text>[39m
+2025-08-20T16:00:40.5488645Z           [36m</View>[39m
+2025-08-20T16:00:40.5488878Z           [36m<View[39m
+2025-08-20T16:00:40.5489157Z             [33maccessible[39m=[32m{true}[39m
+2025-08-20T16:00:40.5489501Z             [33mtestID[39m=[32m"navigate-chores"[39m
+2025-08-20T16:00:40.5489785Z           [36m>[39m
+2025-08-20T16:00:40.5489999Z             [36m<Text>[39m
+2025-08-20T16:00:40.5490260Z               [0mGo to Chores[0m
+2025-08-20T16:00:40.5490516Z             [36m</Text>[39m
+2025-08-20T16:00:40.5490752Z           [36m</View>[39m
+2025-08-20T16:00:40.5490984Z         [36m</View>[39m
+2025-08-20T16:00:40.5491208Z       [36m</View>[39m
+2025-08-20T16:00:40.5491421Z       [36m<View>[39m
+2025-08-20T16:00:40.5491632Z         [36m<View[39m
+2025-08-20T16:00:40.5491904Z           [33maccessible[39m=[32m{true}[39m
+2025-08-20T16:00:40.5492171Z         [36m>[39m
+2025-08-20T16:00:40.5492377Z           [36m<Text>[39m
+2025-08-20T16:00:40.5492605Z             [0m🏠[0m
+2025-08-20T16:00:40.5492821Z           [36m</Text>[39m
+2025-08-20T16:00:40.5493050Z           [36m<Text>[39m
+2025-08-20T16:00:40.5493281Z             [0mHome[0m
+2025-08-20T16:00:40.5493499Z           [36m</Text>[39m
+2025-08-20T16:00:40.5493725Z         [36m</View>[39m
+2025-08-20T16:00:40.5493945Z         [36m<View[39m
+2025-08-20T16:00:40.5494212Z           [33maccessible[39m=[32m{true}[39m
+2025-08-20T16:00:40.5494478Z         [36m>[39m
+2025-08-20T16:00:40.5494687Z           [36m<Text>[39m
+2025-08-20T16:00:40.5494908Z             [0m✅[0m
+2025-08-20T16:00:40.5495128Z           [36m</Text>[39m
+2025-08-20T16:00:40.5495357Z           [36m<Text>[39m
+2025-08-20T16:00:40.5495583Z             [0mChores[0m
+2025-08-20T16:00:40.5495808Z           [36m</Text>[39m
+2025-08-20T16:00:40.5496031Z         [36m</View>[39m
+2025-08-20T16:00:40.5496246Z         [36m<View[39m
+2025-08-20T16:00:40.5496519Z           [33maccessible[39m=[32m{true}[39m
+2025-08-20T16:00:40.5496919Z         [36m>[39m
+2025-08-20T16:00:40.5497231Z           [36m<Text>[39m
+2025-08-20T16:00:40.5497452Z             [0m💰[0m
+2025-08-20T16:00:40.5497677Z           [36m</Text>[39m
+2025-08-20T16:00:40.5497899Z           [36m<Text>[39m
+2025-08-20T16:00:40.5498126Z             [0mBalance[0m
+2025-08-20T16:00:40.5498383Z           [36m</Text>[39m
+2025-08-20T16:00:40.5498602Z         [36m</View>[39m
+2025-08-20T16:00:40.5498823Z         [36m<View[39m
+2025-08-20T16:00:40.5499092Z           [33maccessible[39m=[32m{true}[39m
+2025-08-20T16:00:40.5499357Z         [36m>[39m
+2025-08-20T16:00:40.5499558Z           [36m<Text>[39m
+2025-08-20T16:00:40.5499777Z             [0m👤[0m
+2025-08-20T16:00:40.5499996Z           [36m</Text>[39m
+2025-08-20T16:00:40.5500222Z           [36m<Text>[39m
+2025-08-20T16:00:40.5500448Z             [0mProfile[0m
+2025-08-20T16:00:40.5500678Z           [36m</Text>[39m
+2025-08-20T16:00:40.5500902Z         [36m</View>[39m
+2025-08-20T16:00:40.5501128Z       [36m</View>[39m
+2025-08-20T16:00:40.5501335Z     [36m</View>[39m
+2025-08-20T16:00:40.5501453Z 
+2025-08-20T16:00:40.5501740Z     [0m [90m 508 |[39m       [90m// Login[39m
+2025-08-20T16:00:40.5502159Z      [90m 509 |[39m       [36mawait[39m act([36masync[39m () [33m=>[39m {
+2025-08-20T16:00:40.5502806Z     [31m[1m>[22m[39m[90m 510 |[39m         fireEvent[33m.[39mpress(getByTestId([32m'mock-login-success'[39m))[33m;[39m
+2025-08-20T16:00:40.5503352Z      [90m     |[39m                         [31m[1m^[22m[39m
+2025-08-20T16:00:40.5503680Z      [90m 511 |[39m       })[33m;[39m
+2025-08-20T16:00:40.5503936Z      [90m 512 |[39m
+2025-08-20T16:00:40.5504260Z      [90m 513 |[39m       [36mawait[39m waitFor(() [33m=>[39m {[0m
+2025-08-20T16:00:40.5504471Z 
+2025-08-20T16:00:40.5504681Z       at getByTestId (src/__tests__/integration/authFlow.test.tsx:510:25)
+2025-08-20T16:00:40.5505206Z       at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+2025-08-20T16:00:40.5505729Z       at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+2025-08-20T16:00:40.5506178Z       at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+2025-08-20T16:00:40.5506603Z       at node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12
+2025-08-20T16:00:40.5507166Z       at callback (node_modules/@testing-library/react-native/src/act.ts:31:24)
+2025-08-20T16:00:40.5507781Z       at Object.<anonymous>.process.env.NODE_ENV.exports.act (node_modules/react/cjs/react.development.js:790:22)
+2025-08-20T16:00:40.5508413Z       at actImplementation (node_modules/@testing-library/react-native/src/act.ts:30:25)
+2025-08-20T16:00:40.5508936Z       at Object.<anonymous> (src/__tests__/integration/authFlow.test.tsx:509:16)
+2025-08-20T16:00:40.5509466Z       at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+2025-08-20T16:00:40.5509982Z       at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+2025-08-20T16:00:40.5510425Z       at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+2025-08-20T16:00:40.5510914Z       at Object.<anonymous> (node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+2025-08-20T16:00:40.5511223Z 
+2025-08-20T16:00:40.5511767Z   ● Authentication Flow Integration Tests › Cross-Screen Navigation Integration › should maintain authentication state across navigation
+2025-08-20T16:00:40.5512237Z 
+2025-08-20T16:00:40.5512414Z     Unable to find an element with testID: mock-login-success
+2025-08-20T16:00:40.5512643Z 
+2025-08-20T16:00:40.5512747Z     [36m<View>[39m
+2025-08-20T16:00:40.5512964Z       [36m<View>[39m
+2025-08-20T16:00:40.5513186Z         [36m<Text>[39m
+2025-08-20T16:00:40.5513437Z           [0mChores Tracker[0m
+2025-08-20T16:00:40.5513689Z         [36m</Text>[39m
+2025-08-20T16:00:40.5513916Z       [36m</View>[39m
+2025-08-20T16:00:40.5514133Z       [36m<View>[39m
+2025-08-20T16:00:40.5514342Z         [36m<View[39m
+2025-08-20T16:00:40.5514752Z           [33mtestID[39m=[32m"home-screen"[39m
+2025-08-20T16:00:40.5515030Z         [36m>[39m
+2025-08-20T16:00:40.5515247Z           [36m<Text[39m
+2025-08-20T16:00:40.5515549Z             [33mtestID[39m=[32m"welcome-message"[39m
+2025-08-20T16:00:40.5515831Z           [36m>[39m
+2025-08-20T16:00:40.5516055Z             [0mWelcome, [0m
+2025-08-20T16:00:40.5516319Z             [0mtestparent[0m
+2025-08-20T16:00:40.5516553Z             [0m![0m
+2025-08-20T16:00:40.5516765Z           [36m</Text>[39m
+2025-08-20T16:00:40.5516995Z           [36m<Text[39m
+2025-08-20T16:00:40.5517419Z             [33mtestID[39m=[32m"user-role"[39m
+2025-08-20T16:00:40.5517693Z           [36m>[39m
+2025-08-20T16:00:40.5517901Z             [0mRole: [0m
+2025-08-20T16:00:40.5518129Z             [0munknown[0m
+2025-08-20T16:00:40.5518365Z           [36m</Text>[39m
+2025-08-20T16:00:40.5518594Z           [36m<View[39m
+2025-08-20T16:00:40.5518868Z             [33maccessible[39m=[32m{true}[39m
+2025-08-20T16:00:40.5519215Z             [33mtestID[39m=[32m"logout-button"[39m
+2025-08-20T16:00:40.5519493Z           [36m>[39m
+2025-08-20T16:00:40.5519837Z             [36m<Text>[39m
+2025-08-20T16:00:40.5520071Z               [0mLogout[0m
+2025-08-20T16:00:40.5520307Z             [36m</Text>[39m
+2025-08-20T16:00:40.5520542Z           [36m</View>[39m
+2025-08-20T16:00:40.5520766Z           [36m<View[39m
+2025-08-20T16:00:40.5521036Z             [33maccessible[39m=[32m{true}[39m
+2025-08-20T16:00:40.5521379Z             [33mtestID[39m=[32m"navigate-chores"[39m
+2025-08-20T16:00:40.5521664Z           [36m>[39m
+2025-08-20T16:00:40.5521877Z             [36m<Text>[39m
+2025-08-20T16:00:40.5522136Z               [0mGo to Chores[0m
+2025-08-20T16:00:40.5522388Z             [36m</Text>[39m
+2025-08-20T16:00:40.5522625Z           [36m</View>[39m
+2025-08-20T16:00:40.5522852Z         [36m</View>[39m
+2025-08-20T16:00:40.5523071Z       [36m</View>[39m
+2025-08-20T16:00:40.5523280Z       [36m<View>[39m
+2025-08-20T16:00:40.5523495Z         [36m<View[39m
+2025-08-20T16:00:40.5523764Z           [33maccessible[39m=[32m{true}[39m
+2025-08-20T16:00:40.5524033Z         [36m>[39m
+2025-08-20T16:00:40.5524237Z           [36m<Text>[39m
+2025-08-20T16:00:40.5524463Z             [0m🏠[0m
+2025-08-20T16:00:40.5524682Z           [36m</Text>[39m
+2025-08-20T16:00:40.5524910Z           [36m<Text>[39m
+2025-08-20T16:00:40.5525131Z             [0mHome[0m
+2025-08-20T16:00:40.5525356Z           [36m</Text>[39m
+2025-08-20T16:00:40.5525581Z         [36m</View>[39m
+2025-08-20T16:00:40.5525802Z         [36m<View[39m
+2025-08-20T16:00:40.5526067Z           [33maccessible[39m=[32m{true}[39m
+2025-08-20T16:00:40.5526333Z         [36m>[39m
+2025-08-20T16:00:40.5526540Z           [36m<Text>[39m
+2025-08-20T16:00:40.5526761Z             [0m✅[0m
+2025-08-20T16:00:40.5526970Z           [36m</Text>[39m
+2025-08-20T16:00:40.5527306Z           [36m<Text>[39m
+2025-08-20T16:00:40.5527530Z             [0mChores[0m
+2025-08-20T16:00:40.5527762Z           [36m</Text>[39m
+2025-08-20T16:00:40.5527983Z         [36m</View>[39m
+2025-08-20T16:00:40.5528210Z         [36m<View[39m
+2025-08-20T16:00:40.5528474Z           [33maccessible[39m=[32m{true}[39m
+2025-08-20T16:00:40.5528735Z         [36m>[39m
+2025-08-20T16:00:40.5528951Z           [36m<Text>[39m
+2025-08-20T16:00:40.5529171Z             [0m💰[0m
+2025-08-20T16:00:40.5529395Z           [36m</Text>[39m
+2025-08-20T16:00:40.5529632Z           [36m<Text>[39m
+2025-08-20T16:00:40.5529860Z             [0mBalance[0m
+2025-08-20T16:00:40.5530087Z           [36m</Text>[39m
+2025-08-20T16:00:40.5530312Z         [36m</View>[39m
+2025-08-20T16:00:40.5530536Z         [36m<View[39m
+2025-08-20T16:00:40.5530800Z           [33maccessible[39m=[32m{true}[39m
+2025-08-20T16:00:40.5531057Z         [36m>[39m
+2025-08-20T16:00:40.5531263Z           [36m<Text>[39m
+2025-08-20T16:00:40.5531487Z             [0m👤[0m
+2025-08-20T16:00:40.5531700Z           [36m</Text>[39m
+2025-08-20T16:00:40.5532048Z           [36m<Text>[39m
+2025-08-20T16:00:40.5532273Z             [0mProfile[0m
+2025-08-20T16:00:40.5532508Z           [36m</Text>[39m
+2025-08-20T16:00:40.5532734Z         [36m</View>[39m
+2025-08-20T16:00:40.5532999Z       [36m</View>[39m
+2025-08-20T16:00:40.5533217Z     [36m</View>[39m
+2025-08-20T16:00:40.5533335Z 
+2025-08-20T16:00:40.5533497Z     [0m [90m 552 |[39m       [90m// Login[39m
+2025-08-20T16:00:40.5533911Z      [90m 553 |[39m       [36mawait[39m act([36masync[39m () [33m=>[39m {
+2025-08-20T16:00:40.5534555Z     [31m[1m>[22m[39m[90m 554 |[39m         fireEvent[33m.[39mpress(getByTestId([32m'mock-login-success'[39m))[33m;[39m
+2025-08-20T16:00:40.5535092Z      [90m     |[39m                         [31m[1m^[22m[39m
+2025-08-20T16:00:40.5535421Z      [90m 555 |[39m       })[33m;[39m
+2025-08-20T16:00:40.5535681Z      [90m 556 |[39m
+2025-08-20T16:00:40.5536005Z      [90m 557 |[39m       [36mawait[39m waitFor(() [33m=>[39m {[0m
+2025-08-20T16:00:40.5536220Z 
+2025-08-20T16:00:40.5536425Z       at getByTestId (src/__tests__/integration/authFlow.test.tsx:554:25)
+2025-08-20T16:00:40.5537181Z       at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+2025-08-20T16:00:40.5537709Z       at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+2025-08-20T16:00:40.5538154Z       at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+2025-08-20T16:00:40.5538583Z       at node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12
+2025-08-20T16:00:40.5539042Z       at callback (node_modules/@testing-library/react-native/src/act.ts:31:24)
+2025-08-20T16:00:40.5539644Z       at Object.<anonymous>.process.env.NODE_ENV.exports.act (node_modules/react/cjs/react.development.js:790:22)
+2025-08-20T16:00:40.5540278Z       at actImplementation (node_modules/@testing-library/react-native/src/act.ts:30:25)
+2025-08-20T16:00:40.5540801Z       at Object.<anonymous> (src/__tests__/integration/authFlow.test.tsx:553:16)
+2025-08-20T16:00:40.5541334Z       at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+2025-08-20T16:00:40.5541858Z       at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+2025-08-20T16:00:40.5542302Z       at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+2025-08-20T16:00:40.5542792Z       at Object.<anonymous> (node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+2025-08-20T16:00:40.5543107Z 
+2025-08-20T16:00:43.7710765Z FAIL src/__tests__/integration/choreManagement.test.tsx (12.101 s)
+2025-08-20T16:00:43.7712284Z   ● Chore Management Workflow Integration Tests › Parent Chore Creation Workflow › should complete full chore creation workflow
+2025-08-20T16:00:43.7712755Z 
+2025-08-20T16:00:43.7712945Z     expect(jest.fn()).toHaveBeenCalledWith(...expected)
+2025-08-20T16:00:43.7713321Z 
+2025-08-20T16:00:43.7713501Z     Expected: "Success", "Chore created successfully!"
+2025-08-20T16:00:43.7713717Z 
+2025-08-20T16:00:43.7713831Z     Number of calls: 0
+2025-08-20T16:00:43.7713964Z 
+2025-08-20T16:00:43.7714147Z     [0m [90m 364 |[39m       })[33m;[39m
+2025-08-20T16:00:43.7714443Z      [90m 365 |[39m
+2025-08-20T16:00:43.7715174Z     [31m[1m>[22m[39m[90m 366 |[39m       expect(mockAlert)[33m.[39mtoHaveBeenCalledWith([32m'Success'[39m[33m,[39m [32m'Chore created successfully!'[39m)[33m;[39m
+2025-08-20T16:00:43.7715865Z      [90m     |[39m                         [31m[1m^[22m[39m
+2025-08-20T16:00:43.7716172Z      [90m 367 |[39m       
+2025-08-20T16:00:43.7716529Z      [90m 368 |[39m       [90m// Verify chore appears in list[39m
+2025-08-20T16:00:43.7716972Z      [90m 369 |[39m       [36mawait[39m waitFor(() [33m=>[39m {[0m
+2025-08-20T16:00:43.7717449Z 
+2025-08-20T16:00:43.7717771Z       at Object.toHaveBeenCalledWith (src/__tests__/integration/choreManagement.test.tsx:366:25)
+2025-08-20T16:00:43.7718404Z       at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+2025-08-20T16:00:43.7719593Z       at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+2025-08-20T16:00:43.7719884Z 
+2025-08-20T16:00:43.7720441Z   ● Chore Management Workflow Integration Tests › Parent Chore Creation Workflow › should handle chore creation validation errors
+2025-08-20T16:00:43.7721050Z 
+2025-08-20T16:00:43.7721312Z     expect(jest.fn()).toHaveBeenCalledWith(...expected)
+2025-08-20T16:00:43.7721658Z 
+2025-08-20T16:00:43.7721923Z     Expected: "Error", "Please fill required fields"
+2025-08-20T16:00:43.7722275Z 
+2025-08-20T16:00:43.7722409Z     Number of calls: 0
+2025-08-20T16:00:43.7722630Z 
+2025-08-20T16:00:43.7722945Z     [0m [90m 389 |[39m       })[33m;[39m
+2025-08-20T16:00:43.7723449Z      [90m 390 |[39m
+2025-08-20T16:00:43.7724710Z     [31m[1m>[22m[39m[90m 391 |[39m       expect(mockAlert)[33m.[39mtoHaveBeenCalledWith([32m'Error'[39m[33m,[39m [32m'Please fill required fields'[39m)[33m;[39m
+2025-08-20T16:00:43.7725827Z      [90m     |[39m                         [31m[1m^[22m[39m
+2025-08-20T16:00:43.7726791Z      [90m 392 |[39m       expect(mockedChoreAPI[33m.[39mcreateChore)[33m.[39mnot[33m.[39mtoHaveBeenCalled()[33m;[39m
+2025-08-20T16:00:43.7728141Z      [90m 393 |[39m     })[33m;[39m
+2025-08-20T16:00:43.7728592Z      [90m 394 |[39m[0m
+2025-08-20T16:00:43.7728815Z 
+2025-08-20T16:00:43.7729341Z       at Object.toHaveBeenCalledWith (src/__tests__/integration/choreManagement.test.tsx:391:25)
+2025-08-20T16:00:43.7730413Z       at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+2025-08-20T16:00:43.7731302Z       at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+2025-08-20T16:00:43.7731685Z 
+2025-08-20T16:00:43.7732453Z   ● Chore Management Workflow Integration Tests › Parent Chore Creation Workflow › should handle API errors during chore creation
+2025-08-20T16:00:43.7733176Z 
+2025-08-20T16:00:43.7733448Z     expect(jest.fn()).toHaveBeenCalledWith(...expected)
+2025-08-20T16:00:43.7733820Z 
+2025-08-20T16:00:43.7734008Z     Expected: "Error", "Server error"
+2025-08-20T16:00:43.7734289Z 
+2025-08-20T16:00:43.7734432Z     Number of calls: 0
+2025-08-20T16:00:43.7734629Z 
+2025-08-20T16:00:43.7734897Z     [0m [90m 412 |[39m       })[33m;[39m
+2025-08-20T16:00:43.7735356Z      [90m 413 |[39m
+2025-08-20T16:00:43.7735988Z     [31m[1m>[22m[39m[90m 414 |[39m       [36mawait[39m waitFor(() [33m=>[39m {
+2025-08-20T16:00:43.7736700Z      [90m     |[39m                    [31m[1m^[22m[39m
+2025-08-20T16:00:43.7737955Z      [90m 415 |[39m         expect(mockAlert)[33m.[39mtoHaveBeenCalledWith([32m'Error'[39m[33m,[39m [32m'Server error'[39m)[33m;[39m
+2025-08-20T16:00:43.7738797Z      [90m 416 |[39m       })[33m;[39m
+2025-08-20T16:00:43.7739257Z      [90m 417 |[39m     })[33m;[39m[0m
+2025-08-20T16:00:43.7739498Z 
+2025-08-20T16:00:43.7739923Z       at Object.<anonymous> (src/__tests__/integration/choreManagement.test.tsx:414:20)
+2025-08-20T16:00:43.7740915Z       at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+2025-08-20T16:00:43.7741825Z       at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+2025-08-20T16:00:43.7742281Z 
+2025-08-20T16:00:43.7743193Z   ● Chore Management Workflow Integration Tests › Child Chore Completion Workflow › should complete full chore completion workflow
+2025-08-20T16:00:43.7743962Z 
+2025-08-20T16:00:43.7744236Z     expect(jest.fn()).toHaveBeenCalledWith(...expected)
+2025-08-20T16:00:43.7744596Z 
+2025-08-20T16:00:43.7744846Z     Expected: "Success", "Chore marked as completed!"
+2025-08-20T16:00:43.7745196Z 
+2025-08-20T16:00:43.7745330Z     Number of calls: 0
+2025-08-20T16:00:43.7745534Z 
+2025-08-20T16:00:43.7745893Z     [0m [90m 492 |[39m       [90m// Verify completion[39m
+2025-08-20T16:00:43.7747193Z      [90m 493 |[39m       expect(mockedChoreAPI[33m.[39mcompleteChore)[33m.[39mtoHaveBeenCalledWith([35m1[39m)[33m;[39m
+2025-08-20T16:00:43.7748913Z     [31m[1m>[22m[39m[90m 494 |[39m       expect(mockAlert)[33m.[39mtoHaveBeenCalledWith([32m'Success'[39m[33m,[39m [32m'Chore marked as completed!'[39m)[33m;[39m
+2025-08-20T16:00:43.7750287Z      [90m     |[39m                         [31m[1m^[22m[39m
+2025-08-20T16:00:43.7750784Z      [90m 495 |[39m
+2025-08-20T16:00:43.7751308Z      [90m 496 |[39m       [90m// Verify status update[39m
+2025-08-20T16:00:43.7752021Z      [90m 497 |[39m       [36mawait[39m waitFor(() [33m=>[39m {[0m
+2025-08-20T16:00:43.7752379Z 
+2025-08-20T16:00:43.7752902Z       at Object.toHaveBeenCalledWith (src/__tests__/integration/choreManagement.test.tsx:494:25)
+2025-08-20T16:00:43.7753947Z       at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+2025-08-20T16:00:43.7754914Z       at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+2025-08-20T16:00:43.7755376Z 
+2025-08-20T16:00:43.7756215Z   ● Chore Management Workflow Integration Tests › Child Chore Completion Workflow › should handle chore completion errors
+2025-08-20T16:00:43.7756952Z 
+2025-08-20T16:00:43.7757394Z     expect(jest.fn()).toHaveBeenCalledWith(...expected)
+2025-08-20T16:00:43.7757940Z 
+2025-08-20T16:00:43.7758151Z     Expected: "Error", "Already completed"
+2025-08-20T16:00:43.7758450Z 
+2025-08-20T16:00:43.7758589Z     Number of calls: 0
+2025-08-20T16:00:43.7758794Z 
+2025-08-20T16:00:43.7759086Z     [0m [90m 522 |[39m       })[33m;[39m
+2025-08-20T16:00:43.7759524Z      [90m 523 |[39m
+2025-08-20T16:00:43.7760152Z     [31m[1m>[22m[39m[90m 524 |[39m       [36mawait[39m waitFor(() [33m=>[39m {
+2025-08-20T16:00:43.7760858Z      [90m     |[39m                    [31m[1m^[22m[39m
+2025-08-20T16:00:43.7762039Z      [90m 525 |[39m         expect(mockAlert)[33m.[39mtoHaveBeenCalledWith([32m'Error'[39m[33m,[39m [32m'Already completed'[39m)[33m;[39m
+2025-08-20T16:00:43.7762998Z      [90m 526 |[39m       })[33m;[39m
+2025-08-20T16:00:43.7763510Z      [90m 527 |[39m     })[33m;[39m[0m
+2025-08-20T16:00:43.7763796Z 
+2025-08-20T16:00:43.7764215Z       at Object.<anonymous> (src/__tests__/integration/choreManagement.test.tsx:524:20)
+2025-08-20T16:00:43.7765176Z       at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+2025-08-20T16:00:43.7766063Z       at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+2025-08-20T16:00:43.7766501Z 
+2025-08-20T16:00:43.7767519Z   ● Chore Management Workflow Integration Tests › Parent Chore Management Actions › should allow parents to delete chores
+2025-08-20T16:00:43.7768252Z 
+2025-08-20T16:00:43.7768535Z     expect(jest.fn()).toHaveBeenCalledWith(...expected)
+2025-08-20T16:00:43.7768892Z 
+2025-08-20T16:00:43.7769148Z     Expected: "Success", "Chore deleted successfully!"
+2025-08-20T16:00:43.7769496Z 
+2025-08-20T16:00:43.7769625Z     Number of calls: 0
+2025-08-20T16:00:43.7769836Z 
+2025-08-20T16:00:43.7770028Z     [0m [90m 657 |[39m
+2025-08-20T16:00:43.7771000Z      [90m 658 |[39m       expect(mockedChoreAPI[33m.[39mdeleteChore)[33m.[39mtoHaveBeenCalledWith([35m1[39m)[33m;[39m
+2025-08-20T16:00:43.7772701Z     [31m[1m>[22m[39m[90m 659 |[39m       expect(mockAlert)[33m.[39mtoHaveBeenCalledWith([32m'Success'[39m[33m,[39m [32m'Chore deleted successfully!'[39m)[33m;[39m
+2025-08-20T16:00:43.7773881Z      [90m     |[39m                         [31m[1m^[22m[39m
+2025-08-20T16:00:43.7774367Z      [90m 660 |[39m
+2025-08-20T16:00:43.7774957Z      [90m 661 |[39m       [90m// Verify chore is removed from list[39m
+2025-08-20T16:00:43.7775708Z      [90m 662 |[39m       [36mawait[39m waitFor(() [33m=>[39m {[0m
+2025-08-20T16:00:43.7776062Z 
+2025-08-20T16:00:43.7776586Z       at Object.toHaveBeenCalledWith (src/__tests__/integration/choreManagement.test.tsx:659:25)
+2025-08-20T16:00:43.7777810Z       at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+2025-08-20T16:00:43.7778725Z       at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+2025-08-20T16:00:43.7779353Z 
+2025-08-20T16:00:43.7780186Z   ● Chore Management Workflow Integration Tests › Parent Chore Management Actions › should handle chore deletion errors
+2025-08-20T16:00:43.7780918Z 
+2025-08-20T16:00:43.7781183Z     expect(jest.fn()).toHaveBeenCalledWith(...expected)
+2025-08-20T16:00:43.7781538Z 
+2025-08-20T16:00:43.7781797Z     Expected: "Error", "Cannot delete completed chore"
+2025-08-20T16:00:43.7782142Z 
+2025-08-20T16:00:43.7782280Z     Number of calls: 0
+2025-08-20T16:00:43.7782485Z 
+2025-08-20T16:00:43.7782751Z     [0m [90m 683 |[39m       })[33m;[39m
+2025-08-20T16:00:43.7783187Z      [90m 684 |[39m
+2025-08-20T16:00:43.7783825Z     [31m[1m>[22m[39m[90m 685 |[39m       [36mawait[39m waitFor(() [33m=>[39m {
+2025-08-20T16:00:43.7784533Z      [90m     |[39m                    [31m[1m^[22m[39m
+2025-08-20T16:00:43.7785806Z      [90m 686 |[39m         expect(mockAlert)[33m.[39mtoHaveBeenCalledWith([32m'Error'[39m[33m,[39m [32m'Cannot delete completed chore'[39m)[33m;[39m
+2025-08-20T16:00:43.7786822Z      [90m 687 |[39m       })[33m;[39m
+2025-08-20T16:00:43.7787689Z      [90m 688 |[39m     })[33m;[39m[0m
+2025-08-20T16:00:43.7787973Z 
+2025-08-20T16:00:43.7788405Z       at Object.<anonymous> (src/__tests__/integration/choreManagement.test.tsx:685:20)
+2025-08-20T16:00:43.7789374Z       at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+2025-08-20T16:00:43.7790287Z       at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+2025-08-20T16:00:43.7790738Z 
+2025-08-20T16:00:47.6990327Z -----------------------------|---------|----------|---------|---------|-------------------
+2025-08-20T16:00:47.6991249Z File                         | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+2025-08-20T16:00:47.6992068Z -----------------------------|---------|----------|---------|---------|-------------------
+2025-08-20T16:00:47.6999000Z All files                    |     1.1 |     2.18 |    1.71 |    1.03 |                   
+2025-08-20T16:00:47.6999706Z  src                         |       0 |        0 |       0 |       0 |                   
+2025-08-20T16:00:47.7000547Z   App.tsx                    |       0 |        0 |       0 |       0 | 7-30              
+2025-08-20T16:00:47.7001189Z  src/api                     |       0 |        0 |       0 |       0 |                   
+2025-08-20T16:00:47.7002140Z   activities.ts              |       0 |        0 |       0 |       0 | 57-159            
+2025-08-20T16:00:47.7003236Z   adjustments.ts             |       0 |        0 |       0 |       0 | 24-60             
+2025-08-20T16:00:47.7003930Z   balance.ts                 |       0 |      100 |       0 |       0 | 11-19             
+2025-08-20T16:00:47.7005576Z   chores.ts                  |       0 |        0 |       0 |       0 | 33-205            
+2025-08-20T16:00:47.7007695Z   client.ts                  |       0 |        0 |       0 |       0 | 6-118             
+2025-08-20T16:00:47.7009130Z   reports.ts                 |       0 |        0 |       0 |       0 | 48-126            
+2025-08-20T16:00:47.7010440Z   statistics.ts              |       0 |        0 |       0 |       0 | 70-181            
+2025-08-20T16:00:47.7011450Z   users.ts                   |       0 |      100 |       0 |       0 | 26-97             
+2025-08-20T16:00:47.7012405Z  src/components              |       0 |        0 |       0 |       0 |                   
+2025-08-20T16:00:47.7013365Z   ActivityCard.tsx           |       0 |        0 |       0 |       0 | 15-100            
+2025-08-20T16:00:47.7014492Z   ActivityFeed.tsx           |       0 |        0 |       0 |       0 | 22-194            
+2025-08-20T16:00:47.7015489Z   ChildCard.tsx              |       0 |        0 |       0 |       0 | 12-69             
+2025-08-20T16:00:47.7016996Z   ChoreCard.tsx              |       0 |        0 |       0 |       0 | 15-166            
+2025-08-20T16:00:47.7018265Z   FinancialSummaryCards.tsx  |       0 |        0 |       0 |       0 | 16-163            
+2025-08-20T16:00:47.7019619Z   RejectChoreModal.tsx       |       0 |        0 |       0 |       0 | 22-131            
+2025-08-20T16:00:47.7020793Z  src/contexts                |       0 |        0 |       0 |       0 |                   
+2025-08-20T16:00:47.7021777Z   AuthContext.tsx            |       0 |        0 |       0 |       0 | 22-150            
+2025-08-20T16:00:47.7023314Z  src/navigation              |   37.25 |    45.61 |   31.57 |   34.69 |                   
+2025-08-20T16:00:47.7024926Z   AuthNavigator.tsx          |       0 |      100 |       0 |       0 | 6-9               
+2025-08-20T16:00:47.7026320Z   MainNavigator.tsx          |       0 |        0 |       0 |       0 | 12-85             
+2025-08-20T16:00:47.7027879Z   RootNavigator.tsx          |       0 |        0 |       0 |       0 | 10-36             
+2025-08-20T16:00:47.7029305Z   SimpleNavigator.tsx        |   61.29 |    50.98 |   54.54 |   58.62 | 39-51,93-135      
+2025-08-20T16:00:47.7078563Z   types.ts                   |       0 |        0 |       0 |       0 |                   
+2025-08-20T16:00:47.7079308Z  src/screens                 |       0 |        0 |       0 |       0 |                   
+2025-08-20T16:00:47.7080379Z   AdjustmentFormScreen.tsx   |       0 |        0 |       0 |       0 | 23-359            
+2025-08-20T16:00:47.7081224Z   AdjustmentsListScreen.tsx  |       0 |        0 |       0 |       0 | 16-251            
+2025-08-20T16:00:47.7082084Z   AllowanceSummaryScreen.tsx |       0 |        0 |       0 |       0 | 21-296            
+2025-08-20T16:00:47.7082904Z   ApprovalsScreen.tsx        |       0 |        0 |       0 |       0 | 24-454            
+2025-08-20T16:00:47.7083640Z   BalanceScreen.tsx          |       0 |        0 |       0 |       0 | 14-176            
+2025-08-20T16:00:47.7084112Z   ChildDetailScreen.tsx      |       0 |        0 |       0 |       0 | 23-271            
+2025-08-20T16:00:47.7084567Z   ChildrenScreen.tsx         |       0 |        0 |       0 |       0 | 20-302            
+2025-08-20T16:00:47.7085019Z   ChoreFormScreen.tsx        |       0 |        0 |       0 |       0 | 22-421            
+2025-08-20T16:00:47.7085485Z   ChoresManagementScreen.tsx |       0 |        0 |       0 |       0 | 17-310            
+2025-08-20T16:00:47.7085955Z   ChoresScreen.tsx           |       0 |        0 |       0 |       0 | 19-248            
+2025-08-20T16:00:47.7086392Z   CreateChildScreen.tsx      |       0 |        0 |       0 |       0 | 18-180            
+2025-08-20T16:00:47.7086812Z   HomeScreen.tsx             |       0 |        0 |       0 |       0 | 14-189            
+2025-08-20T16:00:47.7087473Z   LoginScreen.tsx            |       0 |        0 |       0 |       0 | 19-113            
+2025-08-20T16:00:47.7087921Z   ProfileScreen.tsx          |       0 |        0 |       0 |       0 | 5-50              
+2025-08-20T16:00:47.7088377Z   RegisterScreen.tsx         |       0 |        0 |       0 |       0 | 20-203            
+2025-08-20T16:00:47.7088828Z   StatisticsScreen.tsx       |       0 |        0 |       0 |       0 | 28-301            
+2025-08-20T16:00:47.7089249Z  src/utils                   |       0 |        0 |       0 |       0 |                   
+2025-08-20T16:00:47.7089839Z   Alert.ts                   |       0 |        0 |       0 |       0 | 21-158            
+2025-08-20T16:00:47.7090500Z -----------------------------|---------|----------|---------|---------|-------------------
+2025-08-20T16:00:47.7090755Z 
+2025-08-20T16:00:47.7091049Z =============================== Coverage summary ===============================
+2025-08-20T16:00:47.7091388Z Statements   : 1.1% ( 19/1720 )
+2025-08-20T16:00:47.7091654Z Branches     : 2.18% ( 26/1189 )
+2025-08-20T16:00:47.7091915Z Functions    : 1.71% ( 6/350 )
+2025-08-20T16:00:47.7092171Z Lines        : 1.03% ( 17/1645 )
+2025-08-20T16:00:47.7092481Z ================================================================================
+2025-08-20T16:00:47.8156805Z Jest: "global" coverage threshold for statements (80%) not met: 1.4%
+2025-08-20T16:00:47.8158344Z Jest: "global" coverage threshold for branches (75%) not met: 2.43%
+2025-08-20T16:00:47.8159232Z Jest: "global" coverage threshold for lines (80%) not met: 1.3%
+2025-08-20T16:00:47.8160107Z Jest: "global" coverage threshold for functions (80%) not met: 2.06%
+2025-08-20T16:00:47.8161594Z Jest: "/home/runner/work/chores-tracker/chores-tracker/frontend/src/api/adjustments.ts" coverage threshold for statements (95%) not met: 0%
+2025-08-20T16:00:47.8163608Z Jest: "/home/runner/work/chores-tracker/chores-tracker/frontend/src/api/adjustments.ts" coverage threshold for branches (90%) not met: 0%
+2025-08-20T16:00:47.8165572Z Jest: "/home/runner/work/chores-tracker/chores-tracker/frontend/src/api/adjustments.ts" coverage threshold for lines (95%) not met: 0%
+2025-08-20T16:00:47.8167779Z Jest: "/home/runner/work/chores-tracker/chores-tracker/frontend/src/api/adjustments.ts" coverage threshold for functions (95%) not met: 0%
+2025-08-20T16:00:47.8169764Z Jest: "/home/runner/work/chores-tracker/chores-tracker/frontend/src/api/chores.ts" coverage threshold for statements (95%) not met: 0%
+2025-08-20T16:00:47.8171949Z Jest: "/home/runner/work/chores-tracker/chores-tracker/frontend/src/api/chores.ts" coverage threshold for branches (90%) not met: 0%
+2025-08-20T16:00:47.8173694Z Jest: "/home/runner/work/chores-tracker/chores-tracker/frontend/src/api/chores.ts" coverage threshold for lines (95%) not met: 0%
+2025-08-20T16:00:47.8175458Z Jest: "/home/runner/work/chores-tracker/chores-tracker/frontend/src/api/chores.ts" coverage threshold for functions (95%) not met: 0%
+2025-08-20T16:00:47.8177419Z Jest: "/home/runner/work/chores-tracker/chores-tracker/frontend/src/api/client.ts" coverage threshold for statements (95%) not met: 0%
+2025-08-20T16:00:47.8179181Z Jest: "/home/runner/work/chores-tracker/chores-tracker/frontend/src/api/client.ts" coverage threshold for branches (90%) not met: 0%
+2025-08-20T16:00:47.8180885Z Jest: "/home/runner/work/chores-tracker/chores-tracker/frontend/src/api/client.ts" coverage threshold for lines (95%) not met: 0%
+2025-08-20T16:00:47.8182587Z Jest: "/home/runner/work/chores-tracker/chores-tracker/frontend/src/api/client.ts" coverage threshold for functions (95%) not met: 0%
+2025-08-20T16:00:47.8184362Z Jest: "/home/runner/work/chores-tracker/chores-tracker/frontend/src/api/activities.ts" coverage threshold for statements (95%) not met: 0%
+2025-08-20T16:00:47.8186151Z Jest: "/home/runner/work/chores-tracker/chores-tracker/frontend/src/api/activities.ts" coverage threshold for branches (90%) not met: 0%
+2025-08-20T16:00:47.8188070Z Jest: "/home/runner/work/chores-tracker/chores-tracker/frontend/src/api/activities.ts" coverage threshold for lines (95%) not met: 0%
+2025-08-20T16:00:47.8189856Z Jest: "/home/runner/work/chores-tracker/chores-tracker/frontend/src/api/activities.ts" coverage threshold for functions (95%) not met: 0%
+2025-08-20T16:00:47.8191615Z Jest: "/home/runner/work/chores-tracker/chores-tracker/frontend/src/api/balance.ts" coverage threshold for statements (95%) not met: 0%
+2025-08-20T16:00:47.8193350Z Jest: "/home/runner/work/chores-tracker/chores-tracker/frontend/src/api/balance.ts" coverage threshold for lines (95%) not met: 0%
+2025-08-20T16:00:47.8195084Z Jest: "/home/runner/work/chores-tracker/chores-tracker/frontend/src/api/balance.ts" coverage threshold for functions (95%) not met: 0%
+2025-08-20T16:00:47.8196831Z Jest: "/home/runner/work/chores-tracker/chores-tracker/frontend/src/api/users.ts" coverage threshold for statements (95%) not met: 0%
+2025-08-20T16:00:47.8198685Z Jest: "/home/runner/work/chores-tracker/chores-tracker/frontend/src/api/users.ts" coverage threshold for lines (95%) not met: 0%
+2025-08-20T16:00:47.8200384Z Jest: "/home/runner/work/chores-tracker/chores-tracker/frontend/src/api/users.ts" coverage threshold for functions (95%) not met: 0%
+2025-08-20T16:00:47.8202147Z Jest: "/home/runner/work/chores-tracker/chores-tracker/frontend/src/api/statistics.ts" coverage threshold for statements (95%) not met: 0%
+2025-08-20T16:00:47.8204225Z Jest: "/home/runner/work/chores-tracker/chores-tracker/frontend/src/api/statistics.ts" coverage threshold for branches (90%) not met: 0%
+2025-08-20T16:00:47.8206015Z Jest: "/home/runner/work/chores-tracker/chores-tracker/frontend/src/api/statistics.ts" coverage threshold for lines (95%) not met: 0%
+2025-08-20T16:00:47.8207929Z Jest: "/home/runner/work/chores-tracker/chores-tracker/frontend/src/api/statistics.ts" coverage threshold for functions (95%) not met: 0%
+2025-08-20T16:00:47.8209702Z Jest: "/home/runner/work/chores-tracker/chores-tracker/frontend/src/api/reports.ts" coverage threshold for statements (95%) not met: 0%
+2025-08-20T16:00:47.8211457Z Jest: "/home/runner/work/chores-tracker/chores-tracker/frontend/src/api/reports.ts" coverage threshold for branches (90%) not met: 0%
+2025-08-20T16:00:47.8213170Z Jest: "/home/runner/work/chores-tracker/chores-tracker/frontend/src/api/reports.ts" coverage threshold for lines (95%) not met: 0%
+2025-08-20T16:00:47.8214893Z Jest: "/home/runner/work/chores-tracker/chores-tracker/frontend/src/api/reports.ts" coverage threshold for functions (95%) not met: 0%
+2025-08-20T16:00:47.8216784Z Jest: "/home/runner/work/chores-tracker/chores-tracker/frontend/src/contexts/AuthContext.tsx" coverage threshold for statements (90%) not met: 0%
+2025-08-20T16:00:47.8219093Z Jest: "/home/runner/work/chores-tracker/chores-tracker/frontend/src/contexts/AuthContext.tsx" coverage threshold for branches (85%) not met: 0%
+2025-08-20T16:00:47.8220350Z Jest: "/home/runner/work/chores-tracker/chores-tracker/frontend/src/contexts/AuthContext.tsx" coverage threshold for lines (90%) not met: 0%
+2025-08-20T16:00:47.8221459Z Jest: "/home/runner/work/chores-tracker/chores-tracker/frontend/src/contexts/AuthContext.tsx" coverage threshold for functions (90%) not met: 0%
+2025-08-20T16:00:47.8222129Z Test Suites: 3 failed, 3 total
+2025-08-20T16:00:47.8222437Z Tests:       18 failed, 22 passed, 40 total
+2025-08-20T16:00:47.8222714Z Snapshots:   0 total
+2025-08-20T16:00:47.8222934Z Time:        16.805 s
+2025-08-20T16:00:47.8223213Z Ran all test suites matching /integration/i.
+2025-08-20T16:00:47.8325400Z ##[error]Process completed with exit code 1.

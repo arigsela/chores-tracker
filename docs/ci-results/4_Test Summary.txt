@@ -1,0 +1,93 @@
+﻿2025-08-20T16:00:59.4334122Z Current runner version: '2.327.1'
+2025-08-20T16:00:59.4355737Z ##[group]Runner Image Provisioner
+2025-08-20T16:00:59.4356732Z Hosted Compute Agent
+2025-08-20T16:00:59.4357267Z Version: 20250818.377
+2025-08-20T16:00:59.4357930Z Commit: 3c593e9f75fe0b87e893bca80d6e12ba089c61fc
+2025-08-20T16:00:59.4358622Z Build Date: 2025-08-18T14:52:18Z
+2025-08-20T16:00:59.4359211Z ##[endgroup]
+2025-08-20T16:00:59.4359780Z ##[group]Operating System
+2025-08-20T16:00:59.4360333Z Ubuntu
+2025-08-20T16:00:59.4360769Z 24.04.2
+2025-08-20T16:00:59.4361274Z LTS
+2025-08-20T16:00:59.4361680Z ##[endgroup]
+2025-08-20T16:00:59.4362193Z ##[group]Runner Image
+2025-08-20T16:00:59.4362711Z Image: ubuntu-24.04
+2025-08-20T16:00:59.4363227Z Version: 20250810.1.0
+2025-08-20T16:00:59.4364184Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20250810.1/images/ubuntu/Ubuntu2404-Readme.md
+2025-08-20T16:00:59.4365773Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20250810.1
+2025-08-20T16:00:59.4366964Z ##[endgroup]
+2025-08-20T16:00:59.4368069Z ##[group]GITHUB_TOKEN Permissions
+2025-08-20T16:00:59.4369810Z Contents: read
+2025-08-20T16:00:59.4370496Z Metadata: read
+2025-08-20T16:00:59.4370977Z Packages: read
+2025-08-20T16:00:59.4371496Z ##[endgroup]
+2025-08-20T16:00:59.4373652Z Secret source: Actions
+2025-08-20T16:00:59.4374446Z Prepare workflow directory
+2025-08-20T16:00:59.4749938Z Prepare all required actions
+2025-08-20T16:00:59.4803807Z Complete job name: Test Summary
+2025-08-20T16:00:59.5515967Z ##[group]Run {
+2025-08-20T16:00:59.5516864Z [36;1m{[0m
+2025-08-20T16:00:59.5517352Z [36;1m  echo "## 📊 Frontend Test Results"[0m
+2025-08-20T16:00:59.5518086Z [36;1m  echo ""[0m
+2025-08-20T16:00:59.5518556Z [36;1m  echo "| Job | Status |"[0m
+2025-08-20T16:00:59.5519145Z [36;1m  echo "|-----|--------|"[0m
+2025-08-20T16:00:59.5519996Z [36;1m  echo "| Quality Checks | success |"[0m
+2025-08-20T16:00:59.5520611Z [36;1m  echo "| Unit Tests | failure |"[0m
+2025-08-20T16:00:59.5521228Z [36;1m  echo "| Integration Tests | failure |"[0m
+2025-08-20T16:00:59.5521999Z [36;1m  echo "| Full Coverage | skipped |"[0m
+2025-08-20T16:00:59.5522572Z [36;1m  echo ""[0m
+2025-08-20T16:00:59.5523104Z [36;1m} >> "$GITHUB_STEP_SUMMARY"[0m
+2025-08-20T16:00:59.5523815Z [36;1m[0m
+2025-08-20T16:00:59.5524622Z [36;1mquality_result="success"[0m
+2025-08-20T16:00:59.5525589Z [36;1munit_result="failure"[0m
+2025-08-20T16:00:59.5526767Z [36;1mintegration_result="failure"[0m
+2025-08-20T16:00:59.5527803Z [36;1mcoverage_result="skipped"[0m
+2025-08-20T16:00:59.5528665Z [36;1m[0m
+2025-08-20T16:00:59.5529155Z [36;1mif [[ "$quality_result" == "success" && [0m
+2025-08-20T16:00:59.5529812Z [36;1m      "$unit_result" == "success" && [0m
+2025-08-20T16:00:59.5530502Z [36;1m      "$integration_result" == "success" && [0m
+2025-08-20T16:00:59.5531154Z [36;1m      "$coverage_result" == "success" ]]; then[0m
+2025-08-20T16:00:59.5531819Z [36;1m  {[0m
+2025-08-20T16:00:59.5532298Z [36;1m    echo "🎉 **All frontend tests passed!** 🎉"[0m
+2025-08-20T16:00:59.5533006Z [36;1m    echo ""[0m
+2025-08-20T16:00:59.5533511Z [36;1m    echo "- ✅ Code quality standards met"[0m
+2025-08-20T16:00:59.5534159Z [36;1m    echo "- ✅ All unit tests passing"[0m
+2025-08-20T16:00:59.5534873Z [36;1m    echo "- ✅ Integration tests successful"[0m
+2025-08-20T16:00:59.5535500Z [36;1m    echo "- ✅ Coverage thresholds achieved"[0m
+2025-08-20T16:00:59.5536151Z [36;1m  } >> "$GITHUB_STEP_SUMMARY"[0m
+2025-08-20T16:00:59.5537122Z [36;1melse[0m
+2025-08-20T16:00:59.5537586Z [36;1m  {[0m
+2025-08-20T16:00:59.5538068Z [36;1m    echo "❌ **Some frontend tests failed** ❌"[0m
+2025-08-20T16:00:59.5538730Z [36;1m    echo ""[0m
+2025-08-20T16:00:59.5539376Z [36;1m    echo "Please check the individual job logs for details."[0m
+2025-08-20T16:00:59.5540053Z [36;1m  } >> "$GITHUB_STEP_SUMMARY"[0m
+2025-08-20T16:00:59.5540653Z [36;1mfi[0m
+2025-08-20T16:00:59.5796818Z shell: /usr/bin/bash -e {0}
+2025-08-20T16:00:59.5797758Z env:
+2025-08-20T16:00:59.5798561Z   NODE_VERSION: 20
+2025-08-20T16:00:59.5799026Z   WORKING_DIRECTORY: ./frontend
+2025-08-20T16:00:59.5799681Z ##[endgroup]
+2025-08-20T16:00:59.6182107Z ##[group]Run quality_result="success"
+2025-08-20T16:00:59.6182695Z [36;1mquality_result="success"[0m
+2025-08-20T16:00:59.6183176Z [36;1munit_result="failure"[0m
+2025-08-20T16:00:59.6183645Z [36;1mintegration_result="failure"[0m
+2025-08-20T16:00:59.6184136Z [36;1mcoverage_result="skipped"[0m
+2025-08-20T16:00:59.6184587Z [36;1m[0m
+2025-08-20T16:00:59.6184987Z [36;1mif [[ "$quality_result" == "success" && [0m
+2025-08-20T16:00:59.6185531Z [36;1m      "$unit_result" == "success" && [0m
+2025-08-20T16:00:59.6186074Z [36;1m      "$integration_result" == "success" && [0m
+2025-08-20T16:00:59.6187177Z [36;1m      "$coverage_result" == "success" ]]; then[0m
+2025-08-20T16:00:59.6188219Z [36;1m  echo "✅ Frontend CI: All checks passed"[0m
+2025-08-20T16:00:59.6189124Z [36;1m  exit 0[0m
+2025-08-20T16:00:59.6189763Z [36;1melse[0m
+2025-08-20T16:00:59.6190530Z [36;1m  echo "❌ Frontend CI: Some checks failed"[0m
+2025-08-20T16:00:59.6191463Z [36;1m  exit 1[0m
+2025-08-20T16:00:59.6192146Z [36;1mfi[0m
+2025-08-20T16:00:59.6241680Z shell: /usr/bin/bash -e {0}
+2025-08-20T16:00:59.6242142Z env:
+2025-08-20T16:00:59.6242474Z   NODE_VERSION: 20
+2025-08-20T16:00:59.6242867Z   WORKING_DIRECTORY: ./frontend
+2025-08-20T16:00:59.6243304Z ##[endgroup]
+2025-08-20T16:00:59.6412795Z ❌ Frontend CI: Some checks failed
+2025-08-20T16:00:59.6421750Z ##[error]Process completed with exit code 1.
+2025-08-20T16:00:59.6507704Z Cleaning up orphan processes

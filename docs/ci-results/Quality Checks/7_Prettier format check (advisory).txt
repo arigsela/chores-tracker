@@ -1,0 +1,91 @@
+﻿2025-08-20T16:00:41.3532075Z ##[group]Run echo "💅 Running Prettier format check..."
+2025-08-20T16:00:41.3532485Z [36;1mecho "💅 Running Prettier format check..."[0m
+2025-08-20T16:00:41.3532777Z [36;1mif npm run format:check; then[0m
+2025-08-20T16:00:41.3533051Z [36;1m  echo "✅ Prettier format check passed"[0m
+2025-08-20T16:00:41.3533303Z [36;1melse[0m
+2025-08-20T16:00:41.3533505Z [36;1m  echo "⚠️  Code formatting issues found"[0m
+2025-08-20T16:00:41.3533860Z [36;1m  echo "Note: CI will continue, but code should be formatted consistently"[0m
+2025-08-20T16:00:41.3534282Z [36;1m  echo "Run 'npm run format' locally to auto-fix formatting"[0m
+2025-08-20T16:00:41.3534574Z [36;1mfi[0m
+2025-08-20T16:00:41.3574550Z shell: /usr/bin/bash -e {0}
+2025-08-20T16:00:41.3574771Z env:
+2025-08-20T16:00:41.3574937Z   NODE_VERSION: 20
+2025-08-20T16:00:41.3575122Z   WORKING_DIRECTORY: ./frontend
+2025-08-20T16:00:41.3575335Z ##[endgroup]
+2025-08-20T16:00:41.3634478Z 💅 Running Prettier format check...
+2025-08-20T16:00:41.4686340Z 
+2025-08-20T16:00:41.4686725Z > frontend@1.0.0 format:check
+2025-08-20T16:00:41.4687197Z > prettier --check "src/**/*.{ts,tsx,js,jsx,json}"
+2025-08-20T16:00:41.4687478Z 
+2025-08-20T16:00:41.5500546Z Checking formatting...
+2025-08-20T16:00:41.8305349Z [[33mwarn[39m] src/__tests__/integration/approvalWorkflow.test.tsx
+2025-08-20T16:00:41.9425650Z [[33mwarn[39m] src/__tests__/integration/authFlow.test.tsx
+2025-08-20T16:00:42.0879124Z [[33mwarn[39m] src/__tests__/integration/choreManagement.test.tsx
+2025-08-20T16:00:42.1003565Z [[33mwarn[39m] src/api/__tests__/auth.test.ts
+2025-08-20T16:00:42.1523028Z [[33mwarn[39m] src/api/__tests__/balance.test.ts
+2025-08-20T16:00:42.2189736Z [[33mwarn[39m] src/api/__tests__/chores.test.ts
+2025-08-20T16:00:42.2485932Z [[33mwarn[39m] src/api/__tests__/client.test.ts
+2025-08-20T16:00:42.2876918Z [[33mwarn[39m] src/api/__tests__/users.test.ts
+2025-08-20T16:00:42.3052424Z [[33mwarn[39m] src/api/activities.ts
+2025-08-20T16:00:42.3123394Z [[33mwarn[39m] src/api/adjustments.ts
+2025-08-20T16:00:42.3165059Z [[33mwarn[39m] src/api/balance.ts
+2025-08-20T16:00:42.3363946Z [[33mwarn[39m] src/api/chores.ts
+2025-08-20T16:00:42.3484216Z [[33mwarn[39m] src/api/client.ts
+2025-08-20T16:00:42.3669007Z [[33mwarn[39m] src/api/reports.ts
+2025-08-20T16:00:42.4108171Z [[33mwarn[39m] src/api/statistics.ts
+2025-08-20T16:00:42.4183735Z [[33mwarn[39m] src/api/users.ts
+2025-08-20T16:00:42.4230203Z [[33mwarn[39m] src/App.tsx
+2025-08-20T16:00:42.4640092Z [[33mwarn[39m] src/components/__tests__/ActivityCard.test.tsx
+2025-08-20T16:00:42.4963769Z [[33mwarn[39m] src/components/__tests__/ActivityFeed.test.tsx
+2025-08-20T16:00:42.5329626Z [[33mwarn[39m] src/components/__tests__/ChildCard.test.tsx
+2025-08-20T16:00:42.5814790Z [[33mwarn[39m] src/components/__tests__/ChoreCard.test.tsx
+2025-08-20T16:00:42.6196733Z [[33mwarn[39m] src/components/__tests__/FinancialSummaryCards.test.tsx
+2025-08-20T16:00:42.6541438Z [[33mwarn[39m] src/components/__tests__/RejectChoreModal.test.tsx
+2025-08-20T16:00:42.6655029Z [[33mwarn[39m] src/components/ActivityCard.tsx
+2025-08-20T16:00:42.6858616Z [[33mwarn[39m] src/components/ActivityFeed.tsx
+2025-08-20T16:00:42.6985332Z [[33mwarn[39m] src/components/ChildCard.tsx
+2025-08-20T16:00:42.7154240Z [[33mwarn[39m] src/components/ChoreCard.tsx
+2025-08-20T16:00:42.7533640Z [[33mwarn[39m] src/components/FinancialSummaryCards.tsx
+2025-08-20T16:00:42.7756883Z [[33mwarn[39m] src/components/RejectChoreModal.tsx
+2025-08-20T16:00:42.8325495Z [[33mwarn[39m] src/contexts/__tests__/AuthContext.test.tsx
+2025-08-20T16:00:42.8430080Z [[33mwarn[39m] src/contexts/AuthContext.tsx
+2025-08-20T16:00:42.8810252Z [[33mwarn[39m] src/navigation/__tests__/SimpleNavigator.test.tsx
+2025-08-20T16:00:42.8841594Z [[33mwarn[39m] src/navigation/AuthNavigator.tsx
+2025-08-20T16:00:42.8895691Z [[33mwarn[39m] src/navigation/MainNavigator.tsx
+2025-08-20T16:00:42.8953800Z [[33mwarn[39m] src/navigation/RootNavigator.tsx
+2025-08-20T16:00:42.9071993Z [[33mwarn[39m] src/navigation/SimpleNavigator.tsx
+2025-08-20T16:00:42.9110601Z [[33mwarn[39m] src/navigation/types.ts
+2025-08-20T16:00:42.9565287Z [[33mwarn[39m] src/screens/__tests__/ChoresScreen.test.tsx
+2025-08-20T16:00:42.9817310Z [[33mwarn[39m] src/screens/__tests__/HomeScreen.test.tsx
+2025-08-20T16:00:42.9928025Z [[33mwarn[39m] src/screens/__tests__/LoginScreen.simple.test.tsx
+2025-08-20T16:00:43.0340864Z [[33mwarn[39m] src/screens/__tests__/LoginScreen.test.tsx
+2025-08-20T16:00:43.0879779Z [[33mwarn[39m] src/screens/__tests__/RegisterScreen.test.tsx
+2025-08-20T16:00:43.1171768Z [[33mwarn[39m] src/screens/AdjustmentFormScreen.tsx
+2025-08-20T16:00:43.1385342Z [[33mwarn[39m] src/screens/AdjustmentsListScreen.tsx
+2025-08-20T16:00:43.1721400Z [[33mwarn[39m] src/screens/AllowanceSummaryScreen.tsx
+2025-08-20T16:00:43.2173610Z [[33mwarn[39m] src/screens/ApprovalsScreen.tsx
+2025-08-20T16:00:43.2338090Z [[33mwarn[39m] src/screens/BalanceScreen.tsx
+2025-08-20T16:00:43.2684987Z [[33mwarn[39m] src/screens/ChildDetailScreen.tsx
+2025-08-20T16:00:43.2937077Z [[33mwarn[39m] src/screens/ChildrenScreen.tsx
+2025-08-20T16:00:43.3196513Z [[33mwarn[39m] src/screens/ChoreFormScreen.tsx
+2025-08-20T16:00:43.3415251Z [[33mwarn[39m] src/screens/ChoresManagementScreen.tsx
+2025-08-20T16:00:43.3559642Z [[33mwarn[39m] src/screens/ChoresScreen.tsx
+2025-08-20T16:00:43.3719789Z [[33mwarn[39m] src/screens/CreateChildScreen.tsx
+2025-08-20T16:00:43.3920205Z [[33mwarn[39m] src/screens/HomeScreen.tsx
+2025-08-20T16:00:43.4056985Z [[33mwarn[39m] src/screens/LoginScreen.tsx
+2025-08-20T16:00:43.4281337Z [[33mwarn[39m] src/screens/ProfileScreen.tsx
+2025-08-20T16:00:43.4482703Z [[33mwarn[39m] src/screens/RegisterScreen.tsx
+2025-08-20T16:00:43.4949823Z [[33mwarn[39m] src/screens/StatisticsScreen.tsx
+2025-08-20T16:00:43.5232996Z [[33mwarn[39m] src/test-utils/__tests__/testUtils.test.ts
+2025-08-20T16:00:43.5664246Z [[33mwarn[39m] src/test-utils/factories.ts
+2025-08-20T16:00:43.5770330Z [[33mwarn[39m] src/test-utils/index.ts
+2025-08-20T16:00:43.5816966Z [[33mwarn[39m] src/test-utils/IntegrationTestWrapper.tsx
+2025-08-20T16:00:43.5951163Z [[33mwarn[39m] src/test-utils/mocks.ts
+2025-08-20T16:00:43.6054443Z [[33mwarn[39m] src/test-utils/renderWithProviders.tsx
+2025-08-20T16:00:43.6168554Z [[33mwarn[39m] src/test-utils/setup.ts
+2025-08-20T16:00:43.6745327Z [[33mwarn[39m] src/tests/performance_test.js
+2025-08-20T16:00:43.6880255Z [[33mwarn[39m] src/utils/Alert.ts
+2025-08-20T16:00:43.6880978Z [[33mwarn[39m] Code style issues found in 67 files. Run Prettier with --write to fix.
+2025-08-20T16:00:43.7132288Z ⚠️  Code formatting issues found
+2025-08-20T16:00:43.7133094Z Note: CI will continue, but code should be formatted consistently
+2025-08-20T16:00:43.7133896Z Run 'npm run format' locally to auto-fix formatting

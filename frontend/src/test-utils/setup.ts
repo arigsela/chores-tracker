@@ -12,6 +12,12 @@ try {
   // Expo environment doesn't need this mock
 }
 
+// Mock TurboModuleRegistry to fix DevMenu errors
+jest.mock('react-native/Libraries/TurboModule/TurboModuleRegistry', () => ({
+  getEnforcing: jest.fn(() => ({})),
+  get: jest.fn(() => ({})),
+}));
+
 // Mock AsyncStorage
 jest.mock('@react-native-async-storage/async-storage', () => ({
   getItem: jest.fn(),

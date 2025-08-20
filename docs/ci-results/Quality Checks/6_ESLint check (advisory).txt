@@ -1,0 +1,437 @@
+﻿2025-08-20T16:00:36.2553212Z ##[group]Run echo "🔍 Running ESLint check..."
+2025-08-20T16:00:36.2553595Z [36;1mecho "🔍 Running ESLint check..."[0m
+2025-08-20T16:00:36.2553853Z [36;1mif npm run lint; then[0m
+2025-08-20T16:00:36.2554102Z [36;1m  echo "✅ ESLint check passed"[0m
+2025-08-20T16:00:36.2554339Z [36;1melse[0m
+2025-08-20T16:00:36.2554519Z [36;1m  echo "⚠️  ESLint issues found"[0m
+2025-08-20T16:00:36.2554877Z [36;1m  echo "Note: CI will continue, but these should be addressed for code quality"[0m
+2025-08-20T16:00:36.2555299Z [36;1m  echo "Run 'npm run lint:fix' locally to auto-fix some issues"[0m
+2025-08-20T16:00:36.2555594Z [36;1mfi[0m
+2025-08-20T16:00:36.2594808Z shell: /usr/bin/bash -e {0}
+2025-08-20T16:00:36.2595033Z env:
+2025-08-20T16:00:36.2595193Z   NODE_VERSION: 20
+2025-08-20T16:00:36.2595387Z   WORKING_DIRECTORY: ./frontend
+2025-08-20T16:00:36.2595604Z ##[endgroup]
+2025-08-20T16:00:36.2653574Z 🔍 Running ESLint check...
+2025-08-20T16:00:36.3695080Z 
+2025-08-20T16:00:36.3695631Z > frontend@1.0.0 lint
+2025-08-20T16:00:36.3696178Z > eslint . --ext .ts,.tsx,.js,.jsx
+2025-08-20T16:00:36.3696408Z 
+2025-08-20T16:00:41.2701572Z 
+2025-08-20T16:00:41.2702976Z /home/runner/work/chores-tracker/chores-tracker/frontend/src/__tests__/integration/approvalWorkflow.test.tsx
+2025-08-20T16:00:41.2719553Z ##[error]    7:10  error  'render' is defined but never used                  @typescript-eslint/no-unused-vars
+2025-08-20T16:00:41.2722206Z ##[error]   50:44  error  Unexpected any. Specify a different type            @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.2724238Z ##[error]   51:57  error  Require statement not part of import statement      @typescript-eslint/no-var-requires
+2025-08-20T16:00:41.2726268Z ##[error]   52:19  error  Require statement not part of import statement      @typescript-eslint/no-var-requires
+2025-08-20T16:00:41.2728456Z ##[error]   64:30  error  Require statement not part of import statement      @typescript-eslint/no-var-requires
+2025-08-20T16:00:41.2730483Z ##[error]   76:23  error  Unexpected any. Specify a different type            @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.2732860Z ##[error]   83:30  error  Require statement not part of import statement      @typescript-eslint/no-var-requires
+2025-08-20T16:00:41.2734816Z ##[error]   86:23  error  Unexpected any. Specify a different type            @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.2736872Z ##[error]   93:30  error  Require statement not part of import statement      @typescript-eslint/no-var-requires
+2025-08-20T16:00:41.2739081Z ##[error]   95:23  error  Unexpected any. Specify a different type            @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.2741174Z ##[error]  141:38  error  Unexpected any. Specify a different type            @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.2743158Z ##[error]  142:28  error  Require statement not part of import statement      @typescript-eslint/no-var-requires
+2025-08-20T16:00:41.2745145Z ##[error]  143:19  error  Require statement not part of import statement      @typescript-eslint/no-var-requires
+2025-08-20T16:00:41.2747158Z ##[error]  149:32  error  Require statement not part of import statement      @typescript-eslint/no-var-requires
+2025-08-20T16:00:41.2749362Z ##[error]  171:41  error  Unexpected any. Specify a different type            @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.2751340Z ##[error]  172:28  error  Require statement not part of import statement      @typescript-eslint/no-var-requires
+2025-08-20T16:00:41.2753335Z ##[error]  173:19  error  Require statement not part of import statement      @typescript-eslint/no-var-requires
+2025-08-20T16:00:41.2755318Z ##[error]  179:37  error  Require statement not part of import statement      @typescript-eslint/no-var-requires
+2025-08-20T16:00:41.2757310Z ##[error]  192:36  error  Unexpected any. Specify a different type            @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.2759532Z ##[error]  229:28  error  'queryByTestId' is assigned a value but never used  @typescript-eslint/no-unused-vars
+2025-08-20T16:00:41.2761061Z 
+2025-08-20T16:00:41.2761814Z /home/runner/work/chores-tracker/chores-tracker/frontend/src/__tests__/integration/authFlow.test.tsx
+2025-08-20T16:00:41.2763717Z ##[error]   11:25  error    'createMockUser' is defined but never used                                                                                                         @typescript-eslint/no-unused-vars
+2025-08-20T16:00:41.2766158Z ##[error]   38:43  error    Unexpected any. Specify a different type                                                                                                           @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.2768757Z ##[error]   39:11  error    'mockReact' is assigned a value but never used                                                                                                     @typescript-eslint/no-unused-vars
+2025-08-20T16:00:41.2771255Z ##[error]   39:23  error    Require statement not part of import statement                                                                                                     @typescript-eslint/no-var-requires
+2025-08-20T16:00:41.2773778Z ##[error]   40:46  error    Require statement not part of import statement                                                                                                     @typescript-eslint/no-var-requires
+2025-08-20T16:00:41.2776257Z ##[error]   50:33  error    Require statement not part of import statement                                                                                                     @typescript-eslint/no-var-requires
+2025-08-20T16:00:41.2779415Z ##[error]   51:31  error    React Hook "useAuth" cannot be called inside a callback. React Hooks must be called in a React function component or a custom React Hook function  react-hooks/rules-of-hooks
+2025-08-20T16:00:41.2782810Z ##[warning]   54:13  warning  Unexpected console statement                                                                                                                       no-console
+2025-08-20T16:00:41.2785657Z ##[error]   61:33  error    Require statement not part of import statement                                                                                                     @typescript-eslint/no-var-requires
+2025-08-20T16:00:41.2789000Z ##[error]   62:31  error    React Hook "useAuth" cannot be called inside a callback. React Hooks must be called in a React function component or a custom React Hook function  react-hooks/rules-of-hooks
+2025-08-20T16:00:41.2791892Z ##[warning]   65:13  warning  Unexpected console statement                                                                                                                       no-console
+2025-08-20T16:00:41.2794319Z ##[error]   76:39  error    Unexpected any. Specify a different type                                                                                                           @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.2796818Z ##[error]   77:46  error    Require statement not part of import statement                                                                                                     @typescript-eslint/no-var-requires
+2025-08-20T16:00:41.2799377Z ##[warning]   85:11  warning  Unexpected console statement                                                                                                                       no-console
+2025-08-20T16:00:41.2801782Z ##[error]   96:32  error    Unexpected any. Specify a different type                                                                                                           @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.2804277Z ##[error]   97:46  error    Require statement not part of import statement                                                                                                     @typescript-eslint/no-var-requires
+2025-08-20T16:00:41.2806799Z ##[error]   98:25  error    Require statement not part of import statement                                                                                                     @typescript-eslint/no-var-requires
+2025-08-20T16:00:41.2809780Z ##[error]  121:28  error    Require statement not part of import statement                                                                                                     @typescript-eslint/no-var-requires
+2025-08-20T16:00:41.2812331Z ##[error]  128:28  error    Require statement not part of import statement                                                                                                     @typescript-eslint/no-var-requires
+2025-08-20T16:00:41.2814887Z ##[error]  135:28  error    Require statement not part of import statement                                                                                                     @typescript-eslint/no-var-requires
+2025-08-20T16:00:41.2817536Z ##[error]  142:28  error    Require statement not part of import statement                                                                                                     @typescript-eslint/no-var-requires
+2025-08-20T16:00:41.2820332Z ##[error]  150:28  error    Require statement not part of import statement                                                                                                     @typescript-eslint/no-var-requires
+2025-08-20T16:00:41.2822914Z ##[error]  157:28  error    Require statement not part of import statement                                                                                                     @typescript-eslint/no-var-requires
+2025-08-20T16:00:41.2825455Z ##[error]  164:28  error    Require statement not part of import statement                                                                                                     @typescript-eslint/no-var-requires
+2025-08-20T16:00:41.2826733Z 
+2025-08-20T16:00:41.2827524Z /home/runner/work/chores-tracker/chores-tracker/frontend/src/__tests__/integration/choreManagement.test.tsx
+2025-08-20T16:00:41.2829319Z ##[error]   42:76  error  Require statement not part of import statement  @typescript-eslint/no-var-requires
+2025-08-20T16:00:41.2831572Z ##[error]   43:23  error  Require statement not part of import statement  @typescript-eslint/no-var-requires
+2025-08-20T16:00:41.2833566Z ##[error]   54:25  error  Require statement not part of import statement  @typescript-eslint/no-var-requires
+2025-08-20T16:00:41.2835543Z ##[error]   65:30  error  Require statement not part of import statement  @typescript-eslint/no-var-requires
+2025-08-20T16:00:41.2870338Z ##[error]   82:30  error  Require statement not part of import statement  @typescript-eslint/no-var-requires
+2025-08-20T16:00:41.2872623Z ##[error]   95:23  error  Unexpected any. Specify a different type        @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.2874720Z ##[error]  102:30  error  Require statement not part of import statement  @typescript-eslint/no-var-requires
+2025-08-20T16:00:41.2876784Z ##[error]  110:23  error  Unexpected any. Specify a different type        @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.2879003Z ##[error]  117:30  error  Require statement not part of import statement  @typescript-eslint/no-var-requires
+2025-08-20T16:00:41.2880963Z ##[error]  121:23  error  Unexpected any. Specify a different type        @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.2882925Z ##[error]  180:32  error  Unexpected any. Specify a different type        @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.2884969Z ##[error]  220:28  error  Require statement not part of import statement  @typescript-eslint/no-var-requires
+2025-08-20T16:00:41.2886984Z ##[error]  230:32  error  Unexpected any. Specify a different type        @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.2889197Z ##[error]  231:46  error  Require statement not part of import statement  @typescript-eslint/no-var-requires
+2025-08-20T16:00:41.2891229Z ##[error]  232:25  error  Require statement not part of import statement  @typescript-eslint/no-var-requires
+2025-08-20T16:00:41.2893227Z ##[error]  249:28  error  Require statement not part of import statement  @typescript-eslint/no-var-requires
+2025-08-20T16:00:41.2895470Z ##[error]  256:28  error  Require statement not part of import statement  @typescript-eslint/no-var-requires
+2025-08-20T16:00:41.2897440Z ##[error]  263:28  error  Require statement not part of import statement  @typescript-eslint/no-var-requires
+2025-08-20T16:00:41.2899632Z ##[error]  271:28  error  Require statement not part of import statement  @typescript-eslint/no-var-requires
+2025-08-20T16:00:41.2901641Z ##[error]  278:28  error  Require statement not part of import statement  @typescript-eslint/no-var-requires
+2025-08-20T16:00:41.2903658Z ##[error]  285:28  error  Require statement not part of import statement  @typescript-eslint/no-var-requires
+2025-08-20T16:00:41.2905631Z ##[error]  292:28  error  Require statement not part of import statement  @typescript-eslint/no-var-requires
+2025-08-20T16:00:41.2907623Z ##[error]  556:35  error  Unexpected any. Specify a different type        @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.2909849Z ##[error]  561:74  error  Unexpected any. Specify a different type        @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.2911048Z 
+2025-08-20T16:00:41.2911685Z /home/runner/work/chores-tracker/chores-tracker/frontend/src/api/__tests__/balance.test.ts
+2025-08-20T16:00:41.2913322Z ##[error]  12:3  error  'createMockApiError' is defined but never used  @typescript-eslint/no-unused-vars
+2025-08-20T16:00:41.2914486Z 
+2025-08-20T16:00:41.2915095Z /home/runner/work/chores-tracker/chores-tracker/frontend/src/api/__tests__/users.test.ts
+2025-08-20T16:00:41.2916496Z ##[error]  18:3  error  'createMockApiError' is defined but never used  @typescript-eslint/no-unused-vars
+2025-08-20T16:00:41.2917655Z 
+2025-08-20T16:00:41.2918357Z /home/runner/work/chores-tracker/chores-tracker/frontend/src/api/chores.ts
+2025-08-20T16:00:41.2919662Z ##[error]  37:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.2921606Z ##[error]  85:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.2922983Z 
+2025-08-20T16:00:41.2923496Z /home/runner/work/chores-tracker/chores-tracker/frontend/src/api/client.ts
+2025-08-20T16:00:41.2924632Z ##[warning]  57:5   warning  Unexpected console statement              no-console
+2025-08-20T16:00:41.2926280Z ##[warning]  58:5   warning  Unexpected console statement              no-console
+2025-08-20T16:00:41.2928093Z ##[warning]  67:7   warning  Unexpected console statement              no-console
+2025-08-20T16:00:41.2929790Z ##[warning]  68:7   warning  Unexpected console statement              no-console
+2025-08-20T16:00:41.2931425Z ##[warning]  72:9   warning  Unexpected console statement              no-console
+2025-08-20T16:00:41.2933082Z ##[warning]  76:9   warning  Unexpected console statement              no-console
+2025-08-20T16:00:41.2934747Z ##[warning]  78:9   warning  Unexpected console statement              no-console
+2025-08-20T16:00:41.2936629Z ##[error]  89:21  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.2937978Z 
+2025-08-20T16:00:41.2938524Z /home/runner/work/chores-tracker/chores-tracker/frontend/src/api/statistics.ts
+2025-08-20T16:00:41.2939829Z ##[error]  67:16  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.2941027Z 
+2025-08-20T16:00:41.2941508Z /home/runner/work/chores-tracker/chores-tracker/frontend/src/api/users.ts
+2025-08-20T16:00:41.2942772Z ##[error]  13:12  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.2943960Z 
+2025-08-20T16:00:41.2944570Z /home/runner/work/chores-tracker/chores-tracker/frontend/src/components/ActivityCard.tsx
+2025-08-20T16:00:41.2945376Z   85:15  warning  Inline style: {
+2025-08-20T16:00:41.2946289Z   color: 'isMoneyActivity && activity.activity_data.amount !== undefined && activity.activity_data.amount < 0 \n' +
+2025-08-20T16:00:41.2947152Z     "                  ? '#F44336' \n" +
+2025-08-20T16:00:41.2947966Z     "                  : '#4CAF50'"
+2025-08-20T16:00:41.2948448Z }  react-native/no-inline-styles
+2025-08-20T16:00:41.2948705Z 
+2025-08-20T16:00:41.2949299Z /home/runner/work/chores-tracker/chores-tracker/frontend/src/components/ActivityFeed.tsx
+2025-08-20T16:00:41.2950815Z ##[error]  35:58  error  'isRefresh' is assigned a value but never used  @typescript-eslint/no-unused-vars
+2025-08-20T16:00:41.2952057Z 
+2025-08-20T16:00:41.2952661Z /home/runner/work/chores-tracker/chores-tracker/frontend/src/components/ChoreCard.tsx
+2025-08-20T16:00:41.2954018Z ##[error]  22:3  error  'isChild' is assigned a value but never used  @typescript-eslint/no-unused-vars
+2025-08-20T16:00:41.2955203Z 
+2025-08-20T16:00:41.2955858Z /home/runner/work/chores-tracker/chores-tracker/frontend/src/components/RejectChoreModal.tsx
+2025-08-20T16:00:41.2957329Z ##[error]  69:19  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+2025-08-20T16:00:41.2959622Z ##[error]  69:32  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+2025-08-20T16:00:41.2960821Z 
+2025-08-20T16:00:41.2961565Z /home/runner/work/chores-tracker/chores-tracker/frontend/src/components/__tests__/ActivityFeed.test.tsx
+2025-08-20T16:00:41.2963260Z ##[error]    7:38  error  'act' is defined but never used                                         @typescript-eslint/no-unused-vars
+2025-08-20T16:00:41.2965506Z ##[error]   25:29  error  'type' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+2025-08-20T16:00:41.2968039Z ##[error]   26:30  error  'type' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+2025-08-20T16:00:41.2970421Z ##[error]  219:13  error  'scrollEvent' is assigned a value but never used                        @typescript-eslint/no-unused-vars
+2025-08-20T16:00:41.2972667Z ##[error]  375:29  error  Unexpected any. Specify a different type                                @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.2974147Z 
+2025-08-20T16:00:41.2974877Z /home/runner/work/chores-tracker/chores-tracker/frontend/src/components/__tests__/ChildCard.test.tsx
+2025-08-20T16:00:41.2976366Z ##[error]  408:14  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.2977550Z 
+2025-08-20T16:00:41.2978531Z /home/runner/work/chores-tracker/chores-tracker/frontend/src/components/__tests__/FinancialSummaryCards.test.tsx
+2025-08-20T16:00:41.2980108Z ##[error]  358:74  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.2982099Z ##[error]  577:12  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.2983287Z 
+2025-08-20T16:00:41.2984073Z /home/runner/work/chores-tracker/chores-tracker/frontend/src/components/__tests__/RejectChoreModal.test.tsx
+2025-08-20T16:00:41.2985581Z ##[error]  236:29  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.2987625Z ##[error]  237:33  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.2989010Z 
+2025-08-20T16:00:41.2989734Z /home/runner/work/chores-tracker/chores-tracker/frontend/src/contexts/__tests__/AuthContext.test.tsx
+2025-08-20T16:00:41.2991568Z ##[error]   11:25  error  'createMockApiUser' is defined but never used             @typescript-eslint/no-unused-vars
+2025-08-20T16:00:41.2993762Z ##[error]   26:75  error  Unexpected any. Specify a different type                  @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.2995955Z ##[error]   39:7   error  'mockOnContextChange' is assigned a value but never used  @typescript-eslint/no-unused-vars
+2025-08-20T16:00:41.2998352Z ##[error]   60:25  error  Unexpected any. Specify a different type                  @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.3000060Z ##[error]   89:25  error  Unexpected any. Specify a different type                  @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.3001521Z ##[error]  111:25  error  Unexpected any. Specify a different type                  @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.3002782Z ##[error]  134:25  error  Unexpected any. Specify a different type                  @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.3004008Z ##[error]  162:25  error  Unexpected any. Specify a different type                  @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.3005228Z ##[error]  183:25  error  Unexpected any. Specify a different type                  @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.3006438Z ##[error]  210:24  error  Unexpected any. Specify a different type                  @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.3007669Z ##[error]  248:24  error  Unexpected any. Specify a different type                  @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.3009185Z ##[error]  273:24  error  Unexpected any. Specify a different type                  @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.3010416Z ##[error]  302:24  error  Unexpected any. Specify a different type                  @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.3011627Z ##[error]  333:24  error  Unexpected any. Specify a different type                  @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.3012845Z ##[error]  370:24  error  Unexpected any. Specify a different type                  @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.3014055Z ##[error]  398:24  error  Unexpected any. Specify a different type                  @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.3015260Z ##[error]  433:24  error  Unexpected any. Specify a different type                  @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.3016465Z ##[error]  463:24  error  Unexpected any. Specify a different type                  @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.3017670Z ##[error]  500:24  error  Unexpected any. Specify a different type                  @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.3019358Z ##[error]  534:24  error  Unexpected any. Specify a different type                  @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.3020598Z ##[error]  557:24  error  Unexpected any. Specify a different type                  @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.3021817Z ##[error]  590:24  error  Unexpected any. Specify a different type                  @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.3023033Z ##[error]  621:24  error  Unexpected any. Specify a different type                  @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.3024243Z ##[error]  655:24  error  Unexpected any. Specify a different type                  @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.3025444Z ##[error]  678:24  error  Unexpected any. Specify a different type                  @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.3026142Z 
+2025-08-20T16:00:41.3026590Z /home/runner/work/chores-tracker/chores-tracker/frontend/src/navigation/__tests__/SimpleNavigator.test.tsx
+2025-08-20T16:00:41.3027679Z ##[error]   19:43  error  Unexpected any. Specify a different type        @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.3029099Z ##[error]   20:40  error  Require statement not part of import statement  @typescript-eslint/no-var-requires
+2025-08-20T16:00:41.3030279Z ##[error]   33:39  error  Unexpected any. Specify a different type        @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.3031446Z ##[error]   34:40  error  Require statement not part of import statement  @typescript-eslint/no-var-requires
+2025-08-20T16:00:41.3032601Z ##[error]   47:32  error  Unexpected any. Specify a different type        @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.3033756Z ##[error]   48:40  error  Require statement not part of import statement  @typescript-eslint/no-var-requires
+2025-08-20T16:00:41.3034913Z ##[error]   64:22  error  Require statement not part of import statement  @typescript-eslint/no-var-requires
+2025-08-20T16:00:41.3036271Z ##[error]   71:22  error  Require statement not part of import statement  @typescript-eslint/no-var-requires
+2025-08-20T16:00:41.3037508Z ##[error]   78:22  error  Require statement not part of import statement  @typescript-eslint/no-var-requires
+2025-08-20T16:00:41.3038900Z ##[error]   85:22  error  Require statement not part of import statement  @typescript-eslint/no-var-requires
+2025-08-20T16:00:41.3040065Z ##[error]   93:22  error  Require statement not part of import statement  @typescript-eslint/no-var-requires
+2025-08-20T16:00:41.3041226Z ##[error]  100:22  error  Require statement not part of import statement  @typescript-eslint/no-var-requires
+2025-08-20T16:00:41.3042389Z ##[error]  107:22  error  Require statement not part of import statement  @typescript-eslint/no-var-requires
+2025-08-20T16:00:41.3043579Z ##[error]  467:67  error  Unexpected any. Specify a different type        @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.3044286Z 
+2025-08-20T16:00:41.3044663Z /home/runner/work/chores-tracker/chores-tracker/frontend/src/screens/AdjustmentFormScreen.tsx
+2025-08-20T16:00:41.3046023Z ##[warning]   38:6   warning  React Hook useEffect has a missing dependency: 'fetchChildren'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+2025-08-20T16:00:41.3047584Z ##[error]   96:13  error    'childName' is assigned a value but never used                                                                    @typescript-eslint/no-unused-vars
+2025-08-20T16:00:41.3049218Z ##[error]  108:21  error    Unexpected any. Specify a different type                                                                          @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.3050569Z ##[error]  159:50  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`                                                   react/no-unescaped-entities
+2025-08-20T16:00:41.3051278Z 
+2025-08-20T16:00:41.3051652Z /home/runner/work/chores-tracker/chores-tracker/frontend/src/screens/AdjustmentsListScreen.tsx
+2025-08-20T16:00:41.3053100Z ##[warning]   27:6   warning  React Hook useEffect has a missing dependency: 'fetchData'. Either include it or remove the dependency array         react-hooks/exhaustive-deps
+2025-08-20T16:00:41.3054896Z ##[warning]   33:6   warning  React Hook useEffect has a missing dependency: 'fetchAdjustments'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+2025-08-20T16:00:41.3056392Z ##[error]  174:37  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`                                                      react/no-unescaped-entities
+2025-08-20T16:00:41.3057689Z ##[error]  208:23  error    `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`                                                      react/no-unescaped-entities
+2025-08-20T16:00:41.3059240Z ##[error]  208:27  error    `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`                                                      react/no-unescaped-entities
+2025-08-20T16:00:41.3060715Z ##[warning]  228:23  warning  Inline style: { backgroundColor: "color === '#4caf50' ? '#e8f5e9' : '#ffebee'" }                                     react-native/no-inline-styles
+2025-08-20T16:00:41.3061509Z 
+2025-08-20T16:00:41.3061894Z /home/runner/work/chores-tracker/chores-tracker/frontend/src/screens/AllowanceSummaryScreen.tsx
+2025-08-20T16:00:41.3062865Z ##[error]  136:38  error  Unexpected any. Specify a different type                                 @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.3064202Z ##[error]  136:43  error  'index' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+2025-08-20T16:00:41.3064964Z 
+2025-08-20T16:00:41.3065299Z /home/runner/work/chores-tracker/chores-tracker/frontend/src/screens/BalanceScreen.tsx
+2025-08-20T16:00:41.3066224Z ##[warning]  35:9   warning  Unexpected console statement                                                                                     no-console
+2025-08-20T16:00:41.3067731Z ##[warning]  39:9   warning  Unexpected console statement                                                                                     no-console
+2025-08-20T16:00:41.3069565Z ##[warning]  63:6   warning  React Hook useEffect has a missing dependency: 'fetchBalance'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+2025-08-20T16:00:41.3071062Z ##[error]  90:59  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`                                                  react/no-unescaped-entities
+2025-08-20T16:00:41.3072383Z ##[error]  94:21  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`                                                  react/no-unescaped-entities
+2025-08-20T16:00:41.3073083Z 
+2025-08-20T16:00:41.3073437Z /home/runner/work/chores-tracker/chores-tracker/frontend/src/screens/ChildDetailScreen.tsx
+2025-08-20T16:00:41.3074500Z ##[error]   12:27  error    'ChildAllowanceSummary' is defined but never used                                                             @typescript-eslint/no-unused-vars
+2025-08-20T16:00:41.3076128Z ##[warning]   64:6   warning  React Hook useEffect has a missing dependency: 'fetchData'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+2025-08-20T16:00:41.3077576Z ##[error]  147:52  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`                                               react/no-unescaped-entities
+2025-08-20T16:00:41.3078799Z 
+2025-08-20T16:00:41.3079418Z /home/runner/work/chores-tracker/chores-tracker/frontend/src/screens/ChoreFormScreen.tsx
+2025-08-20T16:00:41.3080949Z ##[warning]   68:9   warning  Unexpected console statement                                                                                           no-console
+2025-08-20T16:00:41.3082265Z ##[warning]   77:9   warning  Unexpected console statement                                                                                           no-console
+2025-08-20T16:00:41.3083748Z ##[warning]   83:9   warning  Unexpected console statement                                                                                           no-console
+2025-08-20T16:00:41.3085026Z ##[warning]   89:9   warning  Unexpected console statement                                                                                           no-console
+2025-08-20T16:00:41.3086299Z ##[warning]  112:5   warning  Unexpected console statement                                                                                           no-console
+2025-08-20T16:00:41.3087567Z ##[warning]  113:5   warning  Unexpected console statement                                                                                           no-console
+2025-08-20T16:00:41.3089106Z ##[warning]  127:7   warning  Unexpected console statement                                                                                           no-console
+2025-08-20T16:00:41.3090486Z ##[error]  133:22  error    Unexpected any. Specify a different type                                                                               @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.3091814Z ##[warning]  164:7   warning  Unexpected console statement                                                                                           no-console
+2025-08-20T16:00:41.3093170Z ##[error]  175:21  error    Unexpected any. Specify a different type                                                                               @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.3094050Z   194:22  warning  Inline style: {
+2025-08-20T16:00:41.3094290Z   flex: 1,
+2025-08-20T16:00:41.3094472Z   padding: 8,
+2025-08-20T16:00:41.3094659Z   borderWidth: 1,
+2025-08-20T16:00:41.3094860Z   borderColor: '#ddd',
+2025-08-20T16:00:41.3095062Z   borderRadius: 4,
+2025-08-20T16:00:41.3095252Z   fontSize: 16
+2025-08-20T16:00:41.3095488Z }  react-native/no-inline-styles
+2025-08-20T16:00:41.3096473Z ##[warning]  206:17  warning  Unexpected console statement                                                                                           no-console
+2025-08-20T16:00:41.3097953Z ##[warning]  220:17  warning  Unexpected console statement                                                                                           no-console
+2025-08-20T16:00:41.3099280Z ##[warning]  225:17  warning  Unexpected console statement                                                                                           no-console
+2025-08-20T16:00:41.3100543Z ##[warning]  335:17  warning  Unexpected console statement                                                                                           no-console
+2025-08-20T16:00:41.3101803Z ##[warning]  339:19  warning  Unexpected console statement                                                                                           no-console
+2025-08-20T16:00:41.3103057Z ##[warning]  343:19  warning  Unexpected console statement                                                                                           no-console
+2025-08-20T16:00:41.3103776Z 
+2025-08-20T16:00:41.3104166Z /home/runner/work/chores-tracker/chores-tracker/frontend/src/screens/ChoresManagementScreen.tsx
+2025-08-20T16:00:41.3105096Z ##[warning]   62:5   warning  Unexpected console statement                                                  no-console
+2025-08-20T16:00:41.3106445Z ##[error]   72:23  error    'savedChore' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+2025-08-20T16:00:41.3107753Z ##[warning]  246:5   warning  Unexpected console statement                                                  no-console
+2025-08-20T16:00:41.3109249Z ##[error]  297:19  error    `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`               react/no-unescaped-entities
+2025-08-20T16:00:41.3110473Z ##[error]  297:29  error    `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`               react/no-unescaped-entities
+2025-08-20T16:00:41.3111337Z 
+2025-08-20T16:00:41.3111680Z /home/runner/work/chores-tracker/chores-tracker/frontend/src/screens/ChoresScreen.tsx
+2025-08-20T16:00:41.3112938Z ##[error]   29:37  error    React Hook "useState" is called conditionally. React Hooks must be called in the exact same order in every component render   react-hooks/rules-of-hooks
+2025-08-20T16:00:41.3114732Z ##[error]   30:31  error    React Hook "useState" is called conditionally. React Hooks must be called in the exact same order in every component render   react-hooks/rules-of-hooks
+2025-08-20T16:00:41.3116530Z ##[error]   31:37  error    React Hook "useState" is called conditionally. React Hooks must be called in the exact same order in every component render   react-hooks/rules-of-hooks
+2025-08-20T16:00:41.3118518Z ##[error]   32:43  error    React Hook "useState" is called conditionally. React Hooks must be called in the exact same order in every component render   react-hooks/rules-of-hooks
+2025-08-20T16:00:41.3120047Z ##[warning]   69:13  warning  Unexpected console statement                                                                                                  no-console
+2025-08-20T16:00:41.3121375Z ##[warning]   70:13  warning  Unexpected console statement                                                                                                  no-console
+2025-08-20T16:00:41.3122660Z ##[warning]   90:13  warning  Unexpected console statement                                                                                                  no-console
+2025-08-20T16:00:41.3123937Z ##[warning]   91:13  warning  Unexpected console statement                                                                                                  no-console
+2025-08-20T16:00:41.3125545Z ##[error]  106:3   error    React Hook "useEffect" is called conditionally. React Hooks must be called in the exact same order in every component render  react-hooks/rules-of-hooks
+2025-08-20T16:00:41.3127380Z ##[warning]  108:6   warning  React Hook useEffect has a missing dependency: 'fetchChores'. Either include it or remove the dependency array                react-hooks/exhaustive-deps
+2025-08-20T16:00:41.3129504Z ##[error]  126:9   error    'handleApproveChore' is assigned a value but never used                                                                       @typescript-eslint/no-unused-vars
+2025-08-20T16:00:41.3130304Z 
+2025-08-20T16:00:41.3130662Z /home/runner/work/chores-tracker/chores-tracker/frontend/src/screens/CreateChildScreen.tsx
+2025-08-20T16:00:41.3131483Z ##[error]  67:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.3132179Z 
+2025-08-20T16:00:41.3132494Z /home/runner/work/chores-tracker/chores-tracker/frontend/src/screens/HomeScreen.tsx
+2025-08-20T16:00:41.3133755Z ##[warning]   24:6   warning  React Hook useEffect has a missing dependency: 'fetchDashboardStats'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+2025-08-20T16:00:41.3135355Z ##[error]  269:26  error    Unexpected any. Specify a different type                                                                                @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.3136114Z 
+2025-08-20T16:00:41.3136436Z /home/runner/work/chores-tracker/chores-tracker/frontend/src/screens/LoginScreen.tsx
+2025-08-20T16:00:41.3137286Z ##[warning]   33:7   warning  Unexpected console statement                                     no-console
+2025-08-20T16:00:41.3138678Z ##[warning]   35:7   warning  Unexpected console statement                                     no-console
+2025-08-20T16:00:41.3139913Z ##[error]   37:21  error    Unexpected any. Specify a different type                         @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.3141124Z ##[error]  104:18  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+2025-08-20T16:00:41.3141810Z 
+2025-08-20T16:00:41.3142145Z /home/runner/work/chores-tracker/chores-tracker/frontend/src/screens/RegisterScreen.tsx
+2025-08-20T16:00:41.3143047Z ##[warning]  55:7   warning  Unexpected console statement              no-console
+2025-08-20T16:00:41.3144040Z ##[warning]  74:7   warning  Unexpected console statement              no-console
+2025-08-20T16:00:41.3145105Z ##[error]  85:21  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.3145785Z 
+2025-08-20T16:00:41.3146135Z /home/runner/work/chores-tracker/chores-tracker/frontend/src/screens/StatisticsScreen.tsx
+2025-08-20T16:00:41.3147157Z ##[error]   28:16  error    'screenWidth' is assigned a value but never used                                                                    @typescript-eslint/no-unused-vars
+2025-08-20T16:00:41.3149038Z ##[warning]   41:6   warning  React Hook useEffect has a missing dependency: 'fetchStatistics'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+2025-08-20T16:00:41.3150637Z ##[warning]  155:15  warning  Inline style: { color: "periodChange >= 0 ? '#4caf50' : '#f44336'" }                                                react-native/no-inline-styles
+2025-08-20T16:00:41.3152070Z ##[error]  165:35  error    Unexpected any. Specify a different type                                                                            @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.3153406Z ##[error]  289:56  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`                                                     react/no-unescaped-entities
+2025-08-20T16:00:41.3154113Z 
+2025-08-20T16:00:41.3154509Z /home/runner/work/chores-tracker/chores-tracker/frontend/src/screens/__tests__/ChoresScreen.test.tsx
+2025-08-20T16:00:41.3155525Z ##[error]   50:20  error  Require statement not part of import statement         @typescript-eslint/no-var-requires
+2025-08-20T16:00:41.3156769Z ##[error]   58:67  error  Unexpected any. Specify a different type               @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.3158167Z ##[error]   59:46  error  Require statement not part of import statement         @typescript-eslint/no-var-requires
+2025-08-20T16:00:41.3159666Z ##[error]  451:13  error  'rangeRewardChore' is assigned a value but never used  @typescript-eslint/no-unused-vars
+2025-08-20T16:00:41.3160907Z ##[error]  483:13  error  'fixedRewardChore' is assigned a value but never used  @typescript-eslint/no-unused-vars
+2025-08-20T16:00:41.3161616Z 
+2025-08-20T16:00:41.3162008Z /home/runner/work/chores-tracker/chores-tracker/frontend/src/screens/__tests__/HomeScreen.test.tsx
+2025-08-20T16:00:41.3162842Z ##[error]  10:10  error  'User' is defined but never used                @typescript-eslint/no-unused-vars
+2025-08-20T16:00:41.3163984Z ##[error]  26:53  error  Unexpected any. Specify a different type        @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.3165144Z ##[error]  27:22  error  Require statement not part of import statement  @typescript-eslint/no-var-requires
+2025-08-20T16:00:41.3166293Z ##[error]  37:58  error  Unexpected any. Specify a different type        @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.3167460Z ##[error]  38:40  error  Require statement not part of import statement  @typescript-eslint/no-var-requires
+2025-08-20T16:00:41.3168369Z 
+2025-08-20T16:00:41.3168835Z /home/runner/work/chores-tracker/chores-tracker/frontend/src/screens/__tests__/LoginScreen.simple.test.tsx
+2025-08-20T16:00:41.3169711Z ##[error]  7:29  error  'waitFor' is defined but never used       @typescript-eslint/no-unused-vars
+2025-08-20T16:00:41.3170833Z ##[error]  9:10  error  'AuthProvider' is defined but never used  @typescript-eslint/no-unused-vars
+2025-08-20T16:00:41.3171926Z ##[error]  9:24  error  'useAuth' is defined but never used       @typescript-eslint/no-unused-vars
+2025-08-20T16:00:41.3172573Z 
+2025-08-20T16:00:41.3172969Z /home/runner/work/chores-tracker/chores-tracker/frontend/src/screens/__tests__/LoginScreen.test.tsx
+2025-08-20T16:00:41.3173801Z ##[error]  37:70  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.3174655Z 
+2025-08-20T16:00:41.3175069Z /home/runner/work/chores-tracker/chores-tracker/frontend/src/screens/__tests__/RegisterScreen.test.tsx
+2025-08-20T16:00:41.3175933Z ##[error]  491:67  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.3177080Z ##[error]  530:67  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.3178417Z ##[error]  618:67  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.3179106Z 
+2025-08-20T16:00:41.3179504Z /home/runner/work/chores-tracker/chores-tracker/frontend/src/test-utils/IntegrationTestWrapper.tsx
+2025-08-20T16:00:41.3180462Z ##[error]  15:32  error  Unexpected any. Specify a different type        @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.3181649Z ##[error]  16:33  error  Unexpected any. Specify a different type        @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.3182822Z ##[error]  17:42  error  Unexpected any. Specify a different type        @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.3183972Z ##[error]  42:22  error  Require statement not part of import statement  @typescript-eslint/no-var-requires
+2025-08-20T16:00:41.3185125Z ##[error]  48:27  error  Require statement not part of import statement  @typescript-eslint/no-var-requires
+2025-08-20T16:00:41.3185811Z 
+2025-08-20T16:00:41.3186199Z /home/runner/work/chores-tracker/chores-tracker/frontend/src/test-utils/__tests__/testUtils.test.ts
+2025-08-20T16:00:41.3187138Z ##[error]  159:28  error  Require statement not part of import statement  @typescript-eslint/no-var-requires
+2025-08-20T16:00:41.3188026Z 
+2025-08-20T16:00:41.3188366Z /home/runner/work/chores-tracker/chores-tracker/frontend/src/test-utils/factories.ts
+2025-08-20T16:00:41.3189384Z ##[error]  269:17  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.3191198Z ##[error]  371:3   error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+2025-08-20T16:00:41.3192733Z ##[error]  384:8   error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.3193463Z 
+2025-08-20T16:00:41.3193769Z /home/runner/work/chores-tracker/chores-tracker/frontend/src/test-utils/index.ts
+2025-08-20T16:00:41.3194534Z ##[error]  24:66  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.3195658Z ##[error]  24:81  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.3196764Z ##[error]  28:67  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.3198046Z ##[error]  47:41  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.3199237Z ##[error]  51:42  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.3200368Z ##[error]  56:45  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.3201489Z ##[error]  73:43  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.3202165Z 
+2025-08-20T16:00:41.3202479Z /home/runner/work/chores-tracker/chores-tracker/frontend/src/test-utils/mocks.ts
+2025-08-20T16:00:41.3203243Z ##[error]  26:8  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.3203932Z 
+2025-08-20T16:00:41.3204313Z /home/runner/work/chores-tracker/chores-tracker/frontend/src/test-utils/renderWithProviders.tsx
+2025-08-20T16:00:41.3205132Z ##[error]    8:10  error  'AuthProvider' is defined but never used  @typescript-eslint/no-unused-vars
+2025-08-20T16:00:41.3206461Z ##[error]  133:9   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.3207146Z 
+2025-08-20T16:00:41.3207450Z /home/runner/work/chores-tracker/chores-tracker/frontend/src/test-utils/setup.ts
+2025-08-20T16:00:41.3208436Z ##[error]   97:28  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.3209587Z ##[error]  110:29  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+2025-08-20T16:00:41.3210276Z 
+2025-08-20T16:00:41.3210608Z /home/runner/work/chores-tracker/chores-tracker/frontend/src/tests/performance_test.js
+2025-08-20T16:00:41.3211442Z ##[warning]   37:5   warning  Unexpected console statement                    no-console
+2025-08-20T16:00:41.3212436Z ##[error]   37:5   error    'console' is not defined                        no-undef
+2025-08-20T16:00:41.3213435Z ##[warning]   41:5   warning  Unexpected console statement                    no-console
+2025-08-20T16:00:41.3214421Z ##[error]   41:5   error    'console' is not defined                        no-undef
+2025-08-20T16:00:41.3215404Z ##[warning]   45:5   warning  Unexpected console statement                    no-console
+2025-08-20T16:00:41.3216367Z ##[error]   45:5   error    'console' is not defined                        no-undef
+2025-08-20T16:00:41.3217343Z ##[warning]   47:7   warning  Unexpected console statement                    no-console
+2025-08-20T16:00:41.3218537Z ##[error]   47:7   error    'console' is not defined                        no-undef
+2025-08-20T16:00:41.3219533Z ##[warning]   51:5   warning  Unexpected console statement                    no-console
+2025-08-20T16:00:41.3220502Z ##[error]   51:5   error    'console' is not defined                        no-undef
+2025-08-20T16:00:41.3221484Z ##[warning]   54:7   warning  Unexpected console statement                    no-console
+2025-08-20T16:00:41.3222441Z ##[error]   54:7   error    'console' is not defined                        no-undef
+2025-08-20T16:00:41.3223614Z ##[warning]   56:7   warning  Unexpected console statement                    no-console
+2025-08-20T16:00:41.3224583Z ##[error]   56:7   error    'console' is not defined                        no-undef
+2025-08-20T16:00:41.3225568Z ##[warning]   58:7   warning  Unexpected console statement                    no-console
+2025-08-20T16:00:41.3226537Z ##[error]   58:7   error    'console' is not defined                        no-undef
+2025-08-20T16:00:41.3227513Z ##[warning]   67:5   warning  Unexpected console statement                    no-console
+2025-08-20T16:00:41.3229122Z ##[error]   67:5   error    'console' is not defined                        no-undef
+2025-08-20T16:00:41.3230715Z ##[error]   73:17  error    'performance' is not defined                    no-undef
+2025-08-20T16:00:41.3231921Z ##[error]   76:33  error    'performance' is not defined                    no-undef
+2025-08-20T16:00:41.3232872Z ##[error]   80:5   error    'console' is not defined                        no-undef
+2025-08-20T16:00:41.3233816Z ##[error]   87:26  error    'fetch' is not defined                          no-undef
+2025-08-20T16:00:41.3234740Z ##[error]   97:10  error    'fetch' is not defined                          no-undef
+2025-08-20T16:00:41.3235724Z ##[warning]  106:3   warning  Unexpected console statement                    no-console
+2025-08-20T16:00:41.3236742Z ##[error]  106:3   error    'console' is not defined                        no-undef
+2025-08-20T16:00:41.3237734Z ##[warning]  107:3   warning  Unexpected console statement                    no-console
+2025-08-20T16:00:41.3238991Z ##[error]  107:3   error    'console' is not defined                        no-undef
+2025-08-20T16:00:41.3239964Z ##[error]  113:32  error    'fetch' is not defined                          no-undef
+2025-08-20T16:00:41.3240907Z ##[error]  174:32  error    'fetch' is not defined                          no-undef
+2025-08-20T16:00:41.3241845Z ##[error]  262:34  error    'fetch' is not defined                          no-undef
+2025-08-20T16:00:41.3242986Z ##[error]  279:5   error    'console' is not defined                        no-undef
+2025-08-20T16:00:41.3243932Z ##[error]  289:3   error    'global' is not defined                         no-undef
+2025-08-20T16:00:41.3245028Z ##[error]  289:24  error    Require statement not part of import statement  @typescript-eslint/no-var-requires
+2025-08-20T16:00:41.3246086Z ##[error]  289:24  error    'require' is not defined                        no-undef
+2025-08-20T16:00:41.3247044Z ##[error]  290:3   error    'global' is not defined                         no-undef
+2025-08-20T16:00:41.3248198Z ##[error]  290:18  error    'require' is not defined                        no-undef
+2025-08-20T16:00:41.3249195Z ##[error]  291:36  error    'process' is not defined                        no-undef
+2025-08-20T16:00:41.3250148Z ##[error]  298:38  error    'module' is not defined                         no-undef
+2025-08-20T16:00:41.3251105Z ##[error]  299:3   error    'module' is not defined                         no-undef
+2025-08-20T16:00:41.3251708Z 
+2025-08-20T16:00:41.3252007Z /home/runner/work/chores-tracker/chores-tracker/frontend/src/utils/Alert.ts
+2025-08-20T16:00:41.3252822Z ##[error]  91:9  error  'buttonText' is never reassigned. Use 'const' instead  prefer-const
+2025-08-20T16:00:41.3253482Z 
+2025-08-20T16:00:41.3253766Z /home/runner/work/chores-tracker/chores-tracker/frontend/test-chores-ui.js
+2025-08-20T16:00:41.3254509Z ##[error]   4:16  error    'testChoresUI' is defined but never used  @typescript-eslint/no-unused-vars
+2025-08-20T16:00:41.3255554Z ##[warning]   5:3   warning  Unexpected console statement              no-console
+2025-08-20T16:00:41.3256493Z ##[error]   5:3   error    'console' is not defined                  no-undef
+2025-08-20T16:00:41.3257406Z ##[error]   8:23  error    'AsyncStorage' is not defined             no-undef
+2025-08-20T16:00:41.3258461Z ##[error]  10:5   error    'console' is not defined                  no-undef
+2025-08-20T16:00:41.3259565Z ##[error]  15:25  error    'AsyncStorage' is not defined             no-undef
+2025-08-20T16:00:41.3260518Z ##[warning]  17:3   warning  Unexpected console statement              no-console
+2025-08-20T16:00:41.3261452Z ##[error]  17:3   error    'console' is not defined                  no-undef
+2025-08-20T16:00:41.3262352Z ##[error]  20:25  error    'window' is not defined                   no-undef
+2025-08-20T16:00:41.3263298Z ##[warning]  22:5   warning  Unexpected console statement              no-console
+2025-08-20T16:00:41.3264225Z ##[error]  22:5   error    'console' is not defined                  no-undef
+2025-08-20T16:00:41.3265132Z ##[error]  26:22  error    'document' is not defined                 no-undef
+2025-08-20T16:00:41.3266071Z ##[warning]  27:3   warning  Unexpected console statement              no-console
+2025-08-20T16:00:41.3267001Z ##[error]  27:3   error    'console' is not defined                  no-undef
+2025-08-20T16:00:41.3268012Z ##[error]  30:24  error    'document' is not defined                 no-undef
+2025-08-20T16:00:41.3268986Z ##[warning]  32:5   warning  Unexpected console statement              no-console
+2025-08-20T16:00:41.3269911Z ##[error]  32:5   error    'console' is not defined                  no-undef
+2025-08-20T16:00:41.3270842Z ##[warning]  34:5   warning  Unexpected console statement              no-console
+2025-08-20T16:00:41.3271763Z ##[error]  34:5   error    'console' is not defined                  no-undef
+2025-08-20T16:00:41.3272664Z ##[error]  39:29  error    'document' is not defined                 no-undef
+2025-08-20T16:00:41.3273591Z ##[warning]  40:5   warning  Unexpected console statement              no-console
+2025-08-20T16:00:41.3274516Z ##[error]  40:5   error    'console' is not defined                  no-undef
+2025-08-20T16:00:41.3275444Z ##[warning]  43:3   warning  Unexpected console statement              no-console
+2025-08-20T16:00:41.3276361Z ##[error]  43:3   error    'console' is not defined                  no-undef
+2025-08-20T16:00:41.3277112Z 
+2025-08-20T16:00:41.3277508Z ✖ 306 problems (239 errors, 67 warnings)
+2025-08-20T16:00:41.3278143Z   1 error and 0 warnings potentially fixable with the `--fix` option.
+2025-08-20T16:00:41.3278402Z 
+2025-08-20T16:00:41.3448436Z ⚠️  ESLint issues found
+2025-08-20T16:00:41.3449141Z Note: CI will continue, but these should be addressed for code quality
+2025-08-20T16:00:41.3449881Z Run 'npm run lint:fix' locally to auto-fix some issues

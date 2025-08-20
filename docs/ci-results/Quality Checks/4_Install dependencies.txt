@@ -1,0 +1,32 @@
+﻿2025-08-20T16:00:17.8500632Z ##[group]Run npm ci
+2025-08-20T16:00:17.8500983Z [36;1mnpm ci[0m
+2025-08-20T16:00:17.8575420Z shell: /usr/bin/bash -e {0}
+2025-08-20T16:00:17.8575735Z env:
+2025-08-20T16:00:17.8575943Z   NODE_VERSION: 20
+2025-08-20T16:00:17.8576181Z   WORKING_DIRECTORY: ./frontend
+2025-08-20T16:00:17.8576431Z ##[endgroup]
+2025-08-20T16:00:22.3369797Z npm warn deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported
+2025-08-20T16:00:23.4300166Z npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+2025-08-20T16:00:23.9972176Z npm warn deprecated domexception@4.0.0: Use your platform's native DOMException instead
+2025-08-20T16:00:24.4214149Z npm warn deprecated abab@2.0.6: Use your platform's native atob() and btoa() methods instead
+2025-08-20T16:00:24.9848927Z npm warn deprecated @humanwhocodes/object-schema@2.0.3: Use @eslint/object-schema instead
+2025-08-20T16:00:25.0422239Z npm warn deprecated @humanwhocodes/config-array@0.13.0: Use @eslint/config-array instead
+2025-08-20T16:00:25.1677120Z npm warn deprecated @testing-library/jest-native@5.4.3: DEPRECATED: This package is no longer maintained.
+2025-08-20T16:00:25.1680191Z npm warn deprecated Please use the built-in Jest matchers available in @testing-library/react-native v12.4+.
+2025-08-20T16:00:25.1681109Z npm warn deprecated
+2025-08-20T16:00:25.1682313Z npm warn deprecated See migration guide: https://callstack.github.io/react-native-testing-library/docs/migration/jest-matchers
+2025-08-20T16:00:25.8135871Z npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+2025-08-20T16:00:25.8776532Z npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+2025-08-20T16:00:25.9274690Z npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+2025-08-20T16:00:26.1619095Z npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+2025-08-20T16:00:26.1824939Z npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+2025-08-20T16:00:26.5261368Z npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+2025-08-20T16:00:26.5460468Z npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+2025-08-20T16:00:28.2264276Z npm warn deprecated eslint@8.57.1: This version is no longer supported. Please see https://eslint.org/version-support for other options.
+2025-08-20T16:00:31.7053481Z 
+2025-08-20T16:00:31.7054264Z added 1151 packages, and audited 1152 packages in 14s
+2025-08-20T16:00:31.7055215Z 
+2025-08-20T16:00:31.7055498Z 193 packages are looking for funding
+2025-08-20T16:00:31.7055957Z   run `npm fund` for details
+2025-08-20T16:00:31.7067097Z 
+2025-08-20T16:00:31.7067316Z found 0 vulnerabilities
