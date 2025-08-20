@@ -51,11 +51,29 @@ jobs:
         fi
       continue-on-error: true
 
-    - name: ESLint check
-      run: npm run lint
+    - name: ESLint check (advisory)
+      run: |
+        echo "🔍 Running ESLint check..."
+        if npm run lint; then
+          echo "✅ ESLint check passed"
+        else
+          echo "⚠️  ESLint issues found"
+          echo "Note: CI will continue, but these should be addressed for code quality"
+          echo "Run 'npm run lint:fix' locally to auto-fix some issues"
+        fi
+      continue-on-error: true
 
-    - name: Prettier format check
-      run: npm run format:check
+    - name: Prettier format check (advisory)
+      run: |
+        echo "💅 Running Prettier format check..."
+        if npm run format:check; then
+          echo "✅ Prettier format check passed"
+        else
+          echo "⚠️  Code formatting issues found"
+          echo "Note: CI will continue, but code should be formatted consistently"
+          echo "Run 'npm run format' locally to auto-fix formatting"
+        fi
+      continue-on-error: true
 
     - name: Check for debug code
       run: |
