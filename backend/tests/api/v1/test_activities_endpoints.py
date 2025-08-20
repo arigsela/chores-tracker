@@ -297,12 +297,9 @@ class TestActivitiesEndpointSecurity:
         # Create activity for the other family
         await activity_service.log_chore_completed(
             db=db_session,
-            chore=type('MockChore', (), {
-                'id': 999,
-                'title': 'Other Family Chore',
-                'reward': 10.0
-            })(),
-            user=other_child
+            child_id=other_child.id,
+            chore_id=999,
+            chore_title='Other Family Chore'
         )
         await db_session.commit()
         

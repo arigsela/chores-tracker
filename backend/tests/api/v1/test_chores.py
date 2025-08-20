@@ -355,7 +355,7 @@ async def test_complete_and_approve_range_reward_chore(client: AsyncClient, pare
     data = response.json()
     assert data["is_completed"] == True
     assert data["is_approved"] == True
-    assert data["reward"] == reward_value  # Set to the provided value
+    assert data["approval_reward"] == reward_value  # Set to the provided value
 
 
 @pytest.mark.asyncio
