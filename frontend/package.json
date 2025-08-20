@@ -18,7 +18,9 @@
     "test:ci": "jest --ci --coverage --watchAll=false",
     "test:unit": "jest --testPathPattern='(components|contexts|api)' --passWithNoTests",
     "test:integration": "jest --testPathPattern='integration' --passWithNoTests --watchAll=false",
-    "test:debug": "jest --no-cache --runInBand --verbose"
+    "test:debug": "jest --no-cache --runInBand --verbose",
+    "build": "expo export --platform web --output-dir dist",
+    "build:production": "NODE_ENV=production expo export --platform web --output-dir dist"
   },
   "dependencies": {
     "@expo/metro-runtime": "~5.0.4",
