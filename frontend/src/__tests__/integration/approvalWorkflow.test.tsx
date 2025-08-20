@@ -191,8 +191,8 @@ jest.mock('../../components/ActivityFeed', () => ({
         {showHeader && <Text testID="activity-header">Recent Activities</Text>}
         {activities.map((activity: any) => (
           <View key={activity.id} testID={`activity-${activity.id}`}>
-            <Text>{activity.description}</Text>
-            {activity.amount > 0 && <Text>${activity.amount.toFixed(2)}</Text>}
+            <Text testID={`activity-description-${activity.id}`}>{activity.description}</Text>
+            {activity.amount > 0 && <Text testID={`activity-amount-${activity.id}`}>${activity.amount.toFixed(2)}</Text>}
           </View>
         ))}
       </View>
@@ -422,11 +422,11 @@ describe('Approval Workflow Integration Tests', () => {
       });
 
       // Verify activity details
-      expect(getByTestId('activity-1')).toHaveTextContent('Clean bedroom approved by Parent');
-      expect(getByTestId('activity-1')).toHaveTextContent('$10.00');
+      expect(getByTestId('activity-description-1')).toHaveTextContent('Clean bedroom approved by Parent');
+      expect(getByTestId('activity-amount-1')).toHaveTextContent('$10.00');
       
-      expect(getByTestId('activity-2')).toHaveTextContent('Make bed completed by Child');
-      expect(getByTestId('activity-2')).toHaveTextContent('$5.00');
+      expect(getByTestId('activity-description-2')).toHaveTextContent('Make bed completed by Child');
+      expect(getByTestId('activity-amount-2')).toHaveTextContent('$5.00');
     });
 
     it('should show rejection activity in feed', async () => {

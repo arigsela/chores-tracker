@@ -74,7 +74,7 @@ jest.mock('../../screens/ChoresScreen', () => ({
 
     const handleCreateChore = async () => {
       if (!formData.title || !formData.reward) {
-        Alert.alert('Error', 'Please fill required fields');
+        global.alert('Error', 'Please fill required fields');
         return;
       }
 
@@ -91,9 +91,9 @@ jest.mock('../../screens/ChoresScreen', () => ({
         setChores(prev => [...prev, newChore]);
         setShowCreateForm(false);
         setFormData({ title: '', description: '', reward: '', assignedToId: '' });
-        Alert.alert('Success', 'Chore created successfully!');
+        global.alert('Success', 'Chore created successfully!');
       } catch (error: any) {
-        Alert.alert('Error', error.message || 'Failed to create chore');
+        global.alert('Error', error.message || 'Failed to create chore');
       }
     };
 
@@ -106,9 +106,9 @@ jest.mock('../../screens/ChoresScreen', () => ({
             ? { ...chore, is_completed: true, completed_at: new Date().toISOString() }
             : chore
         ));
-        Alert.alert('Success', 'Chore marked as completed!');
+        global.alert('Success', 'Chore marked as completed!');
       } catch (error: any) {
-        Alert.alert('Error', error.message || 'Failed to complete chore');
+        global.alert('Error', error.message || 'Failed to complete chore');
       }
     };
 
@@ -117,9 +117,9 @@ jest.mock('../../screens/ChoresScreen', () => ({
         const { choreAPI } = require('../../api/chores');
         await choreAPI.deleteChore(choreId);
         setChores(prev => prev.filter(chore => chore.id !== choreId));
-        Alert.alert('Success', 'Chore deleted successfully!');
+        global.alert('Success', 'Chore deleted successfully!');
       } catch (error: any) {
-        Alert.alert('Error', error.message || 'Failed to delete chore');
+        global.alert('Error', error.message || 'Failed to delete chore');
       }
     };
 
