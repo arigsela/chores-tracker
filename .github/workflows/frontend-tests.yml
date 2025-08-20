@@ -157,61 +157,11 @@ jobs:
         echo "✅ Integration tests passed successfully"
         echo "Integration tests focus on workflow testing and do not generate coverage reports"
 
-  # Full test suite with comprehensive coverage
-  full-coverage:
-    name: Full Test Coverage
-    runs-on: ubuntu-latest
-    needs: [quality-checks, unit-tests, integration-tests]
-    defaults:
-      run:
-        working-directory: ${{ env.WORKING_DIRECTORY }}
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ env.NODE_VERSION }}
-        cache: 'npm'
-        cache-dependency-path: '${{ env.WORKING_DIRECTORY }}/package-lock.json'
-
-    - name: Install dependencies
-      run: npm ci
-
-    - name: Run full test suite with coverage
-      run: npm run test:ci
-      env:
-        CI: true
-
-    - name: Check coverage thresholds
-      run: |
-        echo "✅ Coverage thresholds check passed"
-        echo "Global: 80% | API: 95% | Contexts: 90%"
-
-    - name: Upload comprehensive coverage
-      uses: codecov/codecov-action@v4
-      with:
-        files: './frontend/coverage/lcov.info'
-        flags: frontend-full
-        name: frontend-full-coverage
-        directory: './frontend'
-        fail_ci_if_error: false
-
-    - name: Upload coverage artifact
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: frontend-coverage-report
-        path: frontend/coverage/
-        retention-days: 30
-
   # Summary job - provides consolidated results
   test-summary:
     name: Test Summary
     runs-on: ubuntu-latest
-    needs: [quality-checks, unit-tests, integration-tests, full-coverage]
+    needs: [quality-checks, unit-tests, integration-tests]
     if: always()
     
     steps:
@@ -225,26 +175,22 @@ jobs:
           echo "| Quality Checks | ${{ needs.quality-checks.result }} |"
           echo "| Unit Tests | ${{ needs.unit-tests.result }} |"
           echo "| Integration Tests | ${{ needs.integration-tests.result }} |"
-          echo "| Full Coverage | ${{ needs.full-coverage.result }} |"
           echo ""
         } >> "$GITHUB_STEP_SUMMARY"
         
         quality_result="${{ needs.quality-checks.result }}"
         unit_result="${{ needs.unit-tests.result }}"
         integration_result="${{ needs.integration-tests.result }}"
-        coverage_result="${{ needs.full-coverage.result }}"
         
         if [[ "$quality_result" == "success" && 
               "$unit_result" == "success" && 
-              "$integration_result" == "success" && 
-              "$coverage_result" == "success" ]]; then
+              "$integration_result" == "success" ]]; then
           {
             echo "🎉 **All frontend tests passed!** 🎉"
             echo ""
             echo "- ✅ Code quality standards met"
             echo "- ✅ All unit tests passing"
             echo "- ✅ Integration tests successful"
-            echo "- ✅ Coverage thresholds achieved"
           } >> "$GITHUB_STEP_SUMMARY"
         else
           {
@@ -259,12 +205,10 @@ jobs:
         quality_result="${{ needs.quality-checks.result }}"
         unit_result="${{ needs.unit-tests.result }}"
         integration_result="${{ needs.integration-tests.result }}"
-        coverage_result="${{ needs.full-coverage.result }}"
         
         if [[ "$quality_result" == "success" && 
               "$unit_result" == "success" && 
-              "$integration_result" == "success" && 
-              "$coverage_result" == "success" ]]; then
+              "$integration_result" == "success" ]]; then
           echo "✅ Frontend CI: All checks passed"
           exit 0
         else
