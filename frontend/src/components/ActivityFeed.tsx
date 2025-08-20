@@ -167,6 +167,7 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
       )}
       
       <FlatList
+        testID="activity-feed"
         data={activities || []}
         renderItem={renderActivityCard}
         keyExtractor={(item) => `activity-${item.id}`}
