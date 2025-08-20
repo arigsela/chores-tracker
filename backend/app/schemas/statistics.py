@@ -118,7 +118,7 @@ class PeriodStats(BaseModel):
     completed_chores: int = Field(..., ge=0, description="Chores completed in period (must be non-negative)")
     total_earned: float = Field(..., description="Total earned in period")
     total_adjustments: float = Field(..., description="Total adjustments in period")
-    period_label: str = Field(..., description="Label for this period")
+    period_label: Optional[str] = Field(None, description="Label for this period")
 
 
 class ComparisonChanges(BaseModel):
