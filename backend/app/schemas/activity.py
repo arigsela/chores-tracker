@@ -3,7 +3,7 @@ Activity schemas for API serialization.
 """
 from typing import Optional, Dict, Any
 from datetime import datetime
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, field_validator
 
 from .user import UserResponse
 
@@ -38,7 +38,8 @@ class ActivityCreate(ActivityBase):
     
     user_id: int = Field(
         ...,
-        description="ID of user performing the activity"
+        gt=0,
+        description="ID of user performing the activity (must be positive)"
     )
 
 
@@ -49,11 +50,13 @@ class ActivityResponse(ActivityBase):
     
     id: int = Field(
         ...,
-        description="Unique activity ID"
+        gt=0,
+        description="Unique activity ID (must be positive)"
     )
     user_id: int = Field(
         ...,
-        description="ID of user who performed the activity"
+        gt=0,
+        description="ID of user who performed the activity (must be positive)"
     )
     created_at: datetime = Field(
         ...,
@@ -80,7 +83,8 @@ class ActivityListResponse(BaseModel):
     )
     total_count: Optional[int] = Field(
         None,
-        description="Total number of activities (if available)"
+        ge=0,
+        description="Total number of activities (if available, must be non-negative)"
     )
     has_more: bool = Field(
         False,
@@ -93,16 +97,28 @@ class ActivitySummaryResponse(BaseModel):
     
     activity_counts: Dict[str, int] = Field(
         ...,
-        description="Count of activities by type"
+        description="Count of activities by type (all counts must be non-negative)"
     )
     total_activities: int = Field(
         ...,
-        description="Total number of activities"
+        ge=0,
+        description="Total number of activities (must be non-negative)"
     )
     period_days: int = Field(
         ...,
-        description="Number of days the summary covers"
+        gt=0,
+        description="Number of days the summary covers (must be positive)"
     )
+    
+    @field_validator('activity_counts')
+    @classmethod
+    def validate_activity_counts(cls, v):
+        """Validate that all activity counts are non-negative."""
+        if isinstance(v, dict):
+            for key, count in v.items():
+                if isinstance(count, int) and count < 0:
+                    raise ValueError(f"Activity count for '{key}' must be non-negative, got {count}")
+        return v
 
 
 # Common activity type constants for documentation
