@@ -193,6 +193,144 @@ async def create_adjustment(
 
 
 @router.get(
+    "/",
+    response_model=List[RewardAdjustmentResponse],
+    summary="List all reward adjustments",
+    description="""
+    Get all reward adjustments for the current parent's family.
+    
+    **Access**: Parents only
+    
+    **Query Parameters**:
+    - `parent_id`: Filter by parent ID (optional, defaults to current user)
+    - `child_id`: Filter by specific child ID (optional)
+    - `skip`: Number of records to skip for pagination (default: 0)
+    - `limit`: Maximum number of records to return (default: 100, max: 100)
+    
+    **Business Rules**:
+    - Parents can view all adjustments they've created
+    - Children cannot view adjustments (MVP restriction)
+    - Results ordered by creation date (newest first)
+    
+    Rate limited to 60 requests per minute.
+    """,
+    responses={
+        200: {
+            "description": "List of adjustments",
+            "content": {
+                "application/json": {
+                    "example": [
+                        {
+                            "id": 3,
+                            "child_id": 3,
+                            "parent_id": 1,
+                            "amount": "5.00",
+                            "reason": "Bonus for helping with dishes",
+                            "created_at": "2024-01-03T08:15:00"
+                        },
+                        {
+                            "id": 2,
+                            "child_id": 2,
+                            "parent_id": 1,
+                            "amount": "-2.00",
+                            "reason": "Deduction for incomplete homework",
+                            "created_at": "2024-01-02T15:30:00"
+                        }
+                    ]
+                }
+            }
+        },
+        403: {
+            "description": "Forbidden - children cannot view adjustments",
+            "content": {
+                "application/json": {
+                    "example": create_error_response(
+                        "FORBIDDEN",
+                        "Children cannot view reward adjustments"
+                    )
+                }
+            }
+        },
+        404: {
+            "description": "Child not found when filtering by child_id",
+            "content": {
+                "application/json": {
+                    "example": create_error_response(
+                        "NOT_FOUND",
+                        "Child user not found",
+                        {"child_id": 999}
+                    )
+                }
+            }
+        }
+    }
+)
+@limit_api_endpoint_default
+async def list_adjustments(
+    request: Request,
+    service: RewardAdjustmentServiceDep,
+    parent_id: Optional[int] = Query(None, description="Filter by parent ID (defaults to current user)"),
+    child_id: Optional[int] = Query(None, description="Filter by specific child ID"),
+    skip: int = Query(0, ge=0, description="Number of records to skip"),
+    limit: int = Query(100, ge=1, le=100, description="Maximum number of records to return"),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+) -> List[RewardAdjustmentResponse]:
+    """Get all adjustments for the current parent with optional filtering."""
+    try:
+        logger.info(
+            f"Listing adjustments: user_id={current_user.id}, "
+            f"parent_id={parent_id}, child_id={child_id}, skip={skip}, limit={limit}"
+        )
+        
+        adjustments = await service.get_all_adjustments(
+            db,
+            current_user_id=current_user.id,
+            parent_id=parent_id,
+            child_id=child_id,
+            skip=skip,
+            limit=limit
+        )
+        
+        logger.info(f"Retrieved {len(adjustments)} adjustments for parent_id={current_user.id}")
+        
+        return [
+            RewardAdjustmentResponse(
+                id=adj.id,
+                child_id=adj.child_id,
+                parent_id=adj.parent_id,
+                amount=adj.amount,
+                reason=adj.reason,
+                created_at=adj.created_at
+            ) for adj in adjustments
+        ]
+        
+    except HTTPException:
+        # Re-raise HTTP exceptions from service layer
+        raise
+        
+    except SQLAlchemyError as e:
+        logger.error(f"Database error listing adjustments: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=create_error_response(
+                "DATABASE_ERROR",
+                "An error occurred while retrieving adjustments"
+            )
+        )
+        
+    except Exception as e:
+        logger.error(f"Unexpected error listing adjustments: {type(e).__name__}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=create_error_response(
+                "INTERNAL_ERROR",
+                "An unexpected error occurred"
+            )
+        )
+
+
+@router.get(
     "/child/{child_id}",
     response_model=List[RewardAdjustmentResponse],
     summary="Get adjustments for a child",

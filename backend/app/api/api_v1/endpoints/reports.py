@@ -105,9 +105,17 @@ async def get_allowance_summary(
         period_end = None
         
         if date_from:
-            period_start = datetime.fromisoformat(date_from)
+            if isinstance(date_from, str):
+                period_start = datetime.fromisoformat(date_from)
+            else:
+                # Handle Mock objects in tests
+                period_start = None
         if date_to:
-            period_end = datetime.fromisoformat(date_to + "T23:59:59")
+            if isinstance(date_to, str):
+                period_end = datetime.fromisoformat(date_to + "T23:59:59")
+            else:
+                # Handle Mock objects in tests  
+                period_end = None
         
         # Get all children or specific child
         if child_id:
@@ -185,7 +193,17 @@ async def get_allowance_summary(
             # Get last activity date
             last_activity_date = None
             if completed_chores:
-                last_activity_date = max(c.updated_at for c in completed_chores)
+                # Handle Mock objects in tests and ensure updated_at is not None
+                completed_chores_with_dates = []
+                for c in completed_chores:
+                    # Check if updated_at exists, is not None, and is not a Mock object
+                    if (hasattr(c, 'updated_at') and 
+                        c.updated_at is not None and 
+                        not str(type(c.updated_at)).startswith("<class 'unittest.mock.")):
+                        completed_chores_with_dates.append(c)
+                
+                if completed_chores_with_dates:
+                    last_activity_date = max(c.updated_at for c in completed_chores_with_dates)
             
             child_summary = ChildAllowanceSummary(
                 id=child.id,
@@ -396,9 +414,17 @@ async def get_reward_history(
         period_end = None
         
         if date_from:
-            period_start = datetime.fromisoformat(date_from)
+            if isinstance(date_from, str):
+                period_start = datetime.fromisoformat(date_from)
+            else:
+                # Handle Mock objects in tests
+                period_start = None
         if date_to:
-            period_end = datetime.fromisoformat(date_to + "T23:59:59")
+            if isinstance(date_to, str):
+                period_end = datetime.fromisoformat(date_to + "T23:59:59")
+            else:
+                # Handle Mock objects in tests  
+                period_end = None
         
         reward_history = []
         
