@@ -33,19 +33,20 @@ COPY public/config.js.template /usr/share/nginx/html/config.js.template
 # Copy nginx configuration
 COPY nginx.conf /etc/nginx/nginx.conf
 
-# Copy custom entrypoint script
-COPY docker-entrypoint-with-html.sh /docker-entrypoint.sh
-RUN chmod +x /docker-entrypoint.sh
+# Copy configuration generation script to nginx's entrypoint.d
+COPY 30-generate-config.sh /docker-entrypoint.d/30-generate-config.sh
+RUN chmod +x /docker-entrypoint.d/30-generate-config.sh
 
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S nextjs -u 1001
 
-# Set proper permissions
+# Set proper permissions (must be done before switching user)
 RUN chown -R nextjs:nodejs /usr/share/nginx/html && \
     chown -R nextjs:nodejs /var/cache/nginx && \
     chown -R nextjs:nodejs /var/log/nginx && \
-    chown -R nextjs:nodejs /etc/nginx/conf.d
+    chown -R nextjs:nodejs /etc/nginx/conf.d && \
+    chown -R nextjs:nodejs /docker-entrypoint.d/
     
 # Create pid file directory
 RUN touch /var/run/nginx.pid && \
@@ -55,4 +56,4 @@ USER nextjs
 
 EXPOSE 3000
 
-CMD ["/docker-entrypoint.sh"]
+CMD ["nginx", "-g", "daemon off;"]

@@ -1,5 +1,9 @@
 #!/bin/sh
+# This script runs as part of nginx's entrypoint.d system
+
 set -e
+
+echo "🔧 Starting configuration generation..."
 
 # Generate runtime configuration from template
 if [ -f /usr/share/nginx/html/config.js.template ]; then
@@ -25,5 +29,4 @@ else
     echo "⚠️  No config template found, using build-time defaults"
 fi
 
-# Start nginx
-exec nginx -g "daemon off;"
+echo "✅ Configuration generation complete"
