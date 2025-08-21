@@ -12,6 +12,7 @@ import {
   ScrollView,
 } from 'react-native';
 import axios from 'axios';
+import { API_URL } from '../config/api';
 
 interface RegisterScreenProps {
   onBackToLogin: () => void;
@@ -24,8 +25,6 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onBackToLogin })
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   
-  // API URL constant
-  const API_URL = 'http://localhost:8000/api/v1';
 
   const handleRegister = async () => {
     // Validation

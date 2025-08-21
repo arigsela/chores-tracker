@@ -1,9 +1,8 @@
 import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_URL } from '../config/api';
 
 // Constants
-// In React Native Web, we need to use a hardcoded URL or configure it differently
-const API_URL = 'http://localhost:8000/api/v1';
 const TOKEN_KEY = '@chores_tracker:token';
 
 // Create axios instance
