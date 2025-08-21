@@ -20,12 +20,7 @@ export const ChoresScreen: React.FC = () => {
   const { user } = useAuth();
   const isParent = user?.role === 'parent';
   
-  // For parents, show the management screen
-  if (isParent) {
-    return <ChoresManagementScreen />;
-  }
-  
-  // Child view continues below
+  // Always call hooks first (hooks must be called in same order every render)
   const [activeTab, setActiveTab] = useState<TabType>('available');
   const [chores, setChores] = useState<Chore[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -106,6 +101,11 @@ export const ChoresScreen: React.FC = () => {
   useEffect(() => {
     fetchChores();
   }, [activeTab]);
+
+  // For parents, show the management screen (after all hooks)
+  if (isParent) {
+    return <ChoresManagementScreen />;
+  }
 
   const handleCompleteChore = async (choreId: number) => {
     const chore = chores.find(c => c.id === choreId);
