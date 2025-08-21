@@ -1,14 +1,24 @@
 /**
  * API Configuration utility for environment-based API URL selection
- * Supports both runtime environment variables (for containerized deployments)
- * and build-time React environment variables (for static builds)
+ * Supports runtime configuration via window.APP_CONFIG (set by nginx container startup)
+ * and build-time React environment variables (for development/static builds)
  */
 
+// Global window interface extension for TypeScript
+declare global {
+  interface Window {
+    APP_CONFIG?: {
+      API_URL?: string;
+      NODE_ENV?: string;
+    };
+  }
+}
+
 export const getAPIUrl = (): string => {
-  // Priority 1: Runtime environment variable (set by Kubernetes deployment)
-  if (process.env.API_URL) {
-    console.log('🚀 Using runtime API_URL:', process.env.API_URL);
-    return process.env.API_URL;
+  // Priority 1: Runtime configuration (set by nginx container startup)
+  if (typeof window !== 'undefined' && window.APP_CONFIG?.API_URL) {
+    console.log('🚀 Using runtime APP_CONFIG.API_URL:', window.APP_CONFIG.API_URL);
+    return window.APP_CONFIG.API_URL;
   }
 
   // Priority 2: Build-time React environment variable (prefixed with REACT_APP_)
@@ -19,7 +29,7 @@ export const getAPIUrl = (): string => {
 
   // Priority 3: Default for local development
   const defaultUrl = 'http://localhost:8000/api/v1';
-  console.log('🏠 No environment API_URL found, using default:', defaultUrl);
+  console.log('🏠 No runtime or build-time API_URL found, using default:', defaultUrl);
   return defaultUrl;
 };
 

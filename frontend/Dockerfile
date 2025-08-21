@@ -27,8 +27,15 @@ FROM nginx:alpine
 # Copy built application
 COPY --from=build /app/dist /usr/share/nginx/html
 
+# Copy runtime configuration template
+COPY public/config.js.template /usr/share/nginx/html/config.js.template
+
 # Copy nginx configuration
 COPY nginx.conf /etc/nginx/nginx.conf
+
+# Copy custom entrypoint script
+COPY docker-entrypoint-with-html.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
 
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs && \
@@ -48,4 +55,4 @@ USER nextjs
 
 EXPOSE 3000
 
-CMD ["nginx", "-g", "daemon off;"]
+CMD ["/docker-entrypoint.sh"]

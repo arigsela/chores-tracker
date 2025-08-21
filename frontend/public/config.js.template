@@ -1,0 +1,6 @@
+// Runtime configuration template for environment variable substitution
+// This file gets processed by nginx envsubst at container startup
+window.APP_CONFIG = {
+  API_URL: '${API_URL}',
+  NODE_ENV: '${NODE_ENV}'
+};
