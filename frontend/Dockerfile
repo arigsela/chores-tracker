@@ -27,8 +27,14 @@ FROM nginx:alpine
 # Copy built application
 COPY --from=build /app/dist /usr/share/nginx/html
 
-# Copy runtime configuration template
+# Copy production configuration file directly
+COPY public/config.js /usr/share/nginx/html/config.js
+
+# Copy runtime configuration template (for entrypoint script if working)
 COPY public/config.js.template /usr/share/nginx/html/config.js.template
+
+# Inject config script into the built HTML file
+RUN sed -i 's|</head>|  <script src="/config.js"></script>\n</head>|g' /usr/share/nginx/html/index.html
 
 # Copy nginx configuration
 COPY nginx.conf /etc/nginx/nginx.conf
