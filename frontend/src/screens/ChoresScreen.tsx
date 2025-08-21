@@ -313,11 +313,6 @@ export const ChoresScreen: React.FC = () => {
   const { user } = useAuth();
   const isParent = user?.role === 'parent';
   
-  // For parents, show the management screen
-  if (isParent) {
-    return <ChoresManagementScreen />;
-  }
-  
-  // For children, show the child-specific view
-  return <ChildChoresView />;
+  // Always render the same structure to avoid hooks violations
+  return isParent ? <ChoresManagementScreen /> : <ChildChoresView />;
 };
