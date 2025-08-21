@@ -35,7 +35,10 @@ COPY nginx.conf /etc/nginx/nginx.conf
 
 # Copy configuration generation script to nginx's entrypoint.d
 COPY 40-generate-config.sh /docker-entrypoint.d/40-generate-config.sh
-RUN chmod +x /docker-entrypoint.d/40-generate-config.sh
+RUN chmod +x /docker-entrypoint.d/40-generate-config.sh && \
+    # Verify the script is properly formatted
+    head -1 /docker-entrypoint.d/40-generate-config.sh | grep -q "#!/bin/bash" && \
+    echo "Entrypoint script verified successfully"
 
 # Note: Running as root to allow entrypoint.d scripts to execute
 # nginx will handle dropping privileges internally
