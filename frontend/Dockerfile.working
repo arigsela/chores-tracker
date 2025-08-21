@@ -3,6 +3,12 @@ FROM nginx:alpine
 # Copy pre-built static files
 COPY dist/ /usr/share/nginx/html/
 
+# Copy production configuration file
+COPY public/config.js /usr/share/nginx/html/config.js
+
+# Inject config script into the built HTML file
+RUN sed -i 's|</head>|  <script src="/config.js"></script>\n</head>|g' /usr/share/nginx/html/index.html
+
 # Copy nginx configuration
 COPY nginx.conf /etc/nginx/nginx.conf
 
@@ -22,6 +28,6 @@ RUN touch /var/run/nginx.pid && \
 
 USER nextjs
 
-EXPOSE 3000
+EXPOSE 80
 
 CMD ["nginx", "-g", "daemon off;"]
