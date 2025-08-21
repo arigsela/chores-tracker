@@ -12,7 +12,7 @@ import {
   ScrollView,
 } from 'react-native';
 import axios from 'axios';
-import { API_URL } from '../config/api';
+import { getAPIUrl } from '../config/api';
 
 interface RegisterScreenProps {
   onBackToLogin: () => void;
@@ -61,7 +61,7 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onBackToLogin })
       formData.append('is_parent', 'true');
 
       const response = await axios.post(
-        `${API_URL}/users/register`,
+        `${getAPIUrl()}/users/register`,
         formData.toString(),
         {
           headers: {

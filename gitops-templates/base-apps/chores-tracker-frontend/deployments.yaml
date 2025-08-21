@@ -22,13 +22,11 @@ spec:
       - name: frontend
         image: 852893458518.dkr.ecr.us-east-2.amazonaws.com/chores-tracker-frontend:latest
         ports:
-        - containerPort: 3000
+        - containerPort: 80
           name: http
         env:
         - name: NODE_ENV
           value: "production"
-        - name: API_URL
-          value: "http://chores-tracker-service:8000/api/v1"
         resources:
           requests:
             memory: "128Mi"
@@ -39,7 +37,7 @@ spec:
         livenessProbe:
           httpGet:
             path: /health
-            port: 3000
+            port: 80
           initialDelaySeconds: 30
           periodSeconds: 10
           timeoutSeconds: 5
@@ -48,7 +46,7 @@ spec:
         readinessProbe:
           httpGet:
             path: /health
-            port: 3000
+            port: 80
           initialDelaySeconds: 5
           periodSeconds: 5
           timeoutSeconds: 3
