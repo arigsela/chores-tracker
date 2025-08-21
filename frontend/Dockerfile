@@ -13,7 +13,7 @@ RUN apt-get update && apt-get install -y \
 
 # Copy package files
 COPY package*.json ./
-RUN npm ci --only=production --no-audit
+RUN npm ci --no-audit
 
 # Copy source code
 COPY . .
