@@ -34,25 +34,11 @@ COPY public/config.js.template /usr/share/nginx/html/config.js.template
 COPY nginx.conf /etc/nginx/nginx.conf
 
 # Copy configuration generation script to nginx's entrypoint.d
-COPY 30-generate-config.sh /docker-entrypoint.d/30-generate-config.sh
-RUN chmod +x /docker-entrypoint.d/30-generate-config.sh
+COPY 40-generate-config.sh /docker-entrypoint.d/40-generate-config.sh
+RUN chmod +x /docker-entrypoint.d/40-generate-config.sh
 
-# Create non-root user
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nextjs -u 1001
-
-# Set proper permissions (must be done before switching user)
-RUN chown -R nextjs:nodejs /usr/share/nginx/html && \
-    chown -R nextjs:nodejs /var/cache/nginx && \
-    chown -R nextjs:nodejs /var/log/nginx && \
-    chown -R nextjs:nodejs /etc/nginx/conf.d && \
-    chown -R nextjs:nodejs /docker-entrypoint.d/
-    
-# Create pid file directory
-RUN touch /var/run/nginx.pid && \
-    chown -R nextjs:nodejs /var/run/nginx.pid
-
-USER nextjs
+# Note: Running as root to allow entrypoint.d scripts to execute
+# nginx will handle dropping privileges internally
 
 EXPOSE 3000
 
