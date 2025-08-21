@@ -192,6 +192,14 @@ jobs:
           npm run type-check
           npm run test:ci
 
+      - name: Build frontend application
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: |
+          echo "Building frontend for production..."
+          npm run build
+          echo "✅ Frontend build completed"
+          ls -la dist/
+
       - name: Check if AWS secrets are configured
         id: check-secrets
         if: ${{ github.event.inputs.skip_deploy != 'true' }}
@@ -222,6 +230,15 @@ jobs:
         if: steps.check-secrets.outputs.configured == 'true' && github.event.inputs.skip_deploy != 'true'
         uses: docker/setup-buildx-action@v3
 
+      - name: Prepare Docker build context
+        if: steps.check-secrets.outputs.configured == 'true' && github.event.inputs.skip_deploy != 'true'
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: |
+          echo "Preparing Docker build context..."
+          # Copy the working dockerignore to enable dist/ inclusion
+          cp .dockerignore.working .dockerignore
+          echo "✅ Docker context prepared"
+
       - name: Build Docker image
         if: steps.check-secrets.outputs.configured == 'true' && github.event.inputs.skip_deploy != 'true'
         id: build
@@ -229,7 +246,7 @@ jobs:
         timeout-minutes: 15
         with:
           context: ./frontend
-          file: ./frontend/Dockerfile
+          file: ./frontend/Dockerfile.working
           platforms: linux/amd64
           push: false
           load: true

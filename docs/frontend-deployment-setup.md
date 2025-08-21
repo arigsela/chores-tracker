@@ -4,11 +4,13 @@ This document outlines the setup required for deploying the frontend web applica
 
 ## Files Created
 
-### 1. Frontend Dockerfile (`frontend/Dockerfile`)
-- **Multi-stage build**: Uses Node.js for building and nginx for serving
-- **Production optimized**: Includes static asset caching and compression
+### 1. Frontend Dockerfile (`frontend/Dockerfile.working`)
+- **Simple nginx build**: Uses pre-built static files from `dist/` folder
+- **Production optimized**: Includes static asset caching and compression  
 - **Security**: Runs as non-root user with proper permissions
 - **Health checks**: Includes `/health` endpoint for Kubernetes probes
+
+**Note**: We use `Dockerfile.working` instead of the multi-stage `Dockerfile` due to TypeScript path alias resolution issues in Docker builds. The CI workflow builds the static files locally first, then containerizes them.
 
 ### 2. Nginx Configuration (`frontend/nginx.conf`)
 - **Client-side routing**: Handles SPA routing with fallback to index.html
@@ -19,7 +21,8 @@ This document outlines the setup required for deploying the frontend web applica
 ### 3. CI/CD Workflow (`frontend-release-and-deploy.yml`)
 - **Separate versioning**: Uses `frontend-v*` tags to avoid conflicts with backend
 - **Quality gates**: Runs linting, type checking, and tests before build
-- **Docker registry**: Pushes to separate ECR repository
+- **Local build**: Runs `npm run build` to create static files before Docker build
+- **Docker registry**: Pushes to separate ECR repository using `Dockerfile.working`
 - **GitOps integration**: Creates PRs to update Kubernetes manifests
 
 ### 4. Package.json Updates
@@ -127,6 +130,19 @@ spec:
     protocol: TCP
   type: ClusterIP
 ```
+
+## Build Approach
+
+Due to TypeScript path alias resolution issues (`@/contexts/AuthContext`) in Docker multi-stage builds with Expo, we use a **two-step build process**:
+
+1. **Local Build**: GitHub Actions runs `npm run build` to create static files
+2. **Containerization**: Docker copies the pre-built `dist/` folder into nginx container
+
+This approach:
+- ✅ Avoids module resolution issues in Docker
+- ✅ Faster Docker builds (no npm install in container)
+- ✅ Consistent with many React deployment patterns
+- ✅ Separates build concerns from serving concerns
 
 ## Deployment Architecture
 
