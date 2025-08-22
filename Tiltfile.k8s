@@ -1,0 +1,134 @@
+# Enhanced Tiltfile for Kubernetes-based development
+# This replicates your production Kubernetes deployments locally
+# Run with: tilt up -f Tiltfile.k8s
+
+# =============================================================================
+# CONFIGURATION
+# =============================================================================
+
+# Allow Tilt to connect to your local cluster (minikube, kind, docker-desktop, etc.)
+allow_k8s_contexts(['docker-desktop', 'minikube', 'kind-kind', 'kind-chores-dev', 'default'])
+
+# =============================================================================
+# DOCKER BUILDS
+# =============================================================================
+
+# Build the backend Docker image with live updates
+docker_build(
+    'chores-tracker-api-k8s',
+    '.',
+    dockerfile='Dockerfile',
+    live_update=[
+        sync('./backend', '/app/backend'),
+        run('pip install -r /app/requirements.txt', trigger='./backend/requirements.txt'),
+    ],
+)
+
+# Build frontend image using the updated Dockerfile (with navigation fixes)
+# First, ensure frontend is built locally, then sync the built files
+local_resource(
+    'frontend-build',
+    cmd='cd frontend && npm run build',
+    deps=['./frontend/src', './frontend/package.json'],
+    labels=['frontend'],
+)
+
+docker_build(
+    'chores-tracker-frontend-k8s',
+    './frontend',
+    dockerfile='./frontend/Dockerfile.working',
+    live_update=[
+        sync('./frontend/dist', '/usr/share/nginx/html'),
+        sync('./frontend/public/config.js', '/usr/share/nginx/html/config.js'),
+    ],
+    # Note: This will build from source with our navigation fixes and live reload
+)
+
+# =============================================================================
+# KUBERNETES MANIFESTS
+# =============================================================================
+
+# Load Kubernetes manifests that mirror your GitOps structure
+k8s_yaml('k8s-dev.yaml')
+
+# =============================================================================
+# RESOURCE CONFIGURATION & PORT FORWARDS
+# =============================================================================
+
+# Configure Kubernetes resources with port forwards and labels
+k8s_resource(
+    'chores-tracker-backend',
+    port_forwards=['8000:8000'],
+    labels=['backend'],
+    resource_deps=['mysql'],  # Backend depends on MySQL being ready
+)
+
+k8s_resource(
+    'mysql',
+    port_forwards=['3306:3306'],
+    labels=['database'],
+)
+
+# Frontend resource configuration
+k8s_resource(
+    'chores-tracker-frontend',
+    port_forwards=['3000:3000'],  # Forward local port 3000 to container port 3000
+    labels=['frontend'],
+    resource_deps=['chores-tracker-backend', 'frontend-build'],  # Frontend depends on backend and build
+)
+
+# =============================================================================
+# OPTIONAL DEVELOPMENT HELPERS (Manual Trigger Only)
+# =============================================================================
+
+# Database migration helper - Run manually when schema changes
+local_resource(
+    'db-migrate',
+    cmd='kubectl exec -n chores-dev deployment/chores-tracker-backend -- python -m alembic -c backend/alembic.ini upgrade head',
+    deps=['./backend/alembic/versions'],
+    labels=['optional', 'database'],
+    auto_init=False,
+    trigger_mode=TRIGGER_MODE_MANUAL,
+    resource_deps=['chores-tracker-backend'],
+)
+
+# =============================================================================
+# OPTIONAL TESTING HELPERS (Manual Trigger Only)
+# =============================================================================
+
+# Quick health check - Verify backend is responding
+local_resource(
+    'health-check',
+    cmd='curl -f http://localhost:8000/health || echo "Backend not ready yet"',
+    labels=['optional', 'test'],
+    trigger_mode=TRIGGER_MODE_MANUAL,
+    resource_deps=['chores-tracker-backend'],
+)
+
+# Full test suite - Run complete backend tests
+local_resource(
+    'run-tests',
+    cmd='kubectl exec -n chores-dev deployment/chores-tracker-backend -- python -m pytest backend/tests/ -v --tb=short',
+    deps=['./backend/tests'],
+    labels=['optional', 'test'],
+    trigger_mode=TRIGGER_MODE_MANUAL,
+    resource_deps=['chores-tracker-backend'],
+)
+
+# Database connectivity test - Verify MySQL connection and user setup
+local_resource(
+    'test-db-connection',
+    cmd='kubectl exec -n chores-dev deployment/chores-tracker-backend -- python -c "from backend.app.core.database import get_async_session; import asyncio; asyncio.run(get_async_session().__anext__())"',
+    labels=['optional', 'test', 'database'],
+    trigger_mode=TRIGGER_MODE_MANUAL,
+    resource_deps=['chores-tracker-backend'],
+)
+
+# API endpoint test - Quick API functionality check
+local_resource(
+    'test-api',
+    cmd='curl -f http://localhost:8000/api/v1/health || echo "API not responding"',
+    labels=['optional', 'test', 'api'],
+    trigger_mode=TRIGGER_MODE_MANUAL,
+    resource_deps=['chores-tracker-backend'],
+)

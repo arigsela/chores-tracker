@@ -26,26 +26,34 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onBackToLogin })
   const [isLoading, setIsLoading] = useState(false);
   
 
+  const showError = (message: string) => {
+    if (Platform.OS === 'web') {
+      alert(`Error: ${message}`);
+    } else {
+      Alert.alert('Error', message);
+    }
+  };
+
   const handleRegister = async () => {
     // Validation
     if (!username.trim() || !password.trim() || !email.trim()) {
-      Alert.alert('Error', 'Please fill in all required fields');
+      showError('Please fill in all required fields');
       return;
     }
 
     if (password !== confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match');
+      showError('Passwords do not match');
       return;
     }
 
     if (password.length < 8) {
-      Alert.alert('Error', 'Password must be at least 8 characters long');
+      showError('Password must be at least 8 characters long');
       return;
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      Alert.alert('Error', 'Please enter a valid email address');
+      showError('Please enter a valid email address');
       return;
     }
 
@@ -71,16 +79,27 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onBackToLogin })
       );
 
       console.log('Registration successful:', response.data);
-      Alert.alert(
-        'Success',
-        'Your account has been created successfully! Please sign in.',
-        [
-          {
-            text: 'OK',
-            onPress: onBackToLogin,
-          },
-        ]
-      );
+      
+      // Use web-compatible alert for better browser support
+      if (Platform.OS === 'web') {
+        // For web, navigate first then show success message
+        onBackToLogin();
+        setTimeout(() => {
+          alert('Success: Your account has been created successfully! You can now sign in.');
+        }, 100);
+      } else {
+        // For mobile, use React Native Alert
+        Alert.alert(
+          'Success',
+          'Your account has been created successfully! Please sign in.',
+          [
+            {
+              text: 'OK',
+              onPress: onBackToLogin,
+            },
+          ]
+        );
+      }
     } catch (error: any) {
       console.error('Registration error:', error);
       console.error('Error response:', error.response?.data);
@@ -94,7 +113,12 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onBackToLogin })
         }
       }
       
-      Alert.alert('Registration Error', message);
+      // Use web-compatible alert for errors too
+      if (Platform.OS === 'web') {
+        alert(`Registration Error: ${message}`);
+      } else {
+        Alert.alert('Registration Error', message);
+      }
     } finally {
       setIsLoading(false);
     }
