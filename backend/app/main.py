@@ -19,6 +19,7 @@ from .api.api_v1.api import api_router
 
 app = FastAPI(
     title=settings.APP_NAME,
+    redirect_slashes=False,  # Disable automatic trailing slash redirects
     description="""
 # Chores Tracker API
 
