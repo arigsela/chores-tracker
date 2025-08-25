@@ -19,6 +19,7 @@ from .api.api_v1.api import api_router
 
 app = FastAPI(
     title=settings.APP_NAME,
+    redirect_slashes=False,  # Disable automatic trailing slash redirects
     description="""
 # Chores Tracker API
 
@@ -113,7 +114,7 @@ Min/max range defined at creation. Parent sets final amount on approval.
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.BACKEND_CORS_ORIGINS,
+    allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -124,6 +125,19 @@ setup_rate_limiting(app)
 
 # Add request validation middleware
 app.add_middleware(RequestValidationMiddleware)
+
+# Add API documentation routes before including the main API router
+@app.get("/api/v1/docs")
+async def api_docs():
+    """Redirect to the OpenAPI documentation."""
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(url="/docs")
+
+@app.get("/api/v1/redoc")
+async def api_redoc():
+    """Redirect to the ReDoc documentation."""
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(url="/redoc")
 
 # Include API router
 app.include_router(api_router, prefix="/api/v1")

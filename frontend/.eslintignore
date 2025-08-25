@@ -1,0 +1,13 @@
+# Build output
+dist/
+web-build/
+.expo/
+
+# Node modules
+node_modules/
+
+# Coverage reports
+coverage/
+
+# Test files that should be ignored
+test-chores-ui.js

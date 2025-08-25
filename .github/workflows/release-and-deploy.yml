@@ -96,8 +96,18 @@ jobs:
       - name: Get latest tag
         id: get_latest_tag
         run: |
-          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
-          echo "Latest tag: $LATEST_TAG"
+          # Get the latest backend tag (format: v*.*.*)
+          # Filter out frontend tags and malformed tags
+          LATEST_TAG=$(git tag -l | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -1)
+          
+          # Fallback if no proper tags found
+          if [[ -z "$LATEST_TAG" ]]; then
+            LATEST_TAG="v0.0.0"
+            echo "No valid backend tags found, using default: $LATEST_TAG"
+          else
+            echo "Found latest backend tag: $LATEST_TAG"
+          fi
+          
           echo "latest_tag=$LATEST_TAG" >> "$GITHUB_OUTPUT"
 
       - name: Calculate next version
@@ -107,9 +117,13 @@ jobs:
             NEW_VERSION="v${{ github.event.inputs.version }}"
           else
             LATEST_TAG="${{ steps.get_latest_tag.outputs.latest_tag }}"
-            LATEST_TAG=${LATEST_TAG#v}
+            echo "Processing latest tag: $LATEST_TAG"
             
-            IFS='.' read -r MAJOR MINOR PATCH <<< "$LATEST_TAG"
+            # Extract version number (remove v prefix)
+            VERSION_PART=${LATEST_TAG#v}
+            echo "Extracted version: $VERSION_PART"
+            
+            IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION_PART"
             MAJOR=${MAJOR:-0}
             MINOR=${MINOR:-0}
             PATCH=${PATCH:-0}

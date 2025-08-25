@@ -88,7 +88,7 @@ export class Alert {
     }
 
     // More than 2 buttons - use a simple prompt-based solution
-    let buttonText = buttons.map((b, i) => `${i + 1}. ${b.text}`).join('\n');
+    const buttonText = buttons.map((b, i) => `${i + 1}. ${b.text}`).join('\n');
     const choice = window.prompt(`${fullMessage}\n\nChoose an option:\n${buttonText}`, '1');
     
     if (choice) {

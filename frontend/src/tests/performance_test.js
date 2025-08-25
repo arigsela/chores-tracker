@@ -3,8 +3,12 @@
  * Tests loading times, render performance, and API response times
  */
 
+/* eslint-env node, browser */
+/* eslint-disable no-console, @typescript-eslint/no-var-requires */
+
 const BASE_URL = 'http://localhost:8081';
-const API_URL = 'http://localhost:8000/api/v1';
+// Use environment-based API URL or default to localhost for testing
+const API_URL = process.env.API_URL || process.env.REACT_APP_API_URL || 'http://localhost:8000/api/v1';
 
 // Test credentials
 const PARENT_USER = { username: 'demoparent', password: 'password123' };

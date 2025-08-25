@@ -4,8 +4,7 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Build outputs
-# dist - commented out for docker build with pre-built files
+# Build outputs (but keep dist for this build)
 .expo
 .expo-shared
 
@@ -47,6 +46,7 @@ LICENSE
 .prettierrc*
 jest.config*
 tsconfig.json
+src/
 
 # Logs
 logs

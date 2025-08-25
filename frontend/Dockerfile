@@ -13,7 +13,7 @@ RUN apt-get update && apt-get install -y \
 
 # Copy package files
 COPY package*.json ./
-RUN npm ci --only=production --no-audit
+RUN npm ci --no-audit
 
 # Copy source code
 COPY . .
@@ -27,24 +27,27 @@ FROM nginx:alpine
 # Copy built application
 COPY --from=build /app/dist /usr/share/nginx/html
 
+# Copy production configuration file directly
+COPY public/config.js /usr/share/nginx/html/config.js
+
+# Copy runtime configuration template (for entrypoint script if working)
+COPY public/config.js.template /usr/share/nginx/html/config.js.template
+
+# Inject config script into the built HTML file
+RUN sed -i 's|</head>|  <script src="/config.js"></script>\n</head>|g' /usr/share/nginx/html/index.html
+
 # Copy nginx configuration
 COPY nginx.conf /etc/nginx/nginx.conf
 
-# Create non-root user
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nextjs -u 1001
+# Copy configuration generation script to nginx's entrypoint.d
+COPY 40-generate-config.sh /docker-entrypoint.d/40-generate-config.sh
+RUN chmod +x /docker-entrypoint.d/40-generate-config.sh && \
+    # Verify the script is properly formatted
+    head -1 /docker-entrypoint.d/40-generate-config.sh | grep -q "#!/bin/bash" && \
+    echo "Entrypoint script verified successfully"
 
-# Set proper permissions
-RUN chown -R nextjs:nodejs /usr/share/nginx/html && \
-    chown -R nextjs:nodejs /var/cache/nginx && \
-    chown -R nextjs:nodejs /var/log/nginx && \
-    chown -R nextjs:nodejs /etc/nginx/conf.d
-    
-# Create pid file directory
-RUN touch /var/run/nginx.pid && \
-    chown -R nextjs:nodejs /var/run/nginx.pid
-
-USER nextjs
+# Note: Running as root to allow entrypoint.d scripts to execute
+# nginx will handle dropping privileges internally
 
 EXPOSE 3000
 

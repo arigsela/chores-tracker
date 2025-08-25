@@ -1,6 +1,9 @@
 // Quick test script to verify chores UI functionality
 // Run this in the browser console after logging in as demochild
 
+/* eslint-env browser */
+/* global console, window, document, AsyncStorage */
+
 async function testChoresUI() {
   console.log('Testing Chores UI...');
   
