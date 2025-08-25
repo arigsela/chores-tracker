@@ -125,6 +125,19 @@ setup_rate_limiting(app)
 # Add request validation middleware
 app.add_middleware(RequestValidationMiddleware)
 
+# Add API documentation routes before including the main API router
+@app.get("/api/v1/docs")
+async def api_docs():
+    """Redirect to the OpenAPI documentation."""
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(url="/docs")
+
+@app.get("/api/v1/redoc")
+async def api_redoc():
+    """Redirect to the ReDoc documentation."""
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(url="/redoc")
+
 # Include API router
 app.include_router(api_router, prefix="/api/v1")
 
