@@ -143,7 +143,7 @@ export const choreAPI = {
   }): Promise<Chore> => {
     try {
       // Send as JSON directly - axios client already has JSON content-type
-      const response = await apiClient.post('/chores/', choreData);
+      const response = await apiClient.post('/chores', choreData);
       return response.data;
     } catch (error) {
       console.error('Failed to create chore:', error);
