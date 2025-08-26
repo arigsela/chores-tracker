@@ -1,14 +1,13 @@
 import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getAPIUrl } from '../config/api';
 
 // Constants
-// In React Native Web, we need to use a hardcoded URL or configure it differently
-const API_URL = 'http://localhost:8000/api/v1';
 const TOKEN_KEY = '@chores_tracker:token';
 
-// Create axios instance
+// Create axios instance with dynamic baseURL
 const apiClient: AxiosInstance = axios.create({
-  baseURL: API_URL,
+  baseURL: getAPIUrl(),
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
@@ -54,11 +53,11 @@ export const authAPI = {
     formData.append('username', username);
     formData.append('password', password);
 
-    console.log('API Client: Logging in to', `${API_URL}/users/login`);
+    console.log('API Client: Logging in to', `${getAPIUrl()}/users/login`);
     console.log('API Client: Form data:', formData.toString());
 
     try {
-      const response = await axios.post(`${API_URL}/users/login`, formData, {
+      const response = await axios.post(`${getAPIUrl()}/users/login`, formData, {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
         },

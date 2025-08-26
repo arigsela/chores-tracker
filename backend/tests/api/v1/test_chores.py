@@ -10,7 +10,7 @@ async def test_create_chore(client: AsyncClient, parent_token, test_child_user):
     """Test creating a chore with fixed reward."""
     # Test creating a chore as a parent
     response = await client.post(
-        "/api/v1/chores/",
+        "/api/v1/chores",
         json={
             "title": "Take out the trash",
             "description": "Empty all trash cans and take to the curb",
@@ -44,7 +44,7 @@ async def test_create_chore(client: AsyncClient, parent_token, test_child_user):
 async def test_create_range_reward_chore(client: AsyncClient, parent_token, test_child_user):
     """Test creating a chore with range-based reward."""
     response = await client.post(
-        "/api/v1/chores/",
+        "/api/v1/chores",
         json={
             "title": "Wash dishes",
             "description": "Wash all dirty dishes in the sink",
@@ -71,7 +71,7 @@ async def test_create_range_reward_chore_with_empty_reward(client: AsyncClient, 
     """Test creating a range reward chore with an empty reward field."""
     # Create chore with form data similar to the issue reported
     response = await client.post(
-        "/api/v1/chores/",
+        "/api/v1/chores",
         data={
             "title": "Take a shower",
             "description": "",
@@ -103,7 +103,7 @@ async def test_create_range_reward_chore_with_empty_reward(client: AsyncClient, 
 async def test_child_cannot_create_chore(client: AsyncClient, child_token, test_parent_user):
     """Test that a child cannot create a chore."""
     response = await client.post(
-        "/api/v1/chores/",
+        "/api/v1/chores",
         json={
             "title": "Clean my room",
             "description": "Tidy up my room",
@@ -121,7 +121,7 @@ async def test_read_chores(client: AsyncClient, parent_token, child_token, test_
     """Test reading chores."""
     # Parent should see all chores they created (including disabled ones)
     response = await client.get(
-        "/api/v1/chores/",
+        "/api/v1/chores",
         headers={"Authorization": f"Bearer {parent_token}"}
     )
     assert response.status_code == 200
@@ -134,7 +134,7 @@ async def test_read_chores(client: AsyncClient, parent_token, child_token, test_
 
     # Child should see only non-disabled chores assigned to them
     response = await client.get(
-        "/api/v1/chores/",
+        "/api/v1/chores",
         headers={"Authorization": f"Bearer {child_token}"}
     )
     assert response.status_code == 200

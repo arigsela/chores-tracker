@@ -364,7 +364,7 @@ describe('Chores API Module', () => {
 
       const result = await choreAPI.createChore(choreData);
 
-      expect(mockApiClient.post).toHaveBeenCalledWith('/chores/', choreData);
+      expect(mockApiClient.post).toHaveBeenCalledWith('/chores', choreData);
       expect(result).toEqual(createdChore);
     });
 
@@ -384,7 +384,7 @@ describe('Chores API Module', () => {
 
       const result = await choreAPI.createChore(choreData);
 
-      expect(mockApiClient.post).toHaveBeenCalledWith('/chores/', choreData);
+      expect(mockApiClient.post).toHaveBeenCalledWith('/chores', choreData);
       expect(result.is_range_reward).toBe(true);
       expect(result.min_reward).toBe(3.00);
       expect(result.max_reward).toBe(10.00);
@@ -406,7 +406,7 @@ describe('Chores API Module', () => {
 
       const result = await choreAPI.createChore(choreData);
 
-      expect(mockApiClient.post).toHaveBeenCalledWith('/chores/', choreData);
+      expect(mockApiClient.post).toHaveBeenCalledWith('/chores', choreData);
       expect(result.is_recurring).toBe(true);
       expect(result.cooldown_days).toBe(7);
     });
@@ -641,7 +641,7 @@ describe('Chores API Module', () => {
       
       await choreAPI.createChore(choreData);
       
-      expect(mockApiClient.post).toHaveBeenCalledWith('/chores/', 
+      expect(mockApiClient.post).toHaveBeenCalledWith('/chores', 
         expect.objectContaining({ reward: 12.34 })
       );
     });

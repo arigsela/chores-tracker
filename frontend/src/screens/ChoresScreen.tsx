@@ -16,16 +16,9 @@ import ChoresManagementScreen from './ChoresManagementScreen';
 
 type TabType = 'available' | 'active' | 'completed';
 
-export const ChoresScreen: React.FC = () => {
+// Child-specific chores component to avoid hooks ordering issues
+const ChildChoresView: React.FC = () => {
   const { user } = useAuth();
-  const isParent = user?.role === 'parent';
-  
-  // For parents, show the management screen
-  if (isParent) {
-    return <ChoresManagementScreen />;
-  }
-  
-  // Child view continues below
   const [activeTab, setActiveTab] = useState<TabType>('available');
   const [chores, setChores] = useState<Chore[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -106,6 +99,9 @@ export const ChoresScreen: React.FC = () => {
   useEffect(() => {
     fetchChores();
   }, [activeTab]);
+
+  // Get user role status
+  const isParent = user?.role === 'parent';
 
   const handleCompleteChore = async (choreId: number) => {
     const chore = chores.find(c => c.id === choreId);
@@ -311,3 +307,12 @@ const styles = StyleSheet.create({
     padding: 20,
   },
 });
+
+// Main component that delegates to the appropriate view
+export const ChoresScreen: React.FC = () => {
+  const { user } = useAuth();
+  const isParent = user?.role === 'parent';
+  
+  // Always render the same structure to avoid hooks violations
+  return isParent ? <ChoresManagementScreen /> : <ChildChoresView />;
+};

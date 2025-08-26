@@ -13,7 +13,7 @@ from ....middleware.rate_limit import limit_api_endpoint, limit_create, limit_up
 router = APIRouter()
 
 @router.post(
-    "/",
+    "",
     response_model=ChoreResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Create a new chore",
@@ -169,7 +169,7 @@ async def create_chore(
         )
 
 @router.get(
-    "/",
+    "",
     response_model=List[ChoreResponse],
     summary="Get chores (with optional filters)",
     description="""

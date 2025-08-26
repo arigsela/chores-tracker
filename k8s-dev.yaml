@@ -1,0 +1,295 @@
+# Development Kubernetes manifests that mirror production GitOps structure
+# These can be used with: kubectl apply -f k8s-dev.yaml
+# Or referenced from Tiltfile with: k8s_yaml('k8s-dev.yaml')
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: chores-dev
+  labels:
+    environment: development
+---
+# Backend API Deployment (mirrors your production backend)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: chores-tracker-backend
+  namespace: chores-dev
+  labels:
+    app: chores-tracker-backend
+    component: backend
+    version: dev
+spec:
+  replicas: 1  # Single replica for dev
+  selector:
+    matchLabels:
+      app: chores-tracker-backend
+  template:
+    metadata:
+      labels:
+        app: chores-tracker-backend
+        component: backend
+    spec:
+      containers:
+      - name: api
+        image: chores-tracker-api-k8s  # Built locally by Tilt
+        imagePullPolicy: Never  # Never try to pull - use local image only
+        ports:
+        - containerPort: 8000
+          name: http
+        env:
+        - name: DATABASE_URL
+          value: "mysql+aiomysql://chores_user:chores_pass@mysql.chores-dev.svc.cluster.local:3306/chores_db"
+        - name: SECRET_KEY
+          value: "dev-secret-key-for-local-testing-only"
+        - name: DEBUG
+          value: "true"
+        - name: ENVIRONMENT
+          value: "development"
+        - name: BACKEND_CORS_ORIGINS
+          value: "http://localhost:3000,http://localhost:8080,http://chores-tracker-frontend-service.chores-dev.svc.cluster.local"
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 90  # Wait for MySQL to be fully ready
+          periodSeconds: 20
+          timeoutSeconds: 15
+          failureThreshold: 5  # More tolerance
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 60  # Wait for MySQL to be ready
+          periodSeconds: 10
+          timeoutSeconds: 10
+          failureThreshold: 8  # Very tolerant during dev
+        # Match production security context (but relaxed for dev)
+        securityContext:
+          allowPrivilegeEscalation: false
+          runAsNonRoot: false  # Relaxed for easier debugging
+          readOnlyRootFilesystem: false  # Allow writes for dev
+      restartPolicy: Always
+---
+# Backend Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: chores-tracker-service
+  namespace: chores-dev
+  labels:
+    app: chores-tracker-backend
+    component: backend
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8000
+    targetPort: 8000
+    protocol: TCP
+    name: http
+  selector:
+    app: chores-tracker-backend
+---
+# MySQL Database
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql
+  namespace: chores-dev
+  labels:
+    app: mysql
+    component: database
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mysql
+  template:
+    metadata:
+      labels:
+        app: mysql
+        component: database
+    spec:
+      containers:
+      - name: mysql
+        image: mysql:5.7
+        ports:
+        - containerPort: 3306
+          name: mysql
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          value: "rootpassword"
+        - name: MYSQL_DATABASE
+          value: "chores_db"
+        - name: MYSQL_USER
+          value: "chores_user"
+        - name: MYSQL_PASSWORD
+          value: "chores_pass"
+        - name: MYSQL_ALLOW_EMPTY_PASSWORD
+          value: "no"
+        - name: MYSQL_RANDOM_ROOT_PASSWORD
+          value: "no"
+        - name: MYSQL_ROOT_HOST
+          value: "%"
+        args:
+        - --character-set-server=utf8mb4
+        - --collation-server=utf8mb4_unicode_ci
+        - --explicit_defaults_for_timestamp=true
+        # Development optimizations for faster startup
+        - --skip-name-resolve  # Skip DNS lookups
+        - --innodb-buffer-pool-size=256M  # Reduce buffer pool for dev
+        - --innodb-log-file-size=50M  # Smaller log files
+        - --innodb-flush-log-at-trx-commit=2  # Less strict durability for dev
+        - --sync-binlog=0  # Disable binary logging sync for dev
+        - --max-connections=50  # Reduce max connections for dev
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "200m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        livenessProbe:
+          tcpSocket:
+            port: 3306
+          initialDelaySeconds: 120  # Give MySQL more time to initialize
+          periodSeconds: 15
+          timeoutSeconds: 10
+          failureThreshold: 5  # More tolerance for restarts
+        readinessProbe:
+          tcpSocket:
+            port: 3306
+          initialDelaySeconds: 60  # Wait longer before first check
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 6  # More tolerance for initialization delays
+        volumeMounts:
+        - name: mysql-data
+          mountPath: /var/lib/mysql
+      volumes:
+      - name: mysql-data
+        emptyDir: {}  # Use emptyDir for dev (data won't persist)
+---
+# MySQL Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql
+  namespace: chores-dev
+  labels:
+    app: mysql
+    component: database
+spec:
+  type: ClusterIP
+  ports:
+  - port: 3306
+    targetPort: 3306
+    protocol: TCP
+    name: mysql
+  selector:
+    app: mysql
+---
+# Frontend Deployment (based on your GitOps frontend template)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: chores-tracker-frontend
+  namespace: chores-dev
+  labels:
+    app: chores-tracker-frontend
+    component: frontend
+    version: dev
+spec:
+  replicas: 1  # Single replica for dev
+  selector:
+    matchLabels:
+      app: chores-tracker-frontend
+  template:
+    metadata:
+      labels:
+        app: chores-tracker-frontend
+        component: frontend
+    spec:
+      containers:
+      - name: frontend
+        image: chores-tracker-frontend-k8s  # Built locally by Tilt
+        imagePullPolicy: Never  # Never try to pull - use local image only
+        ports:
+        - containerPort: 3000  # Nginx serves on port 3000 inside container
+          name: http
+        env:
+        - name: NODE_ENV
+          value: "development"
+        - name: API_URL
+          value: "http://chores-tracker-service.chores-dev.svc.cluster.local:8000/api/v1"
+        - name: EXPO_USE_STATIC
+          value: "1"
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "300m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 30
+          periodSeconds: 15
+          timeoutSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 5
+          failureThreshold: 3
+        # Security context matching production (but relaxed for dev debugging)
+        securityContext:
+          allowPrivilegeEscalation: false
+          runAsNonRoot: false
+          readOnlyRootFilesystem: false
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        - name: nginx-cache
+          mountPath: /var/cache/nginx
+        - name: nginx-run
+          mountPath: /var/run
+      volumes:
+      - name: tmp
+        emptyDir: {}
+      - name: nginx-cache
+        emptyDir: {}
+      - name: nginx-run
+        emptyDir: {}
+      restartPolicy: Always
+---
+# Frontend Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: chores-tracker-frontend-service
+  namespace: chores-dev
+  labels:
+    app: chores-tracker-frontend
+    component: frontend
+spec:
+  type: ClusterIP
+  ports:
+  - port: 3000
+    targetPort: 3000
+    protocol: TCP
+    name: http
+  selector:
+    app: chores-tracker-frontend

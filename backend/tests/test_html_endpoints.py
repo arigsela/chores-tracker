@@ -68,7 +68,7 @@ class TestHTMLEndpoints:
         assert response.status_code == 200
         assert response.headers["content-type"] == "application/json"
         
-        response = await client.get("/api/v1/chores/", headers=headers)  
+        response = await client.get("/api/v1/chores", headers=headers)  
         assert response.status_code == 200
         assert response.headers["content-type"] == "application/json"
         

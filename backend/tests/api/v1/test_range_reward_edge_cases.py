@@ -138,7 +138,7 @@ async def test_zero_reward_for_range_chore(
     """Test creating and approving a range reward chore with zero rewards."""
     # Create a range reward chore with zero min/max
     response = await client.post(
-        "/api/v1/chores/",
+        "/api/v1/chores",
         json={
             "title": "Zero reward chore",
             "description": "Min/max reward set to zero",

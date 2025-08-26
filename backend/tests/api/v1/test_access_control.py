@@ -23,7 +23,7 @@ async def test_expired_token(client: AsyncClient, test_parent_user):
     
     # Try to access an endpoint that requires authentication
     response = await client.get(
-        "/api/v1/chores/",
+        "/api/v1/chores",
         headers={"Authorization": f"Bearer {expired_token}"}
     )
     assert response.status_code == 401
@@ -38,7 +38,7 @@ async def test_invalid_token(client: AsyncClient):
     
     # Try to access an endpoint that requires authentication
     response = await client.get(
-        "/api/v1/chores/",
+        "/api/v1/chores",
         headers={"Authorization": f"Bearer {invalid_token}"}
     )
     assert response.status_code == 401
@@ -49,7 +49,7 @@ async def test_invalid_token(client: AsyncClient):
 async def test_missing_token(client: AsyncClient):
     """Test behavior with a missing token."""
     # Try to access an endpoint that requires authentication with no token
-    response = await client.get("/api/v1/chores/")
+    response = await client.get("/api/v1/chores")
     assert response.status_code == 401
     error = response.json()["detail"]
     assert "not authenticated" in error.lower()
@@ -64,7 +64,7 @@ async def test_non_existent_user_token(client: AsyncClient):
     
     # Try to access an endpoint that requires authentication
     response = await client.get(
-        "/api/v1/chores/",
+        "/api/v1/chores",
         headers={"Authorization": f"Bearer {nonexistent_user_token}"}
     )
     assert response.status_code == 401
@@ -76,7 +76,7 @@ async def test_child_accessing_parent_only_endpoints(client: AsyncClient, child_
     """Test a child trying to access parent-only endpoints."""
     # Try to create a chore (parent-only operation)
     response = await client.post(
-        "/api/v1/chores/",
+        "/api/v1/chores",
         json={
             "title": "Test chore",
             "description": "Description",

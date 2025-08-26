@@ -41,7 +41,7 @@ async def test_api_endpoints_that_exist(client: AsyncClient, parent_token, test_
     
     # Test chores endpoint (this should exist)
     response = await client.get(
-        "/api/v1/chores/", 
+        "/api/v1/chores", 
         headers={"Authorization": f"Bearer {parent_token}"}
     )
     assert response.status_code == 200

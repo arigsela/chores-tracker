@@ -58,7 +58,7 @@ async def test_invalid_login_error_response(client: AsyncClient):
 async def test_chores_api_response_structure(client: AsyncClient, parent_token, test_chore):
     """Test the structure of chores API response."""
     response = await client.get(
-        "/api/v1/chores/",
+        "/api/v1/chores",
         headers={
             "Authorization": f"Bearer {parent_token}",
         }
