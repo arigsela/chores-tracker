@@ -14,12 +14,11 @@ print('Using Kubernetes context: ' + k8s_context())
 
 # Configure for minikube - use the minikube Docker daemon
 if k8s_context() == 'minikube':
-    # Tell Tilt to use minikube's Docker daemon
-    # This means images built by Tilt will be available directly in minikube
-    # without needing to push to any external registry
-    print('Minikube detected - configuring for direct Docker daemon access')
+    # For minikube, images built by Docker are automatically available
+    # as long as Docker is configured to use minikube's daemon
+    # No registry push/pull needed - images are built directly in minikube
+    print('Minikube detected - using minikube Docker daemon')
     print('Make sure you run: eval $(minikube docker-env) before starting Tilt')
-    load_dynamic('docker')
 
 # =============================================================================
 # DOCKER BUILDS
