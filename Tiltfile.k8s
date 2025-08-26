@@ -9,13 +9,17 @@
 # Allow Tilt to connect to your local cluster (minikube, kind, docker-desktop, etc.)
 allow_k8s_contexts(['docker-desktop', 'minikube', 'kind-kind', 'kind-chores-dev', 'default'])
 
+# Configure Tilt to build images locally without pushing
+# Set an empty default registry to prevent any push attempts
+default_registry('')
+
 # =============================================================================
 # DOCKER BUILDS
 # =============================================================================
 
-# Build the backend Docker image with live updates (local only, never push)
+# Build the backend Docker image with live updates (local only)
 docker_build(
-    'localhost/chores-tracker-api-k8s',  # localhost prefix prevents registry push
+    'chores-tracker-api-k8s',
     '.',
     dockerfile='Dockerfile',
     live_update=[
@@ -34,7 +38,7 @@ local_resource(
 )
 
 docker_build(
-    'localhost/chores-tracker-frontend-k8s',  # localhost prefix prevents registry push
+    'chores-tracker-frontend-k8s',
     './frontend',
     dockerfile='./frontend/Dockerfile.working',
     live_update=[
