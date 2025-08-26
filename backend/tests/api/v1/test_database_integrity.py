@@ -93,7 +93,7 @@ async def test_foreign_key_constraint(
     """Test that foreign key constraints are enforced."""
     # Try to create a chore with a non-existent assignee
     response = await client.post(
-        "/api/v1/chores/",
+        "/api/v1/chores",
         json={
             "title": "Bad Assignee Chore",
             "description": "Assigned to non-existent user",
@@ -118,7 +118,7 @@ async def test_database_cascade_delete(
     """Test that deleting a parent deletes or orphans related child entities."""
     # Create a chore for the test child
     response = await client.post(
-        "/api/v1/chores/",
+        "/api/v1/chores",
         json={
             "title": "Cascade Test Chore",
             "description": "For testing cascades",

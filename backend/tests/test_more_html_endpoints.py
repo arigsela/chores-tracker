@@ -130,7 +130,7 @@ class TestMainHTMLEndpoints:
         headers = {"Authorization": f"Bearer {token}"}
         
         # Test that actual REST API endpoints work
-        response = await client.get("/api/v1/chores/", headers=headers)
+        response = await client.get("/api/v1/chores", headers=headers)
         assert response.status_code == 200
         assert "application/json" in response.headers["content-type"]
         

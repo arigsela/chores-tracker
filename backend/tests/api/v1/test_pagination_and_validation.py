@@ -35,7 +35,7 @@ async def test_chore_pagination(
     
     # Test default pagination (first page)
     response = await client.get(
-        "/api/v1/chores/",
+        "/api/v1/chores",
         headers={"Authorization": f"Bearer {parent_token}"}
     )
     assert response.status_code == 200
@@ -59,7 +59,7 @@ async def test_chore_pagination(
     
     # Test explicit pagination (second page)
     response = await client.get(
-        "/api/v1/chores/?skip=10&limit=10",
+        "/api/v1/chores?skip=10&limit=10",
         headers={"Authorization": f"Bearer {parent_token}"}
     )
     assert response.status_code == 200
@@ -83,7 +83,7 @@ async def test_validation_special_characters(
     # Test chore title with special characters
     special_chars = "!@#$%^&*()_+{}|:<>?~`-=[]\\;',./\""
     response = await client.post(
-        "/api/v1/chores/",
+        "/api/v1/chores",
         json={
             "title": f"Special Characters {special_chars}",
             "description": "Test description",
@@ -123,7 +123,7 @@ async def test_validation_long_inputs(
     
     # Test creating a chore with long title and description
     response = await client.post(
-        "/api/v1/chores/",
+        "/api/v1/chores",
         json={
             "title": long_title,
             "description": long_description,
