@@ -1,12 +1,13 @@
 from typing import Optional, List, TYPE_CHECKING
 from sqlalchemy import String, Boolean, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from ..db.base import Base
+from ..db.base_class import Base
 
 if TYPE_CHECKING:
     from .chore import Chore
     from .reward_adjustment import RewardAdjustment
     from .activity import Activity
+    from .family import Family
 
 class User(Base):
     __tablename__ = "users"
@@ -17,7 +18,8 @@ class User(Base):
     hashed_password: Mapped[str] = mapped_column(String(255))
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     is_parent: Mapped[bool] = mapped_column(Boolean, default=False)
-    parent_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True)
+    parent_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True)  # Keep during migration
+    family_id: Mapped[Optional[int]] = mapped_column(ForeignKey("families.id"), nullable=True, index=True)
 
     # Relationships
     chores_assigned: Mapped[List["Chore"]] = relationship(back_populates="assignee", foreign_keys="Chore.assignee_id")
@@ -31,3 +33,6 @@ class User(Base):
     
     # Activities
     activities: Mapped[List["Activity"]] = relationship(back_populates="user", foreign_keys="Activity.user_id")
+    
+    # Family
+    family: Mapped[Optional["Family"]] = relationship(back_populates="members", foreign_keys="User.family_id")

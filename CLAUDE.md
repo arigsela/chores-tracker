@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Chores Tracker** is a full-stack family chore management application with:
 - **Backend**: FastAPI (Python 3.11) with SQLAlchemy 2.0, MySQL database
-- **Frontend**: Server-side rendered HTML with HTMX for dynamic updates, Tailwind CSS
+- **Frontend**: React Native Web frontend with 90% feature parity
 - **Mobile**: React Native app for iOS/Android with offline support
 - **Infrastructure**: Docker Compose for local dev, AWS ECR + Kubernetes for production
 
@@ -25,14 +25,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Authentication**: JWT-based with parent/child role system
 **API Structure**: RESTful endpoints under `/api/v1/`
 
-### Frontend (HTMX + Jinja2)
+### Frontend (React Native Web)
 
-- **Templates** (`backend/app/templates/`): Jinja2 HTML templates
-  - `pages/`: Full page templates
-  - `components/`: Reusable HTMX components
-  - `layouts/`: Base layouts
-- **HTMX Patterns**: Server returns HTML fragments for dynamic updates
-- **JavaScript**: Minimal, mainly for HTMX initialization on dynamic content
+- **Location**: `frontend/` directory
+- **Technology**: React Native Web with Expo
+- **Components**: (`frontend/src/components/`): Reusable React components
+- **Screens**: (`frontend/src/screens/`): Main application screens
+- **Navigation**: React Navigation with stack/tab navigators
+- **State**: Context API for authentication and global state
+- **API Integration**: Axios client with JWT token management
+- **Styling**: React Native StyleSheet and custom styles
 
 ### Mobile App (React Native)
 
@@ -53,7 +55,8 @@ docker-compose up
 tilt up
 
 # Access the application
-# Web: http://localhost:8000
+# Backend API: http://localhost:8000
+# Frontend Web: http://localhost:8081
 # API Docs: http://localhost:8000/docs
 ```
 
@@ -78,6 +81,30 @@ docker compose exec api python -m alembic -c backend/alembic.ini revision --auto
 
 # Access MySQL shell
 docker compose exec mysql mysql -u root -p
+```
+
+### Frontend Development
+
+```bash
+cd frontend
+
+# Install dependencies
+npm install
+
+# Start development server
+npm run web
+
+# Run tests
+npm test
+
+# Type checking
+npm run type-check
+
+# Linting
+npm run lint
+
+# Build for production
+npm run build
 ```
 
 ### Mobile Development
@@ -119,6 +146,23 @@ docker compose exec api python -m backend.app.scripts.reset_password
 docker compose exec api python -m backend.app.scripts.create_test_child
 ```
 
+### Performance & Monitoring
+
+```bash
+# Run tests with coverage
+docker compose exec api python -m pytest --cov=backend/app --cov-report=html
+
+# Check database connection health
+docker compose exec mysql mysqladmin ping -h localhost -u root -p
+
+# View application logs
+docker compose logs api -f
+docker compose logs mysql -f
+
+# Monitor container resources
+docker compose top
+```
+
 ## Testing Strategy
 
 ### Backend Testing
@@ -128,24 +172,43 @@ docker compose exec api python -m backend.app.scripts.create_test_child
 - **Fixtures**: See `backend/tests/conftest.py` for common test fixtures
 - **Coverage target**: >70% for critical business logic
 
-### Key Test Patterns
-```python
-# Always use TESTING=true environment variable
-TESTING=true python3 -m pytest
+### Frontend Testing
+- **Unit tests**: Components and utility functions
+- **Integration tests**: API integration and user workflows
+- **Test framework**: Jest with React Native Testing Library
+- **Coverage**: Available with `npm run test:coverage`
 
-# Test with specific verbosity
+### Key Test Patterns
+```bash
+# Backend testing
+TESTING=true python3 -m pytest
 python -m pytest -v  # Verbose
 python -m pytest --tb=short  # Short traceback
 python -m pytest -x  # Stop on first failure
+
+# Frontend testing
+cd frontend
+npm test  # Run all tests
+npm run test:watch  # Watch mode
+npm run test:coverage  # With coverage
+npm run test:unit  # Unit tests only
+npm run test:integration  # Integration tests only
 ```
 
 ## Important Implementation Details
 
-### HTMX Dynamic Content
-When loading content dynamically with HTMX, always initialize new elements:
-```javascript
-// After loading new HTMX content
-htmx.process(document.querySelector('#new-content'));
+### React Native Web Frontend
+The frontend uses React Native Web for cross-platform compatibility:
+```typescript
+// API client configuration
+const apiClient = axios.create({
+  baseURL: process.env.NODE_ENV === 'development' 
+    ? 'http://localhost:8000/api/v1'
+    : '/api/v1',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
 ```
 
 ### Database Transactions
@@ -179,13 +242,32 @@ async with UnitOfWork() as uow:
 - **Production**: Kubernetes via ArgoCD (GitOps)
 - **Container Registry**: AWS ECR
 
+## Migration Status (August 2025)
+
+**HTMX Frontend Retirement Complete**: The original HTMX/server-side rendered UI has been fully deprecated and removed in favor of React Native Web frontend.
+
+### Architecture Changes
+- Backend now serves JSON-only API responses (no HTML rendering)
+- Frontend runs as separate React Native Web application on port 8081
+- Mobile app and web frontend share common React Native components
+- 90% feature parity achieved with original HTMX implementation
+
+### Development Impact
+- **Two-server setup**: Backend (8000) + Frontend (8081)
+- **API-first approach**: All business logic exposed via REST endpoints
+- **Unified codebase**: Mobile and web share components and logic
+
 ## Common Troubleshooting
 
-### HTMX Not Working on Dynamic Content
-Add `htmx.process()` after loading new content
+### Frontend Can't Connect to Backend
+- Ensure backend is running on http://localhost:8000
+- Check CORS settings in backend/app/main.py
+- Verify API_URL configuration in frontend config
 
-### Child Users Redirected to Login
-Check conditional loading of parent-only endpoints in templates
+### Authentication Issues
+- Check JWT token storage in frontend
+- Verify token expiry (8-day default)
+- Ensure proper Authorization header format
 
 ### Database Connection Issues
 Ensure MySQL is healthy: `docker compose exec mysql mysqladmin ping -h localhost -u root -p`
@@ -193,6 +275,7 @@ Ensure MySQL is healthy: `docker compose exec mysql mysqladmin ping -h localhost
 ### Mobile App Can't Connect to Backend
 - Use `API_URL=http://localhost:8000/api/v1` for local development
 - Check CORS settings in backend
+- For iOS simulator, use localhost; for device, use computer's IP address
 
 ## Domain Concepts
 
@@ -213,8 +296,8 @@ Parents can manually adjust child balances for bonuses/penalties outside normal 
 
 - **Python**: Follow PEP 8, use type hints, async/await patterns
 - **SQL**: Use SQLAlchemy 2.0 async patterns
-- **Templates**: Keep logic minimal, use HTMX for interactivity
-- **React Native**: Functional components with hooks
+- **TypeScript**: Use strict typing, interface definitions
+- **React Native**: Functional components with hooks, consistent styling patterns
 
 ## Security Considerations
 

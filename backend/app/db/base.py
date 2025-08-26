@@ -7,6 +7,7 @@ from ..core.config import settings
 from .base_class import Base  # noqa
 from ..models.user import User  # noqa
 from ..models.chore import Chore  # noqa
+from ..models.family import Family  # noqa
 
 # Create async engine with optimized connection pool settings
 engine = create_async_engine(
