@@ -32,7 +32,7 @@ spec:
     spec:
       containers:
       - name: api
-        image: chores-tracker-api-k8s  # Will be built by Tilt
+        image: localhost/chores-tracker-api-k8s  # Built locally by Tilt
         ports:
         - containerPort: 8000
           name: http
@@ -218,7 +218,7 @@ spec:
     spec:
       containers:
       - name: frontend
-        image: chores-tracker-frontend-k8s  # Will be built by Tilt
+        image: localhost/chores-tracker-frontend-k8s  # Built locally by Tilt
         ports:
         - containerPort: 3000  # Nginx serves on port 3000 inside container
           name: http

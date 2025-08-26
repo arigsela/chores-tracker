@@ -13,17 +13,15 @@ allow_k8s_contexts(['docker-desktop', 'minikube', 'kind-kind', 'kind-chores-dev'
 # DOCKER BUILDS
 # =============================================================================
 
-# Build the backend Docker image with live updates (local only, no push)
+# Build the backend Docker image with live updates (local only, never push)
 docker_build(
-    'chores-tracker-api-k8s',
+    'localhost/chores-tracker-api-k8s',  # localhost prefix prevents registry push
     '.',
     dockerfile='Dockerfile',
     live_update=[
         sync('./backend', '/app/backend'),
         run('pip install -r /app/requirements.txt', trigger='./backend/requirements.txt'),
     ],
-    # Keep image local - don't try to push to registry
-    extra_tag='chores-tracker-api-k8s:dev',
 )
 
 # Build frontend image using the updated Dockerfile (with navigation fixes)
@@ -36,15 +34,13 @@ local_resource(
 )
 
 docker_build(
-    'chores-tracker-frontend-k8s',
+    'localhost/chores-tracker-frontend-k8s',  # localhost prefix prevents registry push
     './frontend',
     dockerfile='./frontend/Dockerfile.working',
     live_update=[
         sync('./frontend/dist', '/usr/share/nginx/html'),
         sync('./frontend/public/config.js', '/usr/share/nginx/html/config.js'),
     ],
-    # Keep image local - don't try to push to registry
-    extra_tag='chores-tracker-frontend-k8s:dev',
 )
 
 # =============================================================================
