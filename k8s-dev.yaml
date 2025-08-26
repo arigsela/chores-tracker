@@ -228,7 +228,7 @@ spec:
         - name: NODE_ENV
           value: "development"
         - name: API_URL
-          value: "http://chores-tracker-service.chores-dev.svc.cluster.local:8000"
+          value: "http://chores-tracker-service.chores-dev.svc.cluster.local:8000/api/v1"
         - name: EXPO_USE_STATIC
           value: "1"
         resources:

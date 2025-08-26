@@ -50,7 +50,7 @@ docker_build(
     dockerfile='./frontend/Dockerfile.working',
     live_update=[
         sync('./frontend/dist', '/usr/share/nginx/html'),
-        sync('./frontend/public/config.js', '/usr/share/nginx/html/config.js'),
+        sync('./frontend/public/config.dev.js', '/usr/share/nginx/html/config.js'),  # Use dev config
     ],
 )
 
