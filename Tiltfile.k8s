@@ -9,9 +9,17 @@
 # Allow Tilt to connect to your local cluster (minikube, kind, docker-desktop, etc.)
 allow_k8s_contexts(['docker-desktop', 'minikube', 'kind-kind', 'kind-chores-dev', 'default'])
 
-# Configure Tilt to build images locally without pushing
-# Set an empty default registry to prevent any push attempts
-default_registry('')
+# Print current Kubernetes context for debugging
+print('Using Kubernetes context: ' + k8s_context())
+
+# Configure for minikube - use the minikube Docker daemon
+if k8s_context() == 'minikube':
+    # Tell Tilt to use minikube's Docker daemon
+    # This means images built by Tilt will be available directly in minikube
+    # without needing to push to any external registry
+    print('Minikube detected - configuring for direct Docker daemon access')
+    print('Make sure you run: eval $(minikube docker-env) before starting Tilt')
+    load_dynamic('docker')
 
 # =============================================================================
 # DOCKER BUILDS
