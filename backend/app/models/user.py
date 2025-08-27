@@ -1,5 +1,6 @@
 from typing import Optional, List, TYPE_CHECKING
-from sqlalchemy import String, Boolean, ForeignKey
+from datetime import datetime
+from sqlalchemy import String, Boolean, ForeignKey, DateTime, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from ..db.base_class import Base
 
@@ -20,6 +21,8 @@ class User(Base):
     is_parent: Mapped[bool] = mapped_column(Boolean, default=False)
     parent_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True)  # Keep during migration
     family_id: Mapped[Optional[int]] = mapped_column(ForeignKey("families.id"), nullable=True, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
 
     # Relationships
     chores_assigned: Mapped[List["Chore"]] = relationship(back_populates="assignee", foreign_keys="Chore.assignee_id")

@@ -119,23 +119,35 @@ async def get_allowance_summary(
         
         # Get all children or specific child
         if child_id:
-            # Verify child belongs to parent
-            child_query = select(User).where(
-                and_(User.id == child_id, User.parent_id == current_user.id)
-            )
+            # Family-aware verification: check if child is in the same family
+            if current_user.family_id:
+                child_query = select(User).where(
+                    and_(User.id == child_id, User.family_id == current_user.family_id, User.is_parent == False)
+                )
+            else:
+                # Fallback: verify child belongs to parent directly
+                child_query = select(User).where(
+                    and_(User.id == child_id, User.parent_id == current_user.id)
+                )
             child_result = await db.execute(child_query)
             child = child_result.scalar_one_or_none()
             if not child:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
-                    detail="Child not found or does not belong to parent"
+                    detail="Child not found or does not belong to your family"
                 )
             children = [child]
         else:
-            # Get all children
-            children_query = select(User).where(User.parent_id == current_user.id)
-            children_result = await db.execute(children_query)
-            children = children_result.scalars().all()
+            # Family-aware logic: get all children in the family or fallback to direct children
+            if current_user.family_id:
+                from ....repositories.family import FamilyRepository
+                family_repo = FamilyRepository()
+                children = await family_repo.get_family_children(db, family_id=current_user.family_id)
+            else:
+                # Fallback for parents without families
+                children_query = select(User).where(User.parent_id == current_user.id)
+                children_result = await db.execute(children_query)
+                children = children_result.scalars().all()
         
         child_summaries = []
         family_totals = {

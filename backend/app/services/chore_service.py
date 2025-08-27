@@ -39,7 +39,7 @@ class ChoreService(BaseService[Chore, ChoreRepository]):
         - Assignee must be a child of the creator
         - Validate reward values for range rewards
         """
-        # Validate assignee exists and is a child of the creator
+        # Validate assignee exists and is accessible to the creator
         assignee_id = chore_data.get("assignee_id")
         if assignee_id:
             assignee = await self.user_repo.get(db, id=assignee_id)
@@ -49,11 +49,29 @@ class ChoreService(BaseService[Chore, ChoreRepository]):
                     detail="Assignee not found"
                 )
             
-            if assignee.parent_id != creator_id:
+            # Get creator to check family access
+            creator = await self.user_repo.get(db, id=creator_id)
+            if not creator:
                 raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="You can only assign chores to your own children"
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Creator not found"
                 )
+            
+            # Family-based access control
+            if creator.family_id and assignee.family_id:
+                # Both users are in families - check if they're in the same family
+                if creator.family_id != assignee.family_id:
+                    raise HTTPException(
+                        status_code=status.HTTP_403_FORBIDDEN,
+                        detail="You can only assign chores to children in your family"
+                    )
+            else:
+                # Legacy single-parent mode - use original validation
+                if assignee.parent_id != creator_id:
+                    raise HTTPException(
+                        status_code=status.HTTP_403_FORBIDDEN,
+                        detail="You can only assign chores to your own children"
+                    )
         
         # Validate range rewards
         if chore_data.get("is_range_reward"):
@@ -99,13 +117,18 @@ class ChoreService(BaseService[Chore, ChoreRepository]):
         user: User
     ) -> List[Chore]:
         """
-        Get chores based on user role.
+        Get chores based on user role with family-aware access control.
         
-        - Parents see chores they created
+        - Parents see chores created by any parent in their family (or just their own if no family)
         - Children see chores assigned to them (excluding disabled)
         """
         if user.is_parent:
-            return await self.repository.get_by_creator(db, creator_id=user.id)
+            # Family-aware logic for parents
+            if user.family_id:
+                return await self.repository.get_by_family(db, family_id=user.family_id)
+            else:
+                # Fallback for parents without families
+                return await self.repository.get_by_creator(db, creator_id=user.id)
         else:
             return await self.repository.get_by_assignee(db, assignee_id=user.id)
     
@@ -126,10 +149,22 @@ class ChoreService(BaseService[Chore, ChoreRepository]):
         *,
         parent_id: int
     ) -> List[Chore]:
-        """Get chores pending approval for a parent."""
-        return await self.repository.get_pending_approval(
-            db, creator_id=parent_id
-        )
+        """Get chores pending approval for a parent with family-aware access control."""
+        # Get the parent user to check family membership
+        parent = await self.user_repo.get(db, id=parent_id)
+        if not parent:
+            return []
+        
+        if parent.family_id:
+            # Use family-aware method
+            return await self.repository.get_pending_approval_by_family(
+                db, family_id=parent.family_id
+            )
+        else:
+            # Fallback for parents without families
+            return await self.repository.get_pending_approval(
+                db, creator_id=parent_id
+            )
     
     async def get_child_chores(
         self,
@@ -255,12 +290,36 @@ class ChoreService(BaseService[Chore, ChoreRepository]):
                 detail="Chore not found"
             )
         
-        # Check if user is the creator
-        if chore.creator_id != parent_id:
+        # Check if user has permission to approve this chore (family-based access control)
+        approver = await self.user_repo.get(db, id=parent_id)
+        if not approver:
             raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="You can only approve chores you created"
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Approver not found"
             )
+        
+        creator = await self.user_repo.get(db, id=chore.creator_id)
+        if not creator:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Chore creator not found"
+            )
+        
+        # Family-based access control: approver must be in same family as creator
+        if approver.family_id and creator.family_id:
+            # Both users are in families - check if they're in the same family
+            if approver.family_id != creator.family_id:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="You can only approve chores from your family"
+                )
+        else:
+            # Legacy single-parent mode - use original validation
+            if chore.creator_id != parent_id:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="You can only approve chores you created"
+                )
         
         # Check if chore is completed
         if not chore.is_completed:

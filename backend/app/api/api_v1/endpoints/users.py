@@ -10,8 +10,10 @@ from ....core.config import settings
 from ....db.base import get_db
 from ....schemas.user import UserCreate, UserResponse, Token, ChildAllowanceSummary
 from ....core.security.jwt import create_access_token, verify_token
-from ....dependencies.auth import get_current_user
+from ....dependencies.auth import get_current_user, get_current_user_with_family, UserWithFamily
 from ....dependencies.services import UserServiceDep
+from ....services.family import FamilyService
+from ....services.user_service import UserService
 from ....repositories.user import UserRepository
 from ....models.user import User
 from ....middleware.rate_limit import limit_login, limit_register, limit_api_endpoint_default
@@ -63,8 +65,13 @@ async def read_my_children(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only parents can list their children"
         )
-    # Prefer repository call to avoid issues if service injection differs
-    children = await UserRepository().get_children(db, parent_id=current_user.id)
+    # Family-aware logic: get all children in the family or fallback to direct children
+    if current_user.family_id:
+        from ....repositories.family import FamilyRepository
+        family_repo = FamilyRepository()
+        children = await family_repo.get_family_children(db, family_id=current_user.family_id)
+    else:
+        children = await UserRepository().get_children(db, parent_id=current_user.id)
     return children
 
 
@@ -328,15 +335,16 @@ async def create_user(
         # Use the current user's ID as the parent_id
         user_in.parent_id = current_user.id
     
-    # Use service to register user
+    # Use service to register user with family context
     try:
-        user = await user_service.register_user(
+        user = await user_service.register_user_with_family(
             db=db,
             username=user_in.username,
             password=user_in.password,
             is_parent=user_in.is_parent,
             parent_id=user_in.parent_id,
-            email=user_in.email
+            email=user_in.email,
+            current_user_id=current_user.id
         )
         return user
     except HTTPException:
@@ -586,7 +594,13 @@ async def read_parent_allowance_summary(
     chore_repo = ChoreRepository()
     adjustment_repo = RewardAdjustmentRepository()
 
-    children = await user_repo.get_children(db, parent_id=current_user.id)
+    # Family-aware logic: get all children in the family or fallback to direct children
+    if current_user.family_id:
+        from ....repositories.family import FamilyRepository
+        family_repo = FamilyRepository()
+        children = await family_repo.get_family_children(db, family_id=current_user.family_id)
+    else:
+        children = await user_repo.get_children(db, parent_id=current_user.id)
 
     # Helper function to get final reward amount (matches frontend logic)
     def get_final_reward_amount(chore):
@@ -699,6 +713,100 @@ async def reset_child_password(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error resetting password: {str(e)}"
         )
+
+
+# Family-enhanced endpoints
+
+@router.get(
+    "/me", 
+    response_model=UserResponse,
+    summary="Get current user profile with family context",
+    description="""
+    Get the authenticated user's profile information including family context.
+    
+    This endpoint provides comprehensive user information and family membership details.
+    """
+)
+async def get_current_user_profile(
+    user_with_family: UserWithFamily = Depends(get_current_user_with_family),
+    db: AsyncSession = Depends(get_db)
+):
+    """Get current user profile with family context."""
+    user = user_with_family.user
+    
+    # Add family context to the response
+    user_data = UserResponse.model_validate(user)
+    
+    # Note: We could extend UserResponse to include family info, 
+    # but for now we return the basic user info
+    return user_data
+
+
+@router.get(
+    "/my-family-children",
+    response_model=List[UserResponse], 
+    summary="Get children in current user's family",
+    description="""
+    Get all child accounts accessible to the current user based on family membership.
+    
+    **Family Mode**: Returns all children in the family (for parents)
+    **Legacy Mode**: Returns direct children (for users not in families)
+    
+    **Access**: Parent users only
+    """
+)
+async def get_my_family_children(
+    current_user: User = Depends(get_current_user),
+    user_service: UserService = Depends(),
+    db: AsyncSession = Depends(get_db)
+):
+    """Get children accessible to current user (family-aware)."""
+    if not current_user.is_parent:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only parents can access children information"
+        )
+    
+    try:
+        children = await user_service.get_family_children_for_user(
+            db, user_id=current_user.id
+        )
+        return [UserResponse.model_validate(child) for child in children]
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error retrieving children: {str(e)}"
+        )
+
+
+@router.get(
+    "/stats",
+    summary="Get current user statistics with family context",
+    description="""
+    Get comprehensive statistics for the current user including family information.
+    
+    Provides user-specific metrics along with family context such as:
+    - Basic user information
+    - Family membership details
+    - Children count (for parents)
+    - Family member count
+    """
+)
+async def get_user_stats(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Get comprehensive user statistics with family context."""
+    try:
+        user_service = UserService()
+        stats = await user_service.get_user_stats(db, user_id=current_user.id)
+        return stats
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error retrieving user statistics: {str(e)}"
+        )
+
 
 @router.post("/html/children/{child_id}/reset-password")
 async def reset_child_password_html(
