@@ -13,6 +13,7 @@ import {
 import { Alert } from '../utils/Alert';
 import { adjustmentAPI, AdjustmentCreate } from '../api/adjustments';
 import { usersAPI, ChildWithChores } from '../api/users';
+import { familyAPI } from '../api/families';
 
 interface AdjustmentFormScreenProps {
   childId?: number;
@@ -39,7 +40,15 @@ const AdjustmentFormScreen: React.FC<AdjustmentFormScreenProps> = ({
 
   const fetchChildren = async () => {
     try {
-      const childrenData = await usersAPI.getMyChildren();
+      // First get family context to understand if user has a family
+      const familyCtx = await familyAPI.getFamilyContext();
+      
+      // Use family children if user has family, otherwise fallback to personal children
+      const childrenEndpoint = familyCtx.has_family 
+        ? usersAPI.getFamilyChildren() 
+        : usersAPI.getMyChildren();
+      
+      const childrenData = await childrenEndpoint;
       setChildren(childrenData);
       
       // If only one child, auto-select them

@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { Chore, choreAPI } from '../api/chores';
 import { usersAPI, ChildWithChores } from '../api/users';
+import { familyAPI, FamilyContext } from '../api/families';
 import { Alert } from '../utils/Alert';
 
 interface ChoreFormScreenProps {
@@ -46,7 +47,15 @@ const ChoreFormScreen: React.FC<ChoreFormScreenProps> = ({ chore, onSave, onCanc
 
   const fetchChildren = async () => {
     try {
-      const childrenData = await usersAPI.getMyChildren();
+      // First get family context to understand if user has a family
+      const familyCtx = await familyAPI.getFamilyContext();
+      
+      // Use family children if user has family, otherwise fallback to personal children
+      const childrenEndpoint = familyCtx.has_family 
+        ? usersAPI.getFamilyChildren() 
+        : usersAPI.getMyChildren();
+      
+      const childrenData = await childrenEndpoint;
       setChildren(childrenData);
     } catch (error) {
       console.error('Failed to fetch children:', error);

@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { adjustmentAPI, Adjustment, AdjustmentTotal } from '../api/adjustments';
 import { usersAPI, ChildWithChores } from '../api/users';
+import { familyAPI } from '../api/families';
 import AdjustmentFormScreen from './AdjustmentFormScreen';
 
 const AdjustmentsListScreen: React.FC = () => {
@@ -34,7 +35,15 @@ const AdjustmentsListScreen: React.FC = () => {
 
   const fetchData = async () => {
     try {
-      const childrenData = await usersAPI.getMyChildren();
+      // First get family context to understand if user has a family
+      const familyCtx = await familyAPI.getFamilyContext();
+      
+      // Use family children if user has family, otherwise fallback to personal children
+      const childrenEndpoint = familyCtx.has_family 
+        ? usersAPI.getFamilyChildren() 
+        : usersAPI.getMyChildren();
+      
+      const childrenData = await childrenEndpoint;
       setChildren(childrenData);
       
       // Auto-select first child if available

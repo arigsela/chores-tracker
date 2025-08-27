@@ -1,17 +1,21 @@
 import React from 'react';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { MainTabParamList } from './types';
+import { MainStackParamList, MainTabParamList } from './types';
 import { useAuth } from '@/contexts/AuthContext';
 import { HomeScreen } from '@/screens/HomeScreen';
 import { ChoresScreen } from '@/screens/ChoresScreen';
 import { ChildrenScreen } from '@/screens/ChildrenScreen';
 import { BalanceScreen } from '@/screens/BalanceScreen';
 import { ProfileScreen } from '@/screens/ProfileScreen';
+import FamilySettingsScreen from '@/screens/FamilySettingsScreen';
+import JoinFamilyScreen from '@/screens/JoinFamilyScreen';
 import { Text } from 'react-native';
 
+const Stack = createNativeStackNavigator<MainStackParamList>();
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
-export const MainNavigator: React.FC = () => {
+const TabNavigator: React.FC = () => {
   const { user } = useAuth();
   const isParent = user?.role === 'parent';
 
@@ -87,5 +91,37 @@ export const MainNavigator: React.FC = () => {
         }}
       />
     </Tab.Navigator>
+  );
+};
+
+export const MainNavigator: React.FC = () => {
+  return (
+    <Stack.Navigator>
+      <Stack.Screen 
+        name="TabNavigator" 
+        component={TabNavigator} 
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen 
+        name="FamilySettings" 
+        component={FamilySettingsScreen}
+        options={{
+          title: 'Family Settings',
+          headerStyle: { backgroundColor: '#007AFF' },
+          headerTintColor: '#fff',
+          headerTitleStyle: { fontWeight: 'bold' },
+        }}
+      />
+      <Stack.Screen 
+        name="JoinFamily" 
+        component={JoinFamilyScreen}
+        options={{
+          title: 'Join Family',
+          headerStyle: { backgroundColor: '#007AFF' },
+          headerTintColor: '#fff',
+          headerTitleStyle: { fontWeight: 'bold' },
+        }}
+      />
+    </Stack.Navigator>
   );
 };

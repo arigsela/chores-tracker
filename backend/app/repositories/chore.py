@@ -88,6 +88,18 @@ class ChoreRepository(BaseRepository[Chore]):
         )
         return result.scalars().all()
     
+    async def get_by_family(self, db: AsyncSession, *, family_id: int) -> List[Chore]:
+        """Get all chores created by any parent in the same family."""
+        from ..models.user import User  # Import here to avoid circular import
+        
+        result = await db.execute(
+            select(Chore)
+            .join(User, User.id == Chore.creator_id)
+            .where(User.family_id == family_id)
+            .options(joinedload(Chore.assignee), joinedload(Chore.creator))
+        )
+        return result.scalars().all()
+    
     async def get_pending_approval(self, db: AsyncSession, *, creator_id: int) -> List[Chore]:
         """Get all completed but unapproved chores for a parent."""
         print(f"Fetching pending approval chores for creator ID: {creator_id}")
@@ -106,6 +118,29 @@ class ChoreRepository(BaseRepository[Chore]):
         print(f"Found {len(chores)} pending approval chores for creator ID: {creator_id}")
         for chore in chores:
             print(f"Pending chore: {chore.id}, {chore.title}, completed: {chore.is_completed}, approved: {chore.is_approved}")
+        return chores
+    
+    async def get_pending_approval_by_family(self, db: AsyncSession, *, family_id: int) -> List[Chore]:
+        """Get all completed but unapproved chores for any parent in the same family."""
+        from ..models.user import User  # Import here to avoid circular import
+        
+        print(f"Fetching pending approval chores for family ID: {family_id}")
+        result = await db.execute(
+            select(Chore)
+            .join(User, User.id == Chore.creator_id)
+            .where(
+                and_(
+                    User.family_id == family_id,
+                    Chore.is_completed == True, 
+                    Chore.is_approved == False
+                )
+            )
+            .options(joinedload(Chore.assignee), joinedload(Chore.creator))
+        )
+        chores = result.scalars().all()
+        print(f"Found {len(chores)} pending approval chores for family ID: {family_id}")
+        for chore in chores:
+            print(f"Pending family chore: {chore.id}, {chore.title}, completed: {chore.is_completed}, approved: {chore.is_approved}, creator: {chore.creator_id}")
         return chores
     
     async def get_pending_approval_for_child(self, db: AsyncSession, *, assignee_id: int) -> List[Chore]:

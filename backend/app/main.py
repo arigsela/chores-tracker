@@ -28,6 +28,7 @@ A comprehensive API for managing household chores, rewards, and family task assi
 ## Features
 
 * **User Management** - Register and authenticate parents and children
+* **Family Management** - Multi-parent families with invite code system
 * **Chore Management** - Create, assign, and track household chores
 * **Reward System** - Set fixed or range-based rewards for completed tasks
 * **Approval Workflow** - Children complete chores, parents approve and set rewards
@@ -96,6 +97,27 @@ Single amount set when creating the chore.
 ### Range Rewards
 Min/max range defined at creation. Parent sets final amount on approval.
 
+## Family Management System
+
+### Multi-Parent Families
+- Both parents can manage children and chores within the same family
+- Family creation generates 8-character invite codes
+- Parents can invite other parents to join their family
+- Children automatically inherit family membership from parents
+
+### Family Invite Flow
+1. **Create Family**: First parent creates family at `/api/v1/families/create`
+2. **Generate Invite**: Get invite code from family creation or generate new one
+3. **Join Family**: Second parent uses code at `/api/v1/families/join`
+4. **Manage Together**: Both parents can now manage all family members and chores
+
+### Family Endpoints
+- `GET /api/v1/families/context` - Get user's family information
+- `POST /api/v1/families/create` - Create new family
+- `POST /api/v1/families/join` - Join family with invite code
+- `GET /api/v1/families/members` - List all family members
+- `POST /api/v1/families/invite-code` - Generate new invite code
+
 ## API Rate Limiting
 
 - Authentication endpoints: 5 requests per minute
@@ -107,6 +129,7 @@ Min/max range defined at creation. Parent sets final amount on approval.
         {"name": "users", "description": "User management and authentication"},
         {"name": "chores", "description": "Chore management operations"},
         {"name": "adjustments", "description": "Balance adjustments"},
+        {"name": "families", "description": "Family management and multi-parent operations"},
         {"name": "admin", "description": "Administrative operations"},
     ]
 )

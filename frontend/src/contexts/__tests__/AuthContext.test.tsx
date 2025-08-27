@@ -193,6 +193,33 @@ describe('AuthContext (Core Tests)', () => {
 
       expect(mockedAuthAPI.logout).toHaveBeenCalled();
     });
+
+    it('should handle user with empty email and full_name on initial auth check', async () => {
+      const mockUser = {
+        id: 789,
+        username: 'user_empty_fields',
+        is_parent: false,
+        email: '', // empty string to test || undefined
+        full_name: null, // null to test || undefined
+      };
+      
+      mockedAuthAPI.getToken.mockResolvedValue('valid-token');
+      mockedAuthAPI.getCurrentUser.mockResolvedValue(mockUser as any);
+
+      let contextValue: any;
+      render(
+        <AuthProvider>
+          <TestComponent onContextChange={(ctx) => { contextValue = ctx; }} />
+        </AuthProvider>
+      );
+
+      await waitFor(() => {
+        expect(contextValue.isAuthenticated).toBe(true);
+        expect(contextValue.user?.email).toBeUndefined();
+        expect(contextValue.user?.full_name).toBeUndefined();
+        expect(contextValue.user?.role).toBe('child');
+      });
+    });
   });
 
   describe('Login Flow', () => {
@@ -353,6 +380,40 @@ describe('AuthContext (Core Tests)', () => {
       expect(authContext.isAuthenticated).toBe(false);
       expect(authContext.user).toBeNull();
       expect(consoleSpy).toHaveBeenCalledWith('Logout error:', expect.any(Error));
+
+      consoleSpy.mockRestore();
+    });
+
+    it('should handle AsyncStorage cleanup errors during logout', async () => {
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+      
+      // Setup authenticated state
+      const mockUser = createMockApiParent();
+      mockedAuthAPI.getToken.mockResolvedValue('valid-token');
+      mockedAuthAPI.getCurrentUser.mockResolvedValue(mockUser);
+
+      let authContext: any;
+      render(
+        <AuthProvider>
+          <TestComponent onContextChange={(ctx) => { authContext = ctx; }} />
+        </AuthProvider>
+      );
+
+      await waitFor(() => {
+        expect(authContext.isAuthenticated).toBe(true);
+      });
+
+      // Mock AsyncStorage.removeItem to fail (covers line 122)
+      (AsyncStorage.removeItem as jest.Mock).mockRejectedValue(new Error('Storage cleanup failed'));
+
+      await act(async () => {
+        await authContext.logout();
+      });
+
+      // State should still be cleared even if storage cleanup fails
+      expect(authContext.isAuthenticated).toBe(false);
+      expect(authContext.user).toBeNull();
+      expect(consoleSpy).toHaveBeenCalledWith('Storage cleanup error:', expect.any(Error));
 
       consoleSpy.mockRestore();
     });
@@ -519,6 +580,44 @@ describe('AuthContext (Core Tests)', () => {
         email: 'test@example.com',
         full_name: 'Test User Full Name',
       });
+    });
+
+    it('should handle user data with null/empty email and full_name fields', async () => {
+      const apiUser = {
+        id: 456,
+        username: 'user_no_email',
+        is_parent: true,
+        email: null, // null email to test || undefined logic
+        full_name: '', // empty string to test || undefined logic
+      };
+
+      const loginResponse = {
+        access_token: 'token',
+        token_type: 'bearer',
+        user: apiUser,
+      };
+
+      mockedAuthAPI.getToken.mockResolvedValue(null);
+      mockedAuthAPI.login.mockResolvedValue(loginResponse);
+
+      let authContext: any;
+      render(
+        <AuthProvider>
+          <TestComponent onContextChange={(ctx) => { authContext = ctx; }} />
+        </AuthProvider>
+      );
+
+      await waitFor(() => {
+        expect(authContext.isLoading).toBe(false);
+      });
+
+      await act(async () => {
+        await authContext.login('user_no_email', 'password');
+      });
+
+      expect(authContext.user?.email).toBeUndefined();
+      expect(authContext.user?.full_name).toBeUndefined();
+      expect(authContext.user?.role).toBe('parent');
     });
   });
 
@@ -690,6 +789,158 @@ describe('AuthContext (Core Tests)', () => {
         '@chores_tracker:user',
         expect.stringContaining(mockUser.username)
       );
+    });
+  });
+
+  describe('RefreshUser Function', () => {
+    it('should refresh user data successfully', async () => {
+      const initialUser = createMockApiParent({ username: 'olduser' });
+      const updatedUser = createMockApiParent({ username: 'newuser', email: 'updated@test.com' });
+
+      // Setup authenticated state first
+      mockedAuthAPI.getToken.mockResolvedValue('valid-token');
+      mockedAuthAPI.getCurrentUser.mockResolvedValueOnce(initialUser);
+
+      let authContext: any;
+      render(
+        <AuthProvider>
+          <TestComponent onContextChange={(ctx) => { authContext = ctx; }} />
+        </AuthProvider>
+      );
+
+      await waitFor(() => {
+        expect(authContext.user?.username).toBe('olduser');
+      });
+
+      // Mock updated user data for refreshUser call
+      mockedAuthAPI.getCurrentUser.mockResolvedValueOnce(updatedUser);
+
+      // Call refreshUser directly (covers lines 131-143)
+      await act(async () => {
+        await authContext.refreshUser();
+      });
+
+      expect(authContext.user?.username).toBe('newuser');
+      expect(authContext.user?.email).toBe('updated@test.com');
+      expect(AsyncStorage.setItem).toHaveBeenCalledWith(
+        '@chores_tracker:user',
+        JSON.stringify({
+          id: updatedUser.id,
+          username: updatedUser.username,
+          role: 'parent',
+          email: updatedUser.email,
+          full_name: updatedUser.full_name,
+        })
+      );
+    });
+
+    it('should handle refreshUser API failures gracefully', async () => {
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+      const initialUser = createMockApiParent();
+
+      // Setup authenticated state first
+      mockedAuthAPI.getToken.mockResolvedValue('valid-token');
+      mockedAuthAPI.getCurrentUser.mockResolvedValueOnce(initialUser);
+
+      let authContext: any;
+      render(
+        <AuthProvider>
+          <TestComponent onContextChange={(ctx) => { authContext = ctx; }} />
+        </AuthProvider>
+      );
+
+      await waitFor(() => {
+        expect(authContext.isAuthenticated).toBe(true);
+      });
+
+      // Mock refreshUser API to fail (covers line 143 error handling)
+      mockedAuthAPI.getCurrentUser.mockRejectedValueOnce(new Error('Refresh API failed'));
+
+      // Call refreshUser - should not throw error, just log it
+      await act(async () => {
+        await authContext.refreshUser();
+      });
+
+      // User should remain unchanged since refresh failed
+      expect(authContext.user?.username).toBe(initialUser.username);
+      expect(consoleSpy).toHaveBeenCalledWith('Failed to refresh user data:', expect.any(Error));
+
+      consoleSpy.mockRestore();
+    });
+
+    it('should handle refreshUser with missing user data fields', async () => {
+      const initialUser = createMockApiParent();
+      const incompleteUser = {
+        id: 99,
+        username: 'incomplete',
+        is_parent: true,
+        // Missing email and full_name to test undefined handling
+      };
+
+      // Setup authenticated state first
+      mockedAuthAPI.getToken.mockResolvedValue('valid-token');
+      mockedAuthAPI.getCurrentUser.mockResolvedValueOnce(initialUser);
+
+      let authContext: any;
+      render(
+        <AuthProvider>
+          <TestComponent onContextChange={(ctx) => { authContext = ctx; }} />
+        </AuthProvider>
+      );
+
+      await waitFor(() => {
+        expect(authContext.isAuthenticated).toBe(true);
+      });
+
+      // Mock incomplete user data for refreshUser
+      mockedAuthAPI.getCurrentUser.mockResolvedValueOnce(incompleteUser as any);
+
+      await act(async () => {
+        await authContext.refreshUser();
+      });
+
+      expect(authContext.user?.username).toBe('incomplete');
+      expect(authContext.user?.email).toBeUndefined();
+      expect(authContext.user?.full_name).toBeUndefined();
+      expect(authContext.user?.role).toBe('parent');
+    });
+
+    it('should handle refreshUser with empty email and full_name fields', async () => {
+      const initialUser = createMockApiParent();
+      const userWithEmptyFields = {
+        id: 88,
+        username: 'user_empty_refresh',
+        is_parent: false,
+        email: null, // null to test || undefined logic
+        full_name: '', // empty string to test || undefined logic
+      };
+
+      // Setup authenticated state first
+      mockedAuthAPI.getToken.mockResolvedValue('valid-token');
+      mockedAuthAPI.getCurrentUser.mockResolvedValueOnce(initialUser);
+
+      let authContext: any;
+      render(
+        <AuthProvider>
+          <TestComponent onContextChange={(ctx) => { authContext = ctx; }} />
+        </AuthProvider>
+      );
+
+      await waitFor(() => {
+        expect(authContext.isAuthenticated).toBe(true);
+      });
+
+      // Mock user data with empty fields for refreshUser (covers line 136 branch)
+      mockedAuthAPI.getCurrentUser.mockResolvedValueOnce(userWithEmptyFields as any);
+
+      await act(async () => {
+        await authContext.refreshUser();
+      });
+
+      expect(authContext.user?.username).toBe('user_empty_refresh');
+      expect(authContext.user?.email).toBeUndefined(); // null || undefined = undefined
+      expect(authContext.user?.full_name).toBeUndefined(); // '' || undefined = undefined  
+      expect(authContext.user?.role).toBe('child');
     });
   });
 });

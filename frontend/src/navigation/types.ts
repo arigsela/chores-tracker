@@ -5,7 +5,14 @@ import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 // Define the parameter lists for each navigator
 export type RootStackParamList = {
   Auth: undefined;
-  Main: NavigatorScreenParams<MainTabParamList>;
+  Main: NavigatorScreenParams<MainStackParamList>;
+};
+
+// Main stack navigation with tabs and modal screens
+export type MainStackParamList = {
+  TabNavigator: NavigatorScreenParams<MainTabParamList>;
+  FamilySettings: undefined;
+  JoinFamily: { inviteCode?: string };
 };
 
 export type AuthStackParamList = {
@@ -24,6 +31,9 @@ export type MainTabParamList = {
 // Helper types for screen props
 export type RootStackScreenProps<T extends keyof RootStackParamList> = 
   NativeStackScreenProps<RootStackParamList, T>;
+
+export type MainStackScreenProps<T extends keyof MainStackParamList> = 
+  NativeStackScreenProps<MainStackParamList, T>;
 
 export type AuthStackScreenProps<T extends keyof AuthStackParamList> = 
   NativeStackScreenProps<AuthStackParamList, T>;
