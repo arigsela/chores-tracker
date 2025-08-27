@@ -46,6 +46,17 @@ export const usersAPI = {
     }
   },
 
+  // Get all children in the current user's family
+  getFamilyChildren: async (): Promise<ChildWithChores[]> => {
+    try {
+      const response = await apiClient.get('/users/my-family-children');
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch family children:', error);
+      throw error;
+    }
+  },
+
   // Get allowance summary for all children
   getAllowanceSummary: async (): Promise<ChildAllowanceSummary[]> => {
     try {

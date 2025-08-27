@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { usersAPI, ChildWithChores, ChildAllowanceSummary } from '../api/users';
 import { choreAPI, Chore } from '../api/chores';
+import { familyAPI, FamilyContext } from '../api/families';
 import ChildCard from '../components/ChildCard';
 import ChildDetailScreen from './ChildDetailScreen';
 import CreateChildScreen from './CreateChildScreen';
@@ -21,6 +22,7 @@ export const ChildrenScreen: React.FC = () => {
   const [children, setChildren] = useState<ChildWithChores[]>([]);
   const [allowanceSummary, setAllowanceSummary] = useState<ChildAllowanceSummary[]>([]);
   const [pendingChores, setPendingChores] = useState<Chore[]>([]);
+  const [familyContext, setFamilyContext] = useState<FamilyContext | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedChild, setSelectedChild] = useState<ChildWithChores | null>(null);
@@ -32,8 +34,17 @@ export const ChildrenScreen: React.FC = () => {
 
   const fetchData = async () => {
     try {
+      // First get family context to understand if user has a family
+      const familyCtx = await familyAPI.getFamilyContext();
+      setFamilyContext(familyCtx);
+
+      // Use family children if user has family, otherwise fallback to personal children
+      const childrenEndpoint = familyCtx.has_family 
+        ? usersAPI.getFamilyChildren() 
+        : usersAPI.getMyChildren();
+
       const [childrenData, summaryData, pendingChoresData] = await Promise.all([
-        usersAPI.getMyChildren(),
+        childrenEndpoint,
         usersAPI.getAllowanceSummary(),
         choreAPI.getPendingApprovalChores(),
       ]);
@@ -157,7 +168,16 @@ export const ChildrenScreen: React.FC = () => {
     >
       {/* Summary Section */}
       <View style={styles.summarySection}>
-        <Text style={styles.sectionTitle}>Family Overview</Text>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>
+            {familyContext?.has_family ? 'Family Overview' : 'My Children Overview'}
+          </Text>
+          {familyContext?.has_family && (
+            <Text style={styles.familySubtitle}>
+              {familyContext.family?.name || 'Unnamed Family'}
+            </Text>
+          )}
+        </View>
         <View style={styles.summaryCards}>
           <View style={[styles.summaryCard, styles.totalOwedCard]}>
             <Text style={styles.summaryValue}>${getTotalOwed().toFixed(2)}</Text>
@@ -322,6 +342,11 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: '#1a1a1a',
+  },
+  familySubtitle: {
+    fontSize: 14,
+    color: '#666',
+    fontStyle: 'italic',
   },
   addButton: {
     backgroundColor: '#2196f3',

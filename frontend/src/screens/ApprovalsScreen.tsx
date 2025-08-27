@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { Chore, choreAPI } from '../api/chores';
 import { usersAPI, ChildWithChores } from '../api/users';
+import { familyAPI } from '../api/families';
 import { RejectChoreModal } from '../components/RejectChoreModal';
 
 interface ApprovalCardProps {
@@ -160,9 +161,17 @@ const ApprovalsScreen: React.FC = () => {
 
   const fetchData = async () => {
     try {
+      // First get family context to understand if user has a family
+      const familyCtx = await familyAPI.getFamilyContext();
+      
+      // Use family children if user has family, otherwise fallback to personal children
+      const childrenEndpoint = familyCtx.has_family 
+        ? usersAPI.getFamilyChildren() 
+        : usersAPI.getMyChildren();
+      
       const [choresData, childrenData] = await Promise.all([
         choreAPI.getPendingApprovalChores(),
-        usersAPI.getMyChildren(),
+        childrenEndpoint,
       ]);
       setPendingChores(choresData);
       setChildren(childrenData);

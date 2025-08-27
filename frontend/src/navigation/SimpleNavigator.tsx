@@ -11,8 +11,9 @@ import { ProfileScreen } from '@/screens/ProfileScreen';
 import ApprovalsScreen from '@/screens/ApprovalsScreen';
 import { AllowanceSummaryScreen } from '@/screens/AllowanceSummaryScreen';
 import { StatisticsScreen } from '@/screens/StatisticsScreen';
+import { FamilySettingsScreen } from '@/screens/FamilySettingsScreen';
 
-type TabName = 'Home' | 'Chores' | 'Children' | 'Approvals' | 'Balance' | 'Profile' | 'Reports' | 'Statistics';
+type TabName = 'Home' | 'Chores' | 'Children' | 'Approvals' | 'Balance' | 'Profile' | 'Reports' | 'Statistics' | 'FamilySettings';
 type AuthScreen = 'login' | 'register';
 
 export const SimpleNavigator: React.FC = () => {
@@ -46,7 +47,9 @@ export const SimpleNavigator: React.FC = () => {
       case 'Balance':
         return <BalanceScreen />;
       case 'Profile':
-        return <ProfileScreen />;
+        return <ProfileScreen onNavigate={setActiveTab} />;
+      case 'FamilySettings':
+        return <FamilySettingsScreen onNavigate={setActiveTab} />;
       default:
         return <HomeScreen onNavigate={setActiveTab} />;
     }
