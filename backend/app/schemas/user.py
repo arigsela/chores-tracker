@@ -34,6 +34,11 @@ class UserCreate(UserBase):
         description="ID of the parent user (required for child accounts)",
         json_schema_extra={"example": 1}
     )
+    family_id: Optional[int] = Field(
+        None,
+        description="ID of the family this user belongs to",
+        json_schema_extra={"example": 1}
+    )
 
 class UserLogin(BaseModel):
     """Schema for user login credentials."""

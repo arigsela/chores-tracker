@@ -14,6 +14,7 @@ from backend.app.dependencies.auth import (
     UserWithFamily
 )
 from backend.app.repositories.user import UserRepository
+from backend.app.repositories.family import FamilyRepository
 from backend.app.services.family import FamilyService
 from backend.app.core.security.jwt import create_access_token
 
@@ -42,6 +43,9 @@ class TestFamilyAuthDependencies:
             db_session, user_id=parent1.id, family_name="Test Family"
         )
         
+        # Refresh parent1 to get updated family_id
+        await db_session.refresh(parent1)
+        
         # Add second parent
         parent2 = await user_repo.create(
             db_session,
@@ -57,6 +61,9 @@ class TestFamilyAuthDependencies:
             db_session, user_id=parent2.id, invite_code=family.invite_code
         )
         
+        # Refresh parent2 to get updated family_id
+        await db_session.refresh(parent2)
+        
         # Add child
         child = await user_repo.create(
             db_session,
@@ -68,6 +75,12 @@ class TestFamilyAuthDependencies:
                 "family_id": family.id
             }
         )
+        
+        # Ensure child has family_id set correctly
+        if child.family_id is None:
+            child.family_id = family.id
+            await db_session.commit()
+            await db_session.refresh(child)
         
         return {
             "family": family,
@@ -83,7 +96,7 @@ class TestFamilyAuthDependencies:
         family = setup["family"]
         
         # Create token
-        token = create_access_token(data={"sub": str(parent.id)})
+        token = create_access_token(subject=str(parent.id))
         
         # Mock the dependency call (in real usage this would be called by FastAPI)
         # We'll simulate by directly calling the function
