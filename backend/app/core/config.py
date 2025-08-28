@@ -39,6 +39,20 @@ class Settings(BaseSettings):
     
     # Testing
     TESTING: bool = os.getenv("TESTING", "False").lower() in ("true", "1", "t")
+    
+    # Registration Control (Beta Feature)
+    # Comma-separated list of valid registration codes for beta users
+    REGISTRATION_CODES: Union[List[str], str] = os.getenv(
+        "REGISTRATION_CODES", 
+        "BETA2024,FAMILY_TRIAL,CHORES_BETA"  # Default codes for development
+    )
+    
+    @property
+    def VALID_REGISTRATION_CODES(self) -> List[str]:
+        """Parse registration codes from environment variable."""
+        if isinstance(self.REGISTRATION_CODES, str):
+            return [code.strip().upper() for code in self.REGISTRATION_CODES.split(",") if code.strip()]
+        return [code.upper() for code in self.REGISTRATION_CODES if code]
 
     model_config = ConfigDict(
         env_file=".env",

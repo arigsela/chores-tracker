@@ -76,7 +76,8 @@ async def test_register_rate_limit(client: AsyncClient, db_session: AsyncSession
                 "username": f"test_user_{i}",
                 "password": "test_password123",
                 "is_parent": "true",
-                "email": f"test{i}@example.com"
+                "email": f"test{i}@example.com",
+                "registration_code": "BETA2024"  # Add registration code for parent accounts
             }
         )
         responses.append(response)

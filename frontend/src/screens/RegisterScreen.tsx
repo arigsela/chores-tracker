@@ -23,6 +23,7 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onBackToLogin })
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [email, setEmail] = useState('');
+  const [registrationCode, setRegistrationCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   
 
@@ -36,8 +37,8 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onBackToLogin })
 
   const handleRegister = async () => {
     // Validation
-    if (!username.trim() || !password.trim() || !email.trim()) {
-      showError('Please fill in all required fields');
+    if (!username.trim() || !password.trim() || !email.trim() || !registrationCode.trim()) {
+      showError('Please fill in all required fields including the registration code');
       return;
     }
 
@@ -67,6 +68,7 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onBackToLogin })
       formData.append('password', password);
       formData.append('email', email);
       formData.append('is_parent', 'true');
+      formData.append('registration_code', registrationCode.trim());
 
       const response = await axios.post(
         `${getAPIUrl()}/users/register`,
@@ -136,7 +138,7 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onBackToLogin })
         <View style={styles.content}>
           <View style={styles.header}>
             <Text style={styles.title}>Create Account</Text>
-            <Text style={styles.subtitle}>Sign up to get started</Text>
+            <Text style={styles.subtitle}>Beta Access - Registration code required</Text>
           </View>
 
           <View style={styles.form}>
@@ -165,6 +167,22 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onBackToLogin })
                 autoCorrect={false}
                 editable={!isLoading}
               />
+            </View>
+
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Registration Code *</Text>
+              <TextInput
+                style={styles.input}
+                value={registrationCode}
+                onChangeText={setRegistrationCode}
+                placeholder="Enter your beta code"
+                autoCapitalize="characters"
+                autoCorrect={false}
+                editable={!isLoading}
+              />
+              <Text style={styles.helperText}>
+                Contact admin for a valid beta registration code
+              </Text>
             </View>
 
             <View style={styles.inputContainer}>
@@ -302,5 +320,11 @@ const styles = StyleSheet.create({
     color: '#007AFF',
     fontSize: 14,
     fontWeight: '500',
+  },
+  helperText: {
+    fontSize: 12,
+    color: '#888',
+    marginTop: 4,
+    fontStyle: 'italic',
   },
 });

@@ -42,9 +42,10 @@ describe('RegisterScreen Component', () => {
       );
 
       expect(getByText('Create Account')).toBeTruthy();
-      expect(getByText('Sign up to get started')).toBeTruthy();
+      expect(getByText('Beta Access - Registration code required')).toBeTruthy();
       expect(getByText('Username *')).toBeTruthy();
       expect(getByText('Email *')).toBeTruthy();
+      expect(getByText('Registration Code *')).toBeTruthy();
       expect(getByText('Password *')).toBeTruthy();
       expect(getByText('Confirm Password *')).toBeTruthy();
       expect(getByPlaceholderText('Choose a username')).toBeTruthy();
@@ -80,6 +81,7 @@ describe('RegisterScreen Component', () => {
 
       expect(getByText('Username *')).toBeTruthy();
       expect(getByText('Email *')).toBeTruthy();
+      expect(getByText('Registration Code *')).toBeTruthy();
       expect(getByText('Password *')).toBeTruthy();
       expect(getByText('Confirm Password *')).toBeTruthy();
     });
@@ -744,7 +746,7 @@ describe('RegisterScreen Component', () => {
 
       // Verify main structural elements
       expect(getByText('Create Account')).toBeTruthy(); // Title
-      expect(getByText('Sign up to get started')).toBeTruthy(); // Subtitle
+      expect(getByText('Beta Access - Registration code required')).toBeTruthy(); // Subtitle
       expect(getByText('Create Account')).toBeTruthy(); // Primary action
       expect(getByText('Already have an account? Sign In')).toBeTruthy(); // Secondary action
     });

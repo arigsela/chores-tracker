@@ -39,6 +39,12 @@ class UserCreate(UserBase):
         description="ID of the family this user belongs to",
         json_schema_extra={"example": 1}
     )
+    # BETA FEATURE: Registration code required for parent accounts
+    registration_code: Optional[str] = Field(
+        None,
+        description="Beta registration code (required for parent accounts during beta period)",
+        json_schema_extra={"example": "BETA2024"}
+    )
 
 class UserLogin(BaseModel):
     """Schema for user login credentials."""

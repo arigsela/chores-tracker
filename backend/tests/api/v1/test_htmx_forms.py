@@ -11,7 +11,8 @@ async def test_register_form_submission_success(client: AsyncClient):
             "email": "newuser@example.com",
             "username": "newuser",
             "password": "password123",
-            "is_parent": "true"
+            "is_parent": "true",
+            "registration_code": "BETA2024"  # Add registration code for parent accounts
         },
         headers={"Content-Type": "application/x-www-form-urlencoded"}
     )
@@ -32,7 +33,8 @@ async def test_register_form_submission_invalid_email(client: AsyncClient):
             "email": "invalid-email",  # Invalid format
             "username": "invaliduser",
             "password": "password123",
-            "is_parent": "true"
+            "is_parent": "true",
+            "registration_code": "BETA2024"  # Valid code but email is invalid
         },
         headers={"Content-Type": "application/x-www-form-urlencoded"}
     )
@@ -42,17 +44,19 @@ async def test_register_form_submission_invalid_email(client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_register_form_submission_missing_fields(client: AsyncClient):
-    """Test form validation for missing required fields."""
+    """Test form validation for missing required fields (now includes registration code)."""
     response = await client.post(
         "/api/v1/users/register",
         data={
             "username": "missingfields"
-            # Missing email, password
+            # Missing email, password, registration_code
         },
         headers={"Content-Type": "application/x-www-form-urlencoded"}
     )
     assert response.status_code == 422
     assert "detail" in response.json()
+    # Should fail with registration code error since is_parent defaults to false in form
+    # and we're missing key fields
 
 @pytest.mark.asyncio
 async def test_add_child_form_submission_success(client: AsyncClient, parent_token):
