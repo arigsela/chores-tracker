@@ -17,6 +17,7 @@ from ....services.user_service import UserService
 from ....repositories.user import UserRepository
 from ....models.user import User
 from ....middleware.rate_limit import limit_login, limit_register, limit_api_endpoint_default
+from ....core.registration_codes import validate_registration_code, get_valid_registration_codes, is_registration_restricted
 
 router = APIRouter()
 # Convenience: get children for current parent (JSON)
@@ -92,11 +93,13 @@ EMAIL_PATTERN = re.compile(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$")
     - Valid email address
     - Unique username
     - Strong password
+    - **Beta registration code** (required during beta period)
     
     **Child accounts** require:
     - Unique username  
     - Password
     - Parent ID (must be authenticated as the parent)
+    - No registration code needed
     
     Rate limited to 3 requests per minute.
     """,
@@ -121,7 +124,7 @@ EMAIL_PATTERN = re.compile(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$")
             "description": "Validation error",
             "content": {
                 "application/json": {
-                    "example": {"detail": "Email is required for parent accounts"}
+                    "example": {"detail": "Registration code is required during beta period"}
                 }
             }
         },
@@ -143,6 +146,7 @@ async def register_user(
     is_parent: str = Form(..., description="'true' for parent, 'false' for child"),
     email: Optional[str] = Form(None, description="Email address (required for parents)"),
     parent_id: Optional[str] = Form(None, description="Parent's user ID (required for children)"),
+    registration_code: Optional[str] = Form(None, description="Beta registration code (required for parent accounts)"),
     db: AsyncSession = Depends(get_db),
     authorization: Optional[str] = Header(None, description="Bearer token if registering a child"),
     user_service: UserServiceDep = None
@@ -156,6 +160,12 @@ async def register_user(
     """
     # Convert form data to the right types
     is_parent_bool = is_parent.lower() == "true"
+    
+    # BETA FEATURE: Validate registration code for parent accounts
+    try:
+        validate_registration_code(registration_code, is_parent_bool)
+    except HTTPException as e:
+        raise e
     
     # If parent, email is required and must be valid
     if is_parent_bool:
@@ -315,6 +325,14 @@ async def create_user(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only parents can create new users"
         )
+    
+    # BETA FEATURE: Validate registration code for parent accounts
+    # Note: When creating via authenticated endpoint, we still require codes for new parents
+    if user_in.is_parent:
+        try:
+            validate_registration_code(user_in.registration_code, user_in.is_parent)
+        except HTTPException as e:
+            raise e
     
     # Validate password length
     if len(user_in.password) < 8:
@@ -929,3 +947,59 @@ async def reset_child_password_html(
             },
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
+
+# BETA ADMIN ENDPOINTS
+@router.get(
+    "/admin/registration-status",
+    summary="Get registration status and valid codes",
+    description="""
+    **BETA ADMIN ENDPOINT**: Get current registration restriction status.
+    
+    Returns information about:
+    - Whether registration is restricted by codes
+    - List of valid registration codes (for admin use)
+    - Current registration configuration
+    
+    **Access**: This should be restricted to admin users in production.
+    """,
+    responses={
+        200: {
+            "description": "Registration status information",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "registration_restricted": True,
+                        "valid_codes_count": 3,
+                        "valid_codes": ["BETA2024", "FAMILY_TRIAL", "CHORES_BETA"],
+                        "message": "Registration codes are currently required for parent accounts"
+                    }
+                }
+            }
+        }
+    },
+    tags=["admin", "beta"]
+)
+async def get_registration_status(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get current registration restriction status and valid codes.
+    
+    NOTE: In production, this endpoint should be restricted to admin users.
+    For now, any authenticated user can access it for beta testing.
+    """
+    restricted = is_registration_restricted()
+    valid_codes = get_valid_registration_codes()
+    
+    return {
+        "registration_restricted": restricted,
+        "valid_codes_count": len(valid_codes),
+        "valid_codes": valid_codes,
+        "message": (
+            "Registration codes are currently required for parent accounts" 
+            if restricted 
+            else "Registration is open to all users"
+        )
+    }
