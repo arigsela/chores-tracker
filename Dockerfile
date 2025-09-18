@@ -9,12 +9,12 @@ ENV PYTHONPATH="/app" \
     PORT=8000 \
     ENVIRONMENT="production"
 
-# Install system dependencies required for MySQL
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
-    default-libmysqlclient-dev \
     pkg-config \
     build-essential \
     netcat-traditional \
+    libffi-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements and install dependencies
