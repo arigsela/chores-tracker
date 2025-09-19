@@ -15,9 +15,9 @@ from backend.app.db.base import Base
 target_metadata = Base.metadata
 
 def get_url():
-    # Use the same DATABASE_URL for both migrations and application
-    import os
-    return os.getenv("DATABASE_URL")
+    # Use the same DATABASE_URL conversion logic as the application
+    from backend.app.core.config import settings
+    return settings.DATABASE_URL
 
 def do_run_migrations(connection: Connection) -> None:
     context.configure(connection=connection, target_metadata=target_metadata)
