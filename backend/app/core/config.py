@@ -8,15 +8,37 @@ from pathlib import Path
 class Settings(BaseSettings):
     APP_NAME: str = "Chores Tracker"
     API_V1_STR: str = "/api/v1"
-    
+
     # Environment
     ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development")
-    
+
     # Database
-    DATABASE_URL: str = os.getenv(
+    _raw_database_url: str = os.getenv(
         "DATABASE_URL",
         "mysql+aiomysql://chores-user:password@localhost:3306/chores-db"
     )
+
+    @property
+    def DATABASE_URL(self) -> str:
+        """
+        Ensure DATABASE_URL always uses aiomysql driver for async compatibility.
+
+        This automatically converts:
+        - mysql://... -> mysql+aiomysql://...
+        - mysql+mysqldb://... -> mysql+aiomysql://...
+        - mysql+pymysql://... -> mysql+aiomysql://...
+        """
+        url = self._raw_database_url
+
+        # Force aiomysql driver for any MySQL connection
+        if url.startswith("mysql://"):
+            url = url.replace("mysql://", "mysql+aiomysql://", 1)
+        elif url.startswith("mysql+mysqldb://"):
+            url = url.replace("mysql+mysqldb://", "mysql+aiomysql://", 1)
+        elif url.startswith("mysql+pymysql://"):
+            url = url.replace("mysql+pymysql://", "mysql+aiomysql://", 1)
+
+        return url
     
     # CORS
     BACKEND_CORS_ORIGINS: Union[List[str], str] = os.getenv("BACKEND_CORS_ORIGINS", "*")
