@@ -396,7 +396,7 @@ jobs:
           
           # Update the image tag
           # Get the current image and update only the tag
-          CURRENT_IMAGE=$(yq '.spec.template.spec.containers[0].image' base-apps/chores-tracker/deployments.yaml)
+          CURRENT_IMAGE=$(yq '.spec.template.spec.containers[0].image' base-apps/chores-tracker-backend/deployments.yaml)
           echo "Current image: $CURRENT_IMAGE"
           
           # Extract the base image URL (everything before the colon)
@@ -405,13 +405,13 @@ jobs:
           
           # Use sed to update just the tag in the file
           sed -i "s|image: ${BASE_IMAGE}:[^[:space:]]*|image: ${BASE_IMAGE}:${{ needs.release-and-deploy.outputs.version_number }}|" \
-            base-apps/chores-tracker/deployments.yaml
+            base-apps/chores-tracker-backend/deployments.yaml
           
           # Verify the change
           echo ""
           echo "::group::Debug - Verify Update"
           echo "=== Before and After ==="
-          UPDATED_IMAGE=$(yq '.spec.template.spec.containers[0].image' base-apps/chores-tracker/deployments.yaml)
+          UPDATED_IMAGE=$(yq '.spec.template.spec.containers[0].image' base-apps/chores-tracker-backend/deployments.yaml)
           echo "Previous image: $CURRENT_IMAGE"
           echo "Updated image: $UPDATED_IMAGE"
           
@@ -461,19 +461,19 @@ jobs:
           token: ${{ secrets.GITOPS_PAT }}
           path: kubernetes
           commit-message: |
-            chore: update chores-tracker to ${{ needs.release-and-deploy.outputs.new_version }}
+            chore: update chores-tracker-backend to ${{ needs.release-and-deploy.outputs.new_version }}
             
-            Updates the chores-tracker deployment to use image version ${{ needs.release-and-deploy.outputs.new_version }} from ECR.
+            Updates the chores-tracker-backend deployment to use image version ${{ needs.release-and-deploy.outputs.new_version }} from ECR.
             
             Release: https://github.com/${{ github.repository }}/releases/tag/${{ needs.release-and-deploy.outputs.new_version }}
             Workflow: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          branch: update-chores-tracker-${{ needs.release-and-deploy.outputs.version_number }}
+          branch: update-chores-tracker-backend-${{ needs.release-and-deploy.outputs.version_number }}
           delete-branch: true
-          title: "chore: update chores-tracker to ${{ needs.release-and-deploy.outputs.new_version }}"
+          title: "chore: update chores-tracker-backend to ${{ needs.release-and-deploy.outputs.new_version }}"
           body: |
             ## Deployment Update
             
-            This PR updates the chores-tracker deployment to version **${{ needs.release-and-deploy.outputs.new_version }}**.
+            This PR updates the chores-tracker-backend deployment to version **${{ needs.release-and-deploy.outputs.new_version }}**.
             
             ### Changes
             - Updated container image tag to version **${{ needs.release-and-deploy.outputs.version_number }}**
@@ -498,7 +498,7 @@ jobs:
           labels: |
             deployment
             automated
-            chores-tracker
+            chores-tracker-backend
           assignees: arigsela
 
       - name: Auto-merge PR
