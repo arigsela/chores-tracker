@@ -35,5 +35,17 @@ services:
       mysql:
         condition: service_healthy
 
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.working
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend/dist:/usr/share/nginx/html
+      - ./frontend/public/config.dev.js:/usr/share/nginx/html/config.js
+    depends_on:
+      - api
+
 volumes:
   mysql_data:
