@@ -48,7 +48,7 @@ class TestFamilyService:
         """Test family creation with auto-generated name."""
         user_repo = UserRepository()
         family_service = FamilyService()
-        
+
         parent = await user_repo.create(
             db_session,
             obj_in={
@@ -58,12 +58,110 @@ class TestFamilyService:
                 "is_parent": True
             }
         )
-        
+
         family = await family_service.create_family_for_user(
             db_session, user_id=parent.id
         )
-        
+
         assert family.name == "mom's Family"
+
+    async def test_create_family_syncs_existing_children_family_id(self, db_session: AsyncSession):
+        """
+        Test that creating a family automatically syncs existing children's family_id.
+
+        Bug fix test: Previously, when a parent created a family, their children's
+        family_id would remain NULL, breaking family-based queries.
+
+        This test ensures:
+        1. Children are created before family (parent_id set, family_id NULL)
+        2. Parent creates family
+        3. All children's family_id are automatically updated to match parent's family
+        """
+        user_repo = UserRepository()
+        family_service = FamilyService()
+        family_repo = FamilyRepository()
+
+        # Step 1: Create parent without family
+        parent = await user_repo.create(
+            db_session,
+            obj_in={
+                "username": "parent_with_kids",
+                "password": "testpass123",
+                "email": "parent@example.com",
+                "is_parent": True
+            }
+        )
+
+        # Step 2: Create multiple children BEFORE family is created
+        child1 = await user_repo.create(
+            db_session,
+            obj_in={
+                "username": "child1",
+                "password": "testpass123",
+                "is_parent": False,
+                "parent_id": parent.id
+            }
+        )
+
+        child2 = await user_repo.create(
+            db_session,
+            obj_in={
+                "username": "child2",
+                "password": "testpass123",
+                "is_parent": False,
+                "parent_id": parent.id
+            }
+        )
+
+        child3 = await user_repo.create(
+            db_session,
+            obj_in={
+                "username": "child3",
+                "password": "testpass123",
+                "is_parent": False,
+                "parent_id": parent.id
+            }
+        )
+
+        # Verify children exist but have no family_id yet
+        assert child1.family_id is None
+        assert child2.family_id is None
+        assert child3.family_id is None
+        assert child1.parent_id == parent.id
+        assert child2.parent_id == parent.id
+        assert child3.parent_id == parent.id
+
+        # Step 3: Parent creates family (THIS IS WHERE THE BUG WAS)
+        family = await family_service.create_family_for_user(
+            db_session, user_id=parent.id, family_name="Test Family"
+        )
+
+        # Step 4: Verify parent is in family
+        updated_parent = await user_repo.get(db_session, id=parent.id)
+        assert updated_parent.family_id == family.id
+
+        # Step 5: THE BUG FIX - Verify ALL children's family_id were automatically synced
+        updated_child1 = await user_repo.get(db_session, id=child1.id)
+        updated_child2 = await user_repo.get(db_session, id=child2.id)
+        updated_child3 = await user_repo.get(db_session, id=child3.id)
+
+        assert updated_child1.family_id == family.id, "Child1's family_id should match parent's family"
+        assert updated_child2.family_id == family.id, "Child2's family_id should match parent's family"
+        assert updated_child3.family_id == family.id, "Child3's family_id should match parent's family"
+
+        # Step 6: Verify family-based queries now work correctly
+        family_children = await family_repo.get_family_children(db_session, family_id=family.id)
+        assert len(family_children) == 3, "Family should have 3 children"
+
+        child_usernames = {child.username for child in family_children}
+        assert child_usernames == {"child1", "child2", "child3"}
+
+        # Step 7: Verify family members query includes everyone
+        family_members = await family_repo.get_family_members(db_session, family_id=family.id)
+        assert len(family_members) == 4, "Family should have 4 members (1 parent + 3 children)"
+
+        member_usernames = {member.username for member in family_members}
+        assert member_usernames == {"parent_with_kids", "child1", "child2", "child3"}
     
     async def test_create_family_not_parent_fails(self, db_session: AsyncSession):
         """Test that children cannot create families."""
