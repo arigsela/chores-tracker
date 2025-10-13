@@ -11,15 +11,13 @@ metadata:
     nginx.ingress.kubernetes.io/rewrite-target: /
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
     nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    # HSTS (HTTP Strict Transport Security) - forces browsers to always use HTTPS
+    nginx.ingress.kubernetes.io/hsts: "true"
+    nginx.ingress.kubernetes.io/hsts-max-age: "31536000"  # 1 year
+    nginx.ingress.kubernetes.io/hsts-include-subdomains: "true"
     # SPA routing support - fallback to index.html for client-side routing
     nginx.ingress.kubernetes.io/configuration-snippet: |
       try_files $uri $uri/ /index.html;
-    # Security headers
-    nginx.ingress.kubernetes.io/server-snippet: |
-      add_header X-Frame-Options "SAMEORIGIN" always;
-      add_header X-Content-Type-Options "nosniff" always;
-      add_header X-XSS-Protection "1; mode=block" always;
-      add_header Referrer-Policy "strict-origin-when-cross-origin" always;
     # Static asset caching
     nginx.ingress.kubernetes.io/location-snippet: |
       location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
