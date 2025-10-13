@@ -95,34 +95,44 @@ class FamilyRepository(BaseRepository[Family]):
         # Get the user to create family name
         user = await db.execute(select(User).where(User.id == user_id))
         user_obj = user.scalars().first()
-        
+
         if not user_obj:
             raise ValueError(f"User with ID {user_id} not found")
-        
+
         if not user_obj.is_parent:
             raise ValueError("Only parents can create families")
-        
+
         # Generate family name if not provided
         if not family_name:
             family_name = f"{user_obj.username}'s Family"
-        
+
         # Generate unique invite code
         invite_code = await self.generate_unique_invite_code(db)
-        
+
         # Create family
         family_data = {
             "name": family_name,
             "invite_code": invite_code,
             "invite_code_expires_at": None  # No expiry by default
         }
-        
+
         family = await super().create(db, obj_in=family_data)
-        
+
         # Assign user to the family using a separate user repository instance
         from .user import UserRepository
         user_repo = UserRepository()
         await user_repo.update(db, id=user_id, obj_in={"family_id": family.id})
-        
+
+        # FIX: Update all existing children's family_id to match parent's family
+        # This ensures children are discoverable via family-based queries
+        children_result = await db.execute(
+            select(User).where(User.parent_id == user_id)
+        )
+        children = children_result.scalars().all()
+
+        for child in children:
+            await user_repo.update(db, id=child.id, obj_in={"family_id": family.id})
+
         return family
     
     async def generate_new_invite_code(self, db: AsyncSession, *, family_id: int, expires_in_days: Optional[int] = None) -> str:
