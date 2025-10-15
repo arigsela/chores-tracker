@@ -412,7 +412,7 @@ class TestChoreServiceBusinessLogic:
             )
         
         assert exc_info.value.status_code == 404
-        assert "Assignee not found" in str(exc_info.value.detail)
+        assert "not found" in str(exc_info.value.detail).lower()
     
     @pytest.mark.asyncio
     async def test_create_chore_assignee_wrong_parent(self, db_session: AsyncSession):
@@ -516,7 +516,7 @@ class TestChoreServiceBusinessLogic:
             )
         
         assert exc_info.value.status_code == 403
-        assert "You are not the assignee of this chore" in str(exc_info.value.detail)
+        assert "not assigned" in str(exc_info.value.detail).lower()
     
     @pytest.mark.asyncio
     async def test_complete_disabled_chore(self, db_session: AsyncSession):
@@ -644,10 +644,10 @@ class TestChoreServiceBusinessLogic:
     
     @pytest.mark.asyncio
     async def test_approve_uncompleted_chore(self, db_session: AsyncSession):
-        """Test approving chore that isn't completed."""
+        """Test approving assignment that isn't completed."""
         user_service = UserService()
         chore_service = ChoreService()
-        
+
         # Create parent and child
         parent = await user_service.register_user(
             db_session,
@@ -656,7 +656,7 @@ class TestChoreServiceBusinessLogic:
             email="parentunc@test.com",
             is_parent=True
         )
-        
+
         child = await user_service.register_user(
             db_session,
             username="child_uncomp",
@@ -664,7 +664,7 @@ class TestChoreServiceBusinessLogic:
             is_parent=False,
             parent_id=parent.id
         )
-        
+
         # Create chore
         chore = await chore_service.create_chore(
             db_session,
@@ -677,24 +677,28 @@ class TestChoreServiceBusinessLogic:
                 "assignee_ids": [child.id]
             }
         )
-        
+
+        # Get assignment ID
+        await db_session.refresh(chore, ['assignments'])
+        assignment_id = chore.assignments[0].id
+
         # Try to approve without completing
         with pytest.raises(HTTPException) as exc_info:
-            await chore_service.approve_chore(
+            await chore_service.approve_assignment(
                 db_session,
-                chore_id=chore.id,
+                assignment_id=assignment_id,
                 parent_id=parent.id
             )
-        
+
         assert exc_info.value.status_code == 400
-        assert "Chore must be completed before approval" in str(exc_info.value.detail)
+        assert "must be completed" in str(exc_info.value.detail).lower()
     
     @pytest.mark.asyncio
     async def test_update_completed_chore(self, db_session: AsyncSession):
-        """Test updating a completed chore."""
+        """Test updating a chore with completed assignments."""
         user_service = UserService()
         chore_service = ChoreService()
-        
+
         # Create parent and child
         parent = await user_service.register_user(
             db_session,
@@ -703,7 +707,7 @@ class TestChoreServiceBusinessLogic:
             email="parentupdc@test.com",
             is_parent=True
         )
-        
+
         child = await user_service.register_user(
             db_session,
             username="child_upd_comp",
@@ -711,7 +715,7 @@ class TestChoreServiceBusinessLogic:
             is_parent=False,
             parent_id=parent.id
         )
-        
+
         # Create and complete chore
         chore = await chore_service.create_chore(
             db_session,
@@ -724,13 +728,13 @@ class TestChoreServiceBusinessLogic:
                 "assignee_ids": [child.id]
             }
         )
-        
+
         await chore_service.complete_chore(
             db_session,
             chore_id=chore.id,
             user_id=child.id
         )
-        
+
         # Try to update
         with pytest.raises(HTTPException) as exc_info:
             await chore_service.update_chore(
@@ -739,9 +743,9 @@ class TestChoreServiceBusinessLogic:
                 parent_id=parent.id,
                 update_data={"title": "Updated Title"}
             )
-        
+
         assert exc_info.value.status_code == 400
-        assert "Cannot update completed or approved chores" in str(exc_info.value.detail)
+        assert "completed" in str(exc_info.value.detail).lower() and "assignments" in str(exc_info.value.detail).lower()
     
     @pytest.mark.asyncio
     async def test_disable_chore_not_creator(self, db_session: AsyncSession):

@@ -997,32 +997,34 @@ class ChoreService(BaseService[Chore, ChoreRepository]):
     ) -> Chore:
         """
         Update a chore.
-        
+
         Business rules:
         - Only parent who created the chore can update
-        - Cannot update completed/approved chores
+        - Cannot update if any assignments are completed/approved
         """
-        chore = await self.get(db, id=chore_id)
+        chore = await self.repository.get_with_assignments(db, chore_id=chore_id)
         if not chore:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Chore not found"
             )
-        
+
         # Check if user is the creator
         if chore.creator_id != parent_id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="You can only update chores you created"
             )
-        
-        # Check if chore is already completed or approved
-        if chore.is_completed or chore.is_approved:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Cannot update completed or approved chores"
-            )
-        
+
+        # Check if any assignments are already completed or approved
+        if chore.assignments:
+            for assignment in chore.assignments:
+                if assignment.is_completed or assignment.is_approved:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="Cannot update chore with completed or approved assignments"
+                    )
+
         # Update chore
         return await self.repository.update(
             db, id=chore_id, obj_in=update_data
