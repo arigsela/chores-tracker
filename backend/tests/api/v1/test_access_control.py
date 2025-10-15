@@ -74,21 +74,22 @@ async def test_non_existent_user_token(client: AsyncClient):
 @pytest.mark.asyncio
 async def test_child_accessing_parent_only_endpoints(client: AsyncClient, child_token):
     """Test a child trying to access parent-only endpoints."""
-    # Try to create a chore (parent-only operation)
+    # Try to create a chore (parent-only operation) with multi-assignment mode
     response = await client.post(
         "/api/v1/chores",
         json={
             "title": "Test chore",
             "description": "Description",
             "reward": 5.0,
-            "assignee_id": 2  # Assuming child ID is 2
+            "assignment_mode": "single",
+            "assignee_ids": [2]  # Multi-assignment format
         },
         headers={"Authorization": f"Bearer {child_token}"}
     )
     assert response.status_code == 403
     error = response.json()["detail"]
     assert "only parents" in error.lower()
-    
+
     # Try to access pending-approval endpoint (parent-only)
     response = await client.get(
         "/api/v1/chores/pending-approval",
@@ -142,7 +143,9 @@ async def test_cross_account_access(
     await db_session.commit()
     await db_session.refresh(second_child)
     
-    # Create a chore for the second parent's child
+    # Create a chore for the second parent's child with multi-assignment
+    from backend.app.models.chore_assignment import ChoreAssignment
+
     second_chore = Chore(
         title="Second parent's chore",
         description="Created by second parent",
@@ -151,10 +154,20 @@ async def test_cross_account_access(
         cooldown_days=0,
         is_recurring=False,
         is_disabled=False,
-        assignee_id=second_child.id,
+        assignment_mode="single",
         creator_id=second_parent.id
     )
     db_session.add(second_chore)
+    await db_session.flush()  # Get chore ID
+
+    # Create assignment
+    assignment = ChoreAssignment(
+        chore_id=second_chore.id,
+        assignee_id=second_child.id,
+        is_completed=False,
+        is_approved=False
+    )
+    db_session.add(assignment)
     await db_session.commit()
     await db_session.refresh(second_chore)
     

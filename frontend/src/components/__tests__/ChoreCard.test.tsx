@@ -596,13 +596,254 @@ describe('ChoreCard Component', () => {
     });
   });
 
+  describe('Assignment-based Rendering', () => {
+    it('should use assignment status over chore status when available', () => {
+      const chore = createMockChore({
+        is_completed: false,
+        is_approved: false,
+      });
+      const assignment = {
+        id: 1,
+        chore_id: chore.id,
+        assignee_id: 2,
+        is_completed: true,
+        is_approved: false,
+        completion_date: '2024-01-01T12:00:00Z',
+        approval_date: null,
+        approval_reward: null,
+        rejection_reason: null,
+      };
+
+      const { getByText } = render(
+        <ChoreCard chore={chore} assignment={assignment} />
+      );
+
+      expect(getByText('⏳ Pending Approval')).toBeTruthy();
+    });
+
+    it('should show approved status from assignment', () => {
+      const chore = createMockChore();
+      const assignment = {
+        id: 1,
+        chore_id: chore.id,
+        assignee_id: 2,
+        is_completed: true,
+        is_approved: true,
+        completion_date: '2024-01-01T12:00:00Z',
+        approval_date: '2024-01-01T13:00:00Z',
+        approval_reward: 10.00,
+        rejection_reason: null,
+      };
+
+      const { getByText } = render(
+        <ChoreCard chore={chore} assignment={assignment} />
+      );
+
+      expect(getByText('✅ Approved')).toBeTruthy();
+    });
+
+    it('should use assignment approval_reward over chore reward', () => {
+      const chore = createMockChore({
+        reward: 5.00,
+        is_range_reward: true,
+      });
+      const assignment = {
+        id: 1,
+        chore_id: chore.id,
+        assignee_id: 2,
+        is_completed: true,
+        is_approved: true,
+        completion_date: '2024-01-01T12:00:00Z',
+        approval_date: '2024-01-01T13:00:00Z',
+        approval_reward: 12.50,
+        rejection_reason: null,
+      };
+
+      const { getByText } = render(
+        <ChoreCard chore={chore} assignment={assignment} />
+      );
+
+      expect(getByText('$12.50')).toBeTruthy();
+    });
+
+    it('should hide complete button for completed assignment', () => {
+      const chore = createMockChore();
+      const assignment = {
+        id: 1,
+        chore_id: chore.id,
+        assignee_id: 2,
+        is_completed: true,
+        is_approved: false,
+        completion_date: '2024-01-01T12:00:00Z',
+        approval_date: null,
+        approval_reward: null,
+        rejection_reason: null,
+      };
+
+      const { queryByTestId } = render(
+        <ChoreCard
+          chore={chore}
+          assignment={assignment}
+          showCompleteButton={true}
+          onComplete={jest.fn()}
+        />
+      );
+
+      expect(queryByTestId('complete-chore-button')).toBeNull();
+    });
+
+    it('should display rejection reason from assignment', () => {
+      const chore = createMockChore();
+      const assignment = {
+        id: 1,
+        chore_id: chore.id,
+        assignee_id: 2,
+        is_completed: false,
+        is_approved: false,
+        completion_date: null,
+        approval_date: null,
+        approval_reward: null,
+        rejection_reason: 'Please clean more thoroughly',
+      };
+
+      const { getByText } = render(
+        <ChoreCard chore={chore} assignment={assignment} />
+      );
+
+      expect(getByText('❌ Rejected:')).toBeTruthy();
+      expect(getByText('Please clean more thoroughly')).toBeTruthy();
+    });
+  });
+
+  describe('Assignment Mode Badges', () => {
+    it('should not show badge for single assignment mode', () => {
+      const chore = createMockChore();
+
+      const { queryByText } = render(
+        <ChoreCard chore={chore} assignmentMode="single" />
+      );
+
+      expect(queryByText(/Pool Chore|Assigned to You|Personal Chore/)).toBeNull();
+    });
+
+    it('should show pool badge for unassigned mode', () => {
+      const chore = createMockChore();
+
+      const { getByText } = render(
+        <ChoreCard chore={chore} assignmentMode="unassigned" />
+      );
+
+      expect(getByText('🏊 Pool Chore')).toBeTruthy();
+    });
+
+    it('should show pool badge for pool mode', () => {
+      const chore = createMockChore();
+
+      const { getByText } = render(
+        <ChoreCard chore={chore} assignmentMode="pool" />
+      );
+
+      expect(getByText('🏊 Pool Chore')).toBeTruthy();
+    });
+
+    it('should show assigned badge for assigned mode', () => {
+      const chore = createMockChore();
+
+      const { getByText } = render(
+        <ChoreCard chore={chore} assignmentMode="assigned" />
+      );
+
+      expect(getByText('👤 Assigned to You')).toBeTruthy();
+    });
+
+    it('should show multi badge for multi_independent mode', () => {
+      const chore = createMockChore();
+
+      const { getByText } = render(
+        <ChoreCard chore={chore} assignmentMode="multi_independent" />
+      );
+
+      expect(getByText('👥 Personal Chore')).toBeTruthy();
+    });
+  });
+
+  describe('Complete Button with Assignment', () => {
+    it('should call onComplete with assignment ID when provided', async () => {
+      const mockOnComplete = jest.fn().mockResolvedValue(undefined);
+      const chore = createMockChore({ id: 42 });
+      const assignmentId = 99;
+
+      const { getByTestId } = render(
+        <ChoreCard
+          chore={chore}
+          assignmentId={assignmentId}
+          showCompleteButton={true}
+          onComplete={mockOnComplete}
+        />
+      );
+
+      await act(async () => {
+        fireEvent.press(getByTestId('complete-chore-button'));
+      });
+
+      await waitFor(() => {
+        expect(mockOnComplete).toHaveBeenCalledWith(42, 99);
+      });
+    });
+
+    it('should show "Claim & Complete" for pool chores', () => {
+      const chore = createMockChore();
+
+      const { getByText } = render(
+        <ChoreCard
+          chore={chore}
+          assignmentMode="pool"
+          showCompleteButton={true}
+          onComplete={jest.fn()}
+        />
+      );
+
+      expect(getByText('Claim & Complete')).toBeTruthy();
+    });
+
+    it('should show "Claim & Complete" for unassigned chores', () => {
+      const chore = createMockChore();
+
+      const { getByText } = render(
+        <ChoreCard
+          chore={chore}
+          assignmentMode="unassigned"
+          showCompleteButton={true}
+          onComplete={jest.fn()}
+        />
+      );
+
+      expect(getByText('Claim & Complete')).toBeTruthy();
+    });
+
+    it('should show "Mark as Complete" for assigned chores', () => {
+      const chore = createMockChore();
+
+      const { getByText } = render(
+        <ChoreCard
+          chore={chore}
+          assignmentMode="assigned"
+          showCompleteButton={true}
+          onComplete={jest.fn()}
+        />
+      );
+
+      expect(getByText('Mark as Complete')).toBeTruthy();
+    });
+  });
+
   describe('Accessibility', () => {
     it('should have proper testID attributes for testing', () => {
       const chore = createMockChore();
 
       const { getByTestId } = render(
-        <ChoreCard 
-          chore={chore} 
+        <ChoreCard
+          chore={chore}
           showCompleteButton={true}
           showManageButtons={true}
           onComplete={jest.fn()}
@@ -613,7 +854,7 @@ describe('ChoreCard Component', () => {
 
       expect(getByTestId('chore-card')).toBeTruthy();
       expect(getByTestId('complete-chore-button')).toBeTruthy();
-      
+
       // Note: Enable/disable buttons depend on chore state
       if (chore.is_disabled) {
         expect(getByTestId('enable-chore-button')).toBeTruthy();
@@ -627,8 +868,8 @@ describe('ChoreCard Component', () => {
       const chore = createMockChore();
 
       const { getByTestId } = render(
-        <ChoreCard 
-          chore={chore} 
+        <ChoreCard
+          chore={chore}
           showCompleteButton={true}
           onComplete={mockOnComplete}
         />
@@ -636,7 +877,7 @@ describe('ChoreCard Component', () => {
 
       const button = getByTestId('complete-chore-button');
       expect(button).toBeTruthy();
-      
+
       await act(async () => {
         fireEvent.press(button);
       });

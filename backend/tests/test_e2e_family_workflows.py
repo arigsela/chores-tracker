@@ -42,19 +42,36 @@ class TestE2EFamilyWorkflows:
         return {"Authorization": f"Bearer {token}"}
 
     async def create_test_chore(self, db_session: AsyncSession, creator_id: int, assignee_id: int, title: str = "Test Chore"):
-        """Helper to create test chores."""
-        chore_repo = ChoreRepository()
-        return await chore_repo.create(
-            db_session,
-            obj_in={
-                "title": title,
-                "description": "Test chore description",
-                "reward": 5.0,
-                "creator_id": creator_id,
-                "assignee_id": assignee_id,
-                "is_recurring": False
-            }
+        """Helper to create test chores with single assignment."""
+        from backend.app.models.chore import Chore
+        from backend.app.models.chore_assignment import ChoreAssignment
+
+        # Create chore with multi-assignment architecture
+        chore = Chore(
+            title=title,
+            description="Test chore description",
+            reward=5.0,
+            is_range_reward=False,
+            cooldown_days=0,
+            is_recurring=False,
+            is_disabled=False,
+            assignment_mode="single",
+            creator_id=creator_id
         )
+        db_session.add(chore)
+        await db_session.flush()  # Get chore.id
+
+        # Create assignment
+        assignment = ChoreAssignment(
+            chore_id=chore.id,
+            assignee_id=assignee_id,
+            is_completed=False,
+            is_approved=False
+        )
+        db_session.add(assignment)
+        await db_session.commit()
+        await db_session.refresh(chore)
+        return chore
 
 
 @pytest.mark.asyncio

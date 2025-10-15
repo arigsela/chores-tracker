@@ -35,7 +35,7 @@ class FamilyRepository(BaseRepository[Family]):
             select(User)
             .where(User.family_id == family_id)
             .options(
-                joinedload(User.chores_assigned),
+                joinedload(User.chore_assignments),
                 joinedload(User.chores_created)
             )
             .order_by(User.is_parent.desc(), User.username)
@@ -63,7 +63,7 @@ class FamilyRepository(BaseRepository[Family]):
                 User.is_parent == False
             )
             .options(
-                joinedload(User.chores_assigned),
+                joinedload(User.chore_assignments),
                 joinedload(User.parent)
             )
             .order_by(User.username)
@@ -154,9 +154,9 @@ class FamilyRepository(BaseRepository[Family]):
         return new_invite_code
     
     async def get_family_stats(self, db: AsyncSession, *, family_id: int) -> Dict[str, Any]:
-        """Get comprehensive statistics for a family."""
+        """Get comprehensive statistics for a family with multi-assignment support."""
         result = await db.execute(text("""
-            SELECT 
+            SELECT
                 f.name,
                 f.invite_code,
                 f.created_at,
@@ -164,13 +164,14 @@ class FamilyRepository(BaseRepository[Family]):
                 COUNT(DISTINCT CASE WHEN u.is_parent = 1 THEN u.id END) as total_parents,
                 COUNT(DISTINCT CASE WHEN u.is_parent = 0 THEN u.id END) as total_children,
                 COUNT(DISTINCT c.id) as total_chores,
-                COUNT(DISTINCT CASE WHEN c.is_completed = 1 THEN c.id END) as completed_chores,
-                COUNT(DISTINCT CASE WHEN c.is_completed = 1 AND c.is_approved = 1 THEN c.id END) as approved_chores,
-                COALESCE(SUM(CASE WHEN c.is_completed = 1 AND c.is_approved = 1 THEN 
-                    COALESCE(c.approval_reward, c.reward, 0) END), 0) as total_rewards_earned
+                COUNT(DISTINCT CASE WHEN ca.is_completed = 1 THEN ca.id END) as completed_chores,
+                COUNT(DISTINCT CASE WHEN ca.is_completed = 1 AND ca.is_approved = 1 THEN ca.id END) as approved_chores,
+                COALESCE(SUM(CASE WHEN ca.is_completed = 1 AND ca.is_approved = 1 THEN
+                    COALESCE(ca.approval_reward, c.reward, 0) END), 0) as total_rewards_earned
             FROM families f
             LEFT JOIN users u ON u.family_id = f.id
-            LEFT JOIN chores c ON (c.creator_id = u.id OR c.assignee_id = u.id)
+            LEFT JOIN chores c ON c.creator_id = u.id
+            LEFT JOIN chore_assignments ca ON (ca.chore_id = c.id OR ca.assignee_id = u.id)
             WHERE f.id = :family_id
             GROUP BY f.id, f.name, f.invite_code, f.created_at
         """), {"family_id": family_id})
