@@ -240,9 +240,8 @@ class ChoreAssignmentRepository(BaseRepository[ChoreAssignment]):
             obj_in={
                 "is_completed": True,
                 "completion_date": now,
-                "is_approved": False,  # Reset approval status
-                "approval_date": None,
-                "approval_reward": None,
+                "is_approved": False,  # Reset approval status for new completion
+                # Keep approval_date for cooldown tracking in recurring chores
                 "rejection_reason": None
             }
         )
@@ -326,6 +325,7 @@ class ChoreAssignmentRepository(BaseRepository[ChoreAssignment]):
             obj_in={
                 "is_completed": False,
                 "completion_date": None,
+                "is_approved": False,  # Clear approval to start fresh cycle
                 # Keep approval_date and approval_reward for history/cooldown tracking
                 "rejection_reason": None
             }

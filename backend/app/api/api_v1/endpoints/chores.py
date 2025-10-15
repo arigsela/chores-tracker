@@ -606,10 +606,29 @@ async def read_child_completed_chores(
         parent_id=current_user.id,
         child_id=child_id
     )
-    
-    # Get completed chores
-    chores = await chore_service.repository.get_completed_by_child(db, child_id=child_id)
-    return chores
+
+    # Get all assignments for this child that are completed (whether approved or not)
+    from ....repositories.chore_assignment import ChoreAssignmentRepository
+    assignment_repo = ChoreAssignmentRepository()
+
+    assignments = await assignment_repo.get_by_assignee(
+        db,
+        assignee_id=child_id,
+        eager_load=True
+    )
+
+    # Filter to only completed assignments
+    completed_assignments = [a for a in assignments if a.is_completed]
+
+    # Return the chores from these assignments (deduplicate in case of multi-independent)
+    seen_chore_ids = set()
+    completed_chores = []
+    for assignment in completed_assignments:
+        if assignment.chore_id not in seen_chore_ids:
+            seen_chore_ids.add(assignment.chore_id)
+            completed_chores.append(assignment.chore)
+
+    return completed_chores
 
 @router.get(
     "/{chore_id}",

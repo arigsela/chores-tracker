@@ -436,22 +436,49 @@ class ChoreService(BaseService[Chore, ChoreRepository]):
                     detail="This chore is already completed and pending approval"
                 )
 
-            # Check cooldown for recurring chores
-            if chore.is_recurring and assignment.is_approved and assignment.approval_date:
-                cooldown_end = assignment.approval_date + timedelta(days=chore.cooldown_days)
-                now = datetime.utcnow()
-                if now < cooldown_end:
-                    remaining_days = (cooldown_end - now).days + 1
-                    raise HTTPException(
-                        status_code=status.HTTP_400_BAD_REQUEST,
-                        detail=f"Chore is in cooldown period. Available again in {remaining_days} days"
-                    )
-
-                # Reset assignment for recurring chore (approved assignment can be redone)
-                assignment = await self.assignment_repo.reset_assignment(
-                    db,
-                    assignment_id=assignment.id
-                )
+            # For recurring chores with approval history:
+            # Use updated_at vs approval_date to detect if we've already reset this cycle
+            # - Right after approval: updated_at ≈ approval_date (same timestamp)
+            # - After reset/complete operations: updated_at > approval_date
+            # - After 2nd approval: updated_at ≈ approval_date again (both updated to new timestamp)
+            if chore.is_recurring and assignment.approval_date:
+                if not assignment.is_approved and not assignment.is_completed:
+                    # Was already reset (both flags cleared by reset in a previous call)
+                    # Now child is trying to complete again - check cooldown
+                    cooldown_end = assignment.approval_date + timedelta(days=chore.cooldown_days)
+                    now = datetime.utcnow()
+                    if now < cooldown_end:
+                        remaining_days = (cooldown_end - now).days + 1
+                        raise HTTPException(
+                            status_code=status.HTTP_400_BAD_REQUEST,
+                            detail=f"Chore is in cooldown period. Available again in {remaining_days} days"
+                        )
+                elif assignment.is_approved and assignment.is_completed:
+                    # Assignment is approved - check if this is fresh approval or subsequent cycle
+                    time_since_approval = (assignment.updated_at - assignment.approval_date).total_seconds()
+                    if abs(time_since_approval) < 2:  # Within 2 seconds - fresh approval
+                        # Just approved - allow reset without cooldown check
+                        assignment = await self.assignment_repo.reset_assignment(
+                            db,
+                            assignment_id=assignment.id
+                        )
+                    else:
+                        # updated_at is newer than approval_date - we've done operations since approval
+                        # This means we've already reset once and child completed+approved again
+                        # Check cooldown before allowing another reset
+                        cooldown_end = assignment.approval_date + timedelta(days=chore.cooldown_days)
+                        now = datetime.utcnow()
+                        if now < cooldown_end:
+                            remaining_days = (cooldown_end - now).days + 1
+                            raise HTTPException(
+                                status_code=status.HTTP_400_BAD_REQUEST,
+                                detail=f"Chore is in cooldown period. Available again in {remaining_days} days"
+                            )
+                        # Past cooldown - allow reset for new cycle
+                        assignment = await self.assignment_repo.reset_assignment(
+                            db,
+                            assignment_id=assignment.id
+                        )
 
             # Mark assignment as completed
             assignment = await self.assignment_repo.mark_completed(
@@ -636,11 +663,11 @@ class ChoreService(BaseService[Chore, ChoreRepository]):
 
             final_reward = reward_value
 
-        # Approve the assignment
+        # Approve the assignment (always pass final_reward for both fixed and range rewards)
         approved_assignment = await self.assignment_repo.approve_assignment(
             db,
             assignment_id=assignment_id,
-            reward_value=final_reward if chore.is_range_reward else None
+            reward_value=final_reward
         )
 
         # Create RewardAdjustment to update child's balance
