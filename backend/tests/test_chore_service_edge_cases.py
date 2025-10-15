@@ -75,7 +75,7 @@ class TestChoreServiceEdgeCases:
         """Test completing a recurring chore after cooldown expires."""
         user_service = UserService()
         chore_service = ChoreService()
-        
+
         # Create parent and child
         parent = await user_service.register_user(
             db_session,
@@ -84,7 +84,7 @@ class TestChoreServiceEdgeCases:
             email="after_cd@test.com",
             is_parent=True
         )
-        
+
         child = await user_service.register_user(
             db_session,
             username="child_after_cd",
@@ -92,34 +92,55 @@ class TestChoreServiceEdgeCases:
             is_parent=False,
             parent_id=parent.id
         )
-        
-        # Create recurring chore with cooldown (completed 8 days ago)
-        chore = Chore(
-            title="Recurring Chore After",
-            description="Test",
-            reward=5.0,
-            is_range_reward=False,
-            cooldown_days=7,  # 7 day cooldown
-            is_recurring=True,
+
+        # Create recurring chore with cooldown using create_chore (multi-assignment architecture)
+        chore = await chore_service.create_chore(
+            db_session,
             creator_id=parent.id,
-            assignee_id=child.id,
-            is_completed=True,
-            is_approved=True,
-            is_disabled=False,
-            completion_date=datetime.utcnow() - timedelta(days=8)  # 8 days ago
+            chore_data={
+                "title": "Recurring Chore After",
+                "description": "Test",
+                "reward": 5.0,
+                "is_range_reward": False,
+                "cooldown_days": 7,  # 7 day cooldown
+                "is_recurring": True,
+                "assignment_mode": "single",
+                "assignee_ids": [child.id]
+            }
         )
-        db_session.add(chore)
-        await db_session.commit()
-        
+
+        # Get the assignment and manually set it to completed/approved 8 days ago
+        from backend.app.repositories.chore_assignment import ChoreAssignmentRepository
+        assignment_repo = ChoreAssignmentRepository()
+
+        assignment = await assignment_repo.get_by_chore_and_assignee(
+            db_session, chore_id=chore.id, assignee_id=child.id
+        )
+
+        # Manually update assignment to simulate approved 8 days ago
+        approval_date_past = datetime.utcnow() - timedelta(days=8)
+        assignment = await assignment_repo.update(
+            db_session,
+            id=assignment.id,
+            obj_in={
+                "is_completed": True,
+                "is_approved": True,
+                "completion_date": approval_date_past,
+                "approval_date": approval_date_past,
+                "approval_reward": 5.0
+            }
+        )
+
         # Complete again (should succeed - cooldown expired)
-        updated = await chore_service.complete_chore(
+        result = await chore_service.complete_chore(
             db_session,
             chore_id=chore.id,
             user_id=child.id
         )
-        
-        assert updated.is_completed is True
-        assert updated.is_approved is False  # Reset to pending
+
+        # Check the returned assignment data
+        assert result["assignment"].is_completed is True
+        assert result["assignment"].is_approved is False  # Reset to pending
     
     @pytest.mark.asyncio
     async def test_approve_range_reward_missing_value(self, db_session: AsyncSession):
@@ -151,11 +172,12 @@ class TestChoreServiceEdgeCases:
             chore_data={
                 "title": "Range Reward Chore",
                 "description": "Test",
-                "reward": 0,  # Not used for range
+                "reward": 10.0,  # Default/suggested reward
                 "min_reward": 5.0,
                 "max_reward": 15.0,
                 "is_range_reward": True,
-                "assignee_id": child.id
+                "assignment_mode": "single",
+                "assignee_ids": [child.id]
             }
         )
         
@@ -208,11 +230,12 @@ class TestChoreServiceEdgeCases:
             chore_data={
                 "title": "Range Bounds Chore",
                 "description": "Test",
-                "reward": 0,
+                "reward": 10.0,
                 "min_reward": 5.0,
                 "max_reward": 15.0,
                 "is_range_reward": True,
-                "assignee_id": child.id
+                "assignment_mode": "single",
+                "assignee_ids": [child.id]
             }
         )
         
@@ -336,10 +359,10 @@ class TestChoreServiceEdgeCases:
     
     @pytest.mark.asyncio
     async def test_complete_unassigned_chore(self, db_session: AsyncSession):
-        """Test completing a chore that has no assignee."""
+        """Test completing a chore in unassigned pool mode (should create assignment)."""
         user_service = UserService()
         chore_service = ChoreService()
-        
+
         # Create parent and child
         parent = await user_service.register_user(
             db_session,
@@ -348,7 +371,7 @@ class TestChoreServiceEdgeCases:
             email="unassign@test.com",
             is_parent=True
         )
-        
+
         child = await user_service.register_user(
             db_session,
             username="child_unassign",
@@ -356,34 +379,34 @@ class TestChoreServiceEdgeCases:
             is_parent=False,
             parent_id=parent.id
         )
-        
-        # Create unassigned chore
-        chore = Chore(
-            title="Unassigned Chore",
-            description="Test",
-            reward=5.0,
-            is_range_reward=False,
-            cooldown_days=0,
-            is_recurring=False,
+
+        # Create unassigned pool chore (multi-assignment architecture)
+        chore = await chore_service.create_chore(
+            db_session,
             creator_id=parent.id,
-            assignee_id=None,  # No assignee!
-            is_completed=False,
-            is_approved=False,
-            is_disabled=False
+            chore_data={
+                "title": "Unassigned Pool Chore",
+                "description": "Test",
+                "reward": 5.0,
+                "is_range_reward": False,
+                "cooldown_days": 0,
+                "is_recurring": False,
+                "assignment_mode": "unassigned",
+                "assignee_ids": []  # No initial assignees - pool chore!
+            }
         )
-        db_session.add(chore)
-        await db_session.commit()
-        
-        # Try to complete it
-        with pytest.raises(HTTPException) as exc_info:
-            await chore_service.complete_chore(
-                db_session,
-                chore_id=chore.id,
-                user_id=child.id
-            )
-        
-        assert exc_info.value.status_code == 403
-        assert "not the assignee" in str(exc_info.value.detail).lower()
+
+        # Child completes it (should claim and complete in one step)
+        result = await chore_service.complete_chore(
+            db_session,
+            chore_id=chore.id,
+            user_id=child.id
+        )
+
+        # Should succeed - child claimed the pool chore
+        assert result["assignment"].is_completed is True
+        assert result["assignment"].is_approved is False
+        assert result["assignment"].assignee_id == child.id
     
     @pytest.mark.asyncio
     async def test_approve_already_approved_chore(self, db_session: AsyncSession):
@@ -416,7 +439,8 @@ class TestChoreServiceEdgeCases:
                 "title": "Double Approve Chore",
                 "description": "Test",
                 "reward": 5.0,
-                "assignee_id": child.id
+                "assignment_mode": "single",
+                "assignee_ids": [child.id]
             }
         )
         
@@ -433,13 +457,16 @@ class TestChoreServiceEdgeCases:
             parent_id=parent.id
         )
         
-        # Try to approve again
+        # Try to approve again (multi-assignment architecture)
+        # After approval, there are no more completed (unapproved) assignments
         with pytest.raises(HTTPException) as exc_info:
             await chore_service.approve_chore(
                 db_session,
                 chore_id=chore.id,
                 parent_id=parent.id
             )
-        
+
         assert exc_info.value.status_code == 400
-        assert "already approved" in str(exc_info.value.detail).lower()
+        # In multi-assignment architecture, error is "No completed assignment found"
+        # because approved assignments are excluded from the query
+        assert "no completed assignment" in str(exc_info.value.detail).lower()
