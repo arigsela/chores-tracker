@@ -89,8 +89,7 @@ async def test_create_range_reward_chore_with_empty_reward(client: AsyncClient, 
             "min_reward": "1",
             "max_reward": "2",
             "cooldown_days": "1",
-            "assignment_mode": "single",
-            "assignee_ids": str(test_child_user.id),
+            "assignee_id": str(test_child_user.id),  # Form data uses assignee_id
             "frequency": "daily"
         },
         headers={
@@ -133,18 +132,18 @@ async def test_child_cannot_create_chore(client: AsyncClient, child_token, test_
 @pytest.mark.asyncio
 async def test_read_chores(client: AsyncClient, parent_token, child_token, test_chore, test_range_chore, test_disabled_chore):
     """Test reading chores."""
-    # Parent should see all chores they created (including disabled ones)
+    # Parent should see all active (non-disabled) chores they created
     response = await client.get(
         "/api/v1/chores",
         headers={"Authorization": f"Bearer {parent_token}"}
     )
     assert response.status_code == 200
     data = response.json()
-    assert len(data) == 3
+    assert len(data) == 2  # Only non-disabled chores
     titles = [chore["title"] for chore in data]
     assert "Clean room" in titles
     assert "Take out trash" in titles
-    assert "Mow lawn" in titles
+    # "Mow lawn" is disabled and should not appear
 
     # Child should see only non-disabled chores assigned to them
     response = await client.get(
@@ -170,11 +169,11 @@ async def test_read_available_chores(client: AsyncClient, child_token, test_chor
     assert response.status_code == 200
     data = response.json()
     # The /available endpoint returns {assigned: [...], pool: [...]}
-    # For single-mode chores assigned to the child, they appear in "assigned"
+    # Each item in assigned has structure: {"chore": {...}, "assignment": {...}, "assignment_id": ...}
     assert "assigned" in data
     assert "pool" in data
     assert len(data["assigned"]) == 2
-    titles = [chore["title"] for chore in data["assigned"]]
+    titles = [item["chore"]["title"] for item in data["assigned"]]
     assert "Clean room" in titles
     assert "Take out trash" in titles
 
