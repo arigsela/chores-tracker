@@ -56,7 +56,7 @@ class TestChoreCreationAPIMultiAssignment:
 
         # Create chore with single mode
         create_response = await client.post(
-            "/api/v1/chores/",
+            "/api/v1/chores",
             json={
                 "title": "Test Single Mode",
                 "description": "Testing",
@@ -125,7 +125,7 @@ class TestChoreCreationAPIMultiAssignment:
 
         # Create chore with multi_independent mode
         create_response = await client.post(
-            "/api/v1/chores/",
+            "/api/v1/chores",
             json={
                 "title": "Clean Your Room",
                 "description": "Each child's room",
@@ -173,7 +173,7 @@ class TestChoreCreationAPIMultiAssignment:
 
         # Create pool chore
         create_response = await client.post(
-            "/api/v1/chores/",
+            "/api/v1/chores",
             json={
                 "title": "Walk the Dog",
                 "description": "Anyone can do",
@@ -280,15 +280,17 @@ class TestPendingApprovalAPIMultiAssignment:
         parent_token = parent_login.json()["access_token"]
 
         chore_response = await client.post(
-            "/api/v1/chores/",
+            "/api/v1/chores",
             json={
                 "title": "Test Chore",
+                "description": "Test description",
                 "reward": 5.0,
                 "assignment_mode": "single",
                 "assignee_ids": [child.id]
             },
             headers={"Authorization": f"Bearer {parent_token}"}
         )
+        assert chore_response.status_code == 201, f"Got {chore_response.status_code}: {chore_response.text}"
         chore_id = chore_response.json()["id"]
 
         # Login as child and complete chore
@@ -360,15 +362,17 @@ class TestCompleteChoreAPIMultiAssignment:
         parent_token = parent_login.json()["access_token"]
 
         chore_response = await client.post(
-            "/api/v1/chores/",
+            "/api/v1/chores",
             json={
                 "title": "Test Complete",
+                "description": "Test description",
                 "reward": 5.0,
                 "assignment_mode": "single",
                 "assignee_ids": [child.id]
             },
             headers={"Authorization": f"Bearer {parent_token}"}
         )
+        assert chore_response.status_code == 201, f"Got {chore_response.status_code}: {chore_response.text}"
         chore_id = chore_response.json()["id"]
 
         # Login as child and complete
@@ -431,15 +435,17 @@ class TestAssignmentApprovalAPI:
         parent_token = parent_login.json()["access_token"]
 
         chore_response = await client.post(
-            "/api/v1/chores/",
+            "/api/v1/chores",
             json={
                 "title": "Test Approve",
+                "description": "Test description",
                 "reward": 5.0,
                 "assignment_mode": "single",
                 "assignee_ids": [child.id]
             },
             headers={"Authorization": f"Bearer {parent_token}"}
         )
+        assert chore_response.status_code == 201, f"Got {chore_response.status_code}: {chore_response.text}"
         chore_id = chore_response.json()["id"]
 
         child_login = await client.post(
@@ -507,15 +513,17 @@ class TestAssignmentRejectionAPI:
         parent_token = parent_login.json()["access_token"]
 
         chore_response = await client.post(
-            "/api/v1/chores/",
+            "/api/v1/chores",
             json={
                 "title": "Test Reject",
+                "description": "Test description",
                 "reward": 5.0,
                 "assignment_mode": "single",
                 "assignee_ids": [child.id]
             },
             headers={"Authorization": f"Bearer {parent_token}"}
         )
+        assert chore_response.status_code == 201, f"Got {chore_response.status_code}: {chore_response.text}"
         chore_id = chore_response.json()["id"]
 
         child_login = await client.post(
