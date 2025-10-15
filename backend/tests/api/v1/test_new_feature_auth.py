@@ -49,6 +49,8 @@ async def second_family_setup(db_session):
     await db_session.refresh(child2)
     
     # Create some chores and data for family 2
+    from backend.app.models.chore_assignment import ChoreAssignment
+
     chore_f2 = Chore(
         title="Family 2 Chore",
         description="Should not be visible to family 1",
@@ -56,13 +58,24 @@ async def second_family_setup(db_session):
         is_range_reward=False,
         cooldown_days=0,
         is_recurring=False,
-        is_completed=True,
-        is_approved=True,
-        approval_reward=8.0,
-        completion_date=datetime.now() - timedelta(days=1),
-        assignee_id=child2.id,
+        is_disabled=False,
+        assignment_mode="single",
         creator_id=parent2.id
     )
+    db_session.add(chore_f2)
+    await db_session.flush()  # Get chore ID
+
+    # Create assignment
+    assignment_f2 = ChoreAssignment(
+        chore_id=chore_f2.id,
+        assignee_id=child2.id,
+        is_completed=True,
+        is_approved=True,
+        completion_date=datetime.now() - timedelta(days=1),
+        approval_date=datetime.now(),
+        approval_reward=8.0
+    )
+    db_session.add(assignment_f2)
     
     adjustment_f2 = RewardAdjustment(
         child_id=child2.id,
@@ -71,9 +84,10 @@ async def second_family_setup(db_session):
         reason="Family 2 bonus"
     )
     
-    db_session.add_all([chore_f2, adjustment_f2])
+    db_session.add(adjustment_f2)
     await db_session.commit()
     await db_session.refresh(chore_f2)
+    await db_session.refresh(assignment_f2)
     await db_session.refresh(adjustment_f2)
     
     # Create tokens
