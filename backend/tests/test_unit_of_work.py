@@ -250,7 +250,6 @@ class TestTransactionalServices:
         assert chore.assignments[0].is_completed is True
 
         # Approve chore
-        from backend.app.services.chore_service import ChoreService
         await chore_service.approve_assignment(
             db_session,
             assignment_id=assignment_id,
