@@ -107,7 +107,9 @@ class TestSingleModeIntegrationFlow:
         assert "cooldown" in str(exc_info.value).lower()
 
         # Step 5: Simulate cooldown expiration and reset
-        assignment.approval_date = datetime.utcnow() - timedelta(days=8)
+        # Fetch the assignment from DB (not the Pydantic model from result)
+        db_assignment = await assignment_repo.get(db_session, id=assignment.id)
+        db_assignment.approval_date = datetime.utcnow() - timedelta(days=8)
         await db_session.commit()
 
         # Step 6: Verify chore becomes available again after cooldown
