@@ -315,7 +315,7 @@ describe('ChoreCard Component', () => {
       });
 
       await waitFor(() => {
-        expect(mockOnComplete).toHaveBeenCalledWith(42);
+        expect(mockOnComplete).toHaveBeenCalledWith(42, undefined);
       });
     });
 
