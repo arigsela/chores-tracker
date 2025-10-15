@@ -84,7 +84,7 @@ class UserRepository(BaseRepository[User]):
                 User.parent_id == parent_id,
                 User.is_parent == False
             )
-            .options(joinedload(User.chores_assigned))
+            .options(joinedload(User.chore_assignments))
         )
         return result.unique().scalars().all()
     

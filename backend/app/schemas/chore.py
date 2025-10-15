@@ -1,5 +1,5 @@
 from pydantic import BaseModel, ConfigDict, Field, field_validator
-from typing import Optional
+from typing import Optional, List, Literal
 from datetime import datetime
 
 class ChoreBase(BaseModel):
@@ -88,13 +88,39 @@ class ChoreBase(BaseModel):
         return v
 
 class ChoreCreate(ChoreBase):
-    """Schema for creating a new chore."""
-    assignee_id: int = Field(
-        ...,
-        description="ID of the child user who will be assigned this chore",
-        json_schema_extra={"example": 2}
+    """Schema for creating a new chore with multi-assignment support."""
+    assignment_mode: Literal['single', 'multi_independent', 'unassigned'] = Field(
+        'single',
+        description="Assignment mode: 'single' (one child), 'multi_independent' (multiple children, independent completion), 'unassigned' (pool, any child can claim)",
+        json_schema_extra={"example": "single"}
     )
-    
+    assignee_ids: List[int] = Field(
+        default_factory=list,
+        description="List of child user IDs to assign this chore to. Required for 'single' and 'multi_independent' modes, must be empty for 'unassigned' mode.",
+        json_schema_extra={"example": [2, 3]}
+    )
+
+    @field_validator('assignee_ids')
+    @classmethod
+    def validate_assignee_ids(cls, v, info):
+        """Validate assignee_ids based on assignment_mode."""
+        if 'assignment_mode' not in info.data:
+            return v
+
+        mode = info.data['assignment_mode']
+
+        if mode == 'single':
+            if len(v) != 1:
+                raise ValueError("'single' assignment mode requires exactly 1 assignee_id")
+        elif mode == 'multi_independent':
+            if len(v) < 1:
+                raise ValueError("'multi_independent' assignment mode requires at least 1 assignee_id")
+        elif mode == 'unassigned':
+            if len(v) != 0:
+                raise ValueError("'unassigned' assignment mode must have 0 assignee_ids (empty list)")
+
+        return v
+
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
@@ -103,7 +129,8 @@ class ChoreCreate(ChoreBase):
                 "reward": 2.0,
                 "is_recurring": True,
                 "cooldown_days": 1,
-                "assignee_id": 2
+                "assignment_mode": "single",
+                "assignee_ids": [2]
             }
         }
     )
@@ -158,22 +185,15 @@ class ChoreUpdate(BaseModel):
         description="Legacy field",
         deprecated=True
     )
-    assignee_id: Optional[int] = Field(
-        None,
-        description="Reassign to different child"
-    )
     is_disabled: Optional[bool] = Field(
         None,
         description="Enable/disable the chore"
     )
-    rejection_reason: Optional[str] = Field(
-        None,
-        description="Reason for rejecting the chore completion",
-        max_length=500
-    )
+    # Note: assignment_mode and assignee_ids cannot be changed after creation
+    # To change assignments, delete and recreate the chore
 
 class ChoreResponse(ChoreBase):
-    """Schema for chore responses including all fields."""
+    """Schema for chore responses with multi-assignment support."""
     model_config = ConfigDict(
         from_attributes=True,
         json_schema_extra={
@@ -185,40 +205,27 @@ class ChoreResponse(ChoreBase):
                 "is_range_reward": False,
                 "cooldown_days": 7,
                 "is_recurring": True,
-                "assignee_id": 2,
+                "assignment_mode": "single",
                 "creator_id": 1,
-                "is_completed": False,
-                "is_approved": False,
                 "is_disabled": False,
                 "created_at": "2024-12-20T10:00:00",
-                "updated_at": "2024-12-20T10:00:00"
+                "updated_at": "2024-12-20T10:00:00",
+                "assignments": []
             }
         }
     )
-    
+
     id: int = Field(
         ...,
         description="Unique chore ID"
     )
-    assignee_id: Optional[int] = Field(
+    assignment_mode: str = Field(
         ...,
-        description="ID of assigned child (can be null if unassigned)"
+        description="Assignment mode: 'single', 'multi_independent', or 'unassigned'"
     )
     creator_id: int = Field(
         ...,
         description="ID of parent who created the chore"
-    )
-    is_completed: bool = Field(
-        False,
-        description="Whether child has marked as complete"
-    )
-    is_approved: bool = Field(
-        False,
-        description="Whether parent has approved completion"
-    )
-    completion_date: Optional[datetime] = Field(
-        None,
-        description="When the chore was last completed"
     )
     created_at: Optional[datetime] = Field(
         None,
@@ -228,18 +235,30 @@ class ChoreResponse(ChoreBase):
         None,
         description="When the chore was last updated"
     )
-    
-    # Optional related objects (when eagerly loaded)
-    # NOTE: Commented out to avoid SQLAlchemy lazy loading issues
-    # These fields require explicit eager loading to work properly
-    # assignee: Optional['UserResponse'] = Field(
-    #     None,
-    #     description="Assigned child user details (when eagerly loaded)"
-    # )
-    # creator: Optional['UserResponse'] = Field(
-    #     None,
-    #     description="Parent creator details (when eagerly loaded)"
-    # )
+
+    # Backward compatibility fields populated from assignment data
+    is_completed: Optional[bool] = Field(
+        None,
+        description="Whether this specific assignment is completed (populated from assignment data for backward compatibility)"
+    )
+    is_approved: Optional[bool] = Field(
+        None,
+        description="Whether this specific assignment is approved (populated from assignment data for backward compatibility)"
+    )
+    completed_at: Optional[datetime] = Field(
+        None,
+        description="When this specific assignment was completed (populated from assignment data for backward compatibility)"
+    )
+    approved_at: Optional[datetime] = Field(
+        None,
+        description="When this specific assignment was approved (populated from assignment data for backward compatibility)"
+    )
+
+    # Assignment relationship (when eagerly loaded)
+    assignments: List['AssignmentResponse'] = Field(
+        default_factory=list,
+        description="List of assignments for this chore (when eagerly loaded)"
+    )
 
 class ChoreComplete(BaseModel):
     """Schema for marking a chore as complete."""
@@ -286,6 +305,8 @@ class ChoreReject(BaseModel):
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from .user import UserResponse
+    from .assignment import AssignmentResponse
 else:
     from .user import UserResponse
+    from .assignment import AssignmentResponse
     ChoreResponse.model_rebuild()

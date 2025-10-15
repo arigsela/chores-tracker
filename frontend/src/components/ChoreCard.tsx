@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
-import { Chore } from '@/api/chores';
+import { Chore, Assignment, AssignmentMode } from '@/api/chores';
 
 interface ChoreCardProps {
   chore: Chore;
-  onComplete?: (choreId: number) => void;
+  assignment?: Assignment;
+  assignmentId?: number;
+  assignmentMode?: 'assigned' | 'pool' | AssignmentMode;
+  onComplete?: (choreId: number, assignmentId?: number) => void;
   onEnable?: (choreId: number) => void;
   onDisable?: (choreId: number) => void;
   showCompleteButton?: boolean;
@@ -12,28 +15,36 @@ interface ChoreCardProps {
   isChild?: boolean;
 }
 
-export const ChoreCard: React.FC<ChoreCardProps> = ({ 
-  chore, 
+export const ChoreCard: React.FC<ChoreCardProps> = ({
+  chore,
+  assignment,
+  assignmentId,
+  assignmentMode,
   onComplete,
   onEnable,
-  onDisable, 
+  onDisable,
   showCompleteButton = false,
   showManageButtons = false,
-  isChild = false 
+  isChild = false
 }) => {
   const [isCompleting, setIsCompleting] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+
   const getStatusText = () => {
     if (chore.is_disabled) return '🚫 Disabled';
-    
-    // Check for approval - try both approved_at and is_approved fields
+
+    // Use assignment data if available (preferred for multi-assignment)
+    if (assignment) {
+      if (assignment.is_approved) return '✅ Approved';
+      if (assignment.is_completed) return '⏳ Pending Approval';
+    }
+
+    // Fallback to chore-level data (for backward compatibility)
     if (chore.approved_at || chore.is_approved) return '✅ Approved';
-    
-    // Check both completed_at and completion_date fields, as well as is_completed boolean
     const isCompleted = chore.completed_at || chore.completion_date || chore.is_completed;
-    
     if (isCompleted && !chore.approved_at && !chore.is_approved) return '⏳ Pending Approval';
     if (isCompleted) return '✓ Completed';
+
     if (chore.next_available_at) {
       const nextDate = new Date(chore.next_available_at);
       if (nextDate > new Date()) {
@@ -44,32 +55,42 @@ export const ChoreCard: React.FC<ChoreCardProps> = ({
   };
 
   const getRewardText = () => {
-    // For approved chores, show the final approved amount
+    // Use assignment approval_reward if available (preferred for multi-assignment)
+    if (assignment?.approval_reward) {
+      return `$${assignment.approval_reward.toFixed(2)}`;
+    }
+
+    // Fallback to chore-level approval_reward (backward compatibility)
     if (chore.approval_reward) {
       return `$${chore.approval_reward.toFixed(2)}`;
     }
-    
+
     // For approved range rewards (legacy method), show the final reward amount
-    const isApproved = chore.approved_at || chore.is_approved;
+    const isApproved = assignment?.is_approved || chore.approved_at || chore.is_approved;
     if (chore.is_range_reward && isApproved && chore.reward) {
       return `$${chore.reward.toFixed(2)}`;
     }
-    
+
     // For pending range rewards, show the range
     if (chore.is_range_reward && chore.min_reward && chore.max_reward) {
       return `$${chore.min_reward.toFixed(2)} - $${chore.max_reward.toFixed(2)}`;
     }
-    
+
     // For fixed rewards
     if (chore.reward) {
       return `$${chore.reward.toFixed(2)}`;
     }
-    
+
     return 'No reward';
   };
 
   const isAvailableNow = () => {
-    // Check both completed_at and completion_date fields, as well as is_completed boolean
+    // Use assignment data if available (preferred for multi-assignment)
+    if (assignment) {
+      return !assignment.is_completed && !assignment.is_approved;
+    }
+
+    // Fallback to chore-level data (backward compatibility)
     const isCompleted = chore.completed_at || chore.completion_date || chore.is_completed;
     if (isCompleted) return false;
     if (chore.next_available_at) {
@@ -78,20 +99,67 @@ export const ChoreCard: React.FC<ChoreCardProps> = ({
     return true;
   };
 
-  return (
-    <View style={styles.card} testID="chore-card">
-      <View style={styles.header}>
-        <Text style={styles.title}>{chore.title}</Text>
-        <Text style={styles.reward}>{getRewardText()}</Text>
+  const getModeBadge = () => {
+    // Don't show badge for single mode (default/traditional behavior)
+    if (!assignmentMode || assignmentMode === 'single') return null;
+
+    let badgeText = '';
+    let badgeStyle = styles.modeBadgeMulti;
+
+    if (assignmentMode === 'pool' || assignmentMode === 'unassigned') {
+      badgeText = '🏊 Pool Chore';
+      badgeStyle = styles.modeBadgePool;
+    } else if (assignmentMode === 'assigned') {
+      badgeText = '👤 Assigned to You';
+      badgeStyle = styles.modeBadgeAssigned;
+    } else if (assignmentMode === 'multi_independent') {
+      badgeText = '👥 Personal Chore';
+      badgeStyle = styles.modeBadgeMulti;
+    }
+
+    return (
+      <View style={badgeStyle}>
+        <Text style={styles.modeBadgeText}>{badgeText}</Text>
       </View>
-      
+    );
+  };
+
+  return (
+    <View
+      style={styles.card}
+      testID="chore-card"
+      accessible={true}
+      accessibilityRole="button"
+      accessibilityLabel={`Chore: ${chore.title}, Reward: ${getRewardText()}, Status: ${getStatusText()}`}
+    >
+      <View style={styles.header}>
+        <View style={styles.titleContainer}>
+          <Text style={styles.title} accessibilityRole="header">{chore.title}</Text>
+          {getModeBadge()}
+        </View>
+        <Text style={styles.reward} accessibilityLabel={`Reward: ${getRewardText()}`}>{getRewardText()}</Text>
+      </View>
+
       {chore.description && (
-        <Text style={styles.description}>{chore.description}</Text>
+        <Text style={styles.description} accessible={true}>{chore.description}</Text>
       )}
-      
+
+      {/* Show rejection reason if present */}
+      {assignment?.rejection_reason && (
+        <View
+          style={styles.rejectionContainer}
+          accessible={true}
+          accessibilityRole="alert"
+          accessibilityLabel={`This chore was rejected. Reason: ${assignment.rejection_reason}`}
+        >
+          <Text style={styles.rejectionLabel}>❌ Rejected:</Text>
+          <Text style={styles.rejectionReason}>{assignment.rejection_reason}</Text>
+        </View>
+      )}
+
       <View style={styles.footer}>
         <Text style={styles.status}>{getStatusText()}</Text>
-        
+
         {chore.is_recurring && (
           <Text style={styles.recurring}>
             🔄 Repeats every {chore.cooldown_days} day{chore.cooldown_days !== 1 ? 's' : ''}
@@ -99,21 +167,28 @@ export const ChoreCard: React.FC<ChoreCardProps> = ({
         )}
       </View>
 
-      {showCompleteButton && isAvailableNow() && !(chore.completed_at || chore.completion_date || chore.is_completed) && onComplete && (
-        <TouchableOpacity 
+      {showCompleteButton && isAvailableNow() && onComplete && (
+        <TouchableOpacity
           style={[styles.completeButton, isCompleting && styles.completingButton]}
           onPress={async () => {
             setIsCompleting(true);
-            await onComplete(chore.id);
+            await onComplete(chore.id, assignmentId);
             setIsCompleting(false);
           }}
           testID="complete-chore-button"
           disabled={isCompleting}
+          accessible={true}
+          accessibilityRole="button"
+          accessibilityLabel={assignmentMode === 'pool' || assignmentMode === 'unassigned' ? 'Claim and complete this chore' : 'Mark this chore as complete'}
+          accessibilityHint="Double tap to complete this chore"
+          accessibilityState={{ disabled: isCompleting }}
         >
           {isCompleting ? (
-            <ActivityIndicator size="small" color="#fff" />
+            <ActivityIndicator size="small" color="#fff" accessibilityLabel="Completing chore" />
           ) : (
-            <Text style={styles.completeButtonText}>Mark as Complete</Text>
+            <Text style={styles.completeButtonText}>
+              {assignmentMode === 'pool' || assignmentMode === 'unassigned' ? 'Claim & Complete' : 'Mark as Complete'}
+            </Text>
           )}
         </TouchableOpacity>
       )}
@@ -181,17 +256,67 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     marginBottom: 8,
   },
+  titleContainer: {
+    flex: 1,
+    marginRight: 8,
+  },
   title: {
     fontSize: 16,
     fontWeight: '600',
     color: '#333',
-    flex: 1,
-    marginRight: 8,
+    marginBottom: 4,
   },
   reward: {
     fontSize: 16,
     fontWeight: 'bold',
     color: '#007AFF',
+  },
+  modeBadgeAssigned: {
+    backgroundColor: '#007AFF',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    alignSelf: 'flex-start',
+    marginTop: 4,
+  },
+  modeBadgePool: {
+    backgroundColor: '#5AC8FA',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    alignSelf: 'flex-start',
+    marginTop: 4,
+  },
+  modeBadgeMulti: {
+    backgroundColor: '#FF9500',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    alignSelf: 'flex-start',
+    marginTop: 4,
+  },
+  modeBadgeText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  rejectionContainer: {
+    backgroundColor: '#FFEBEE',
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 12,
+    borderLeftWidth: 3,
+    borderLeftColor: '#FF3B30',
+  },
+  rejectionLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#D32F2F',
+    marginBottom: 4,
+  },
+  rejectionReason: {
+    fontSize: 13,
+    color: '#B71C1C',
   },
   description: {
     fontSize: 14,

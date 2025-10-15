@@ -6,6 +6,7 @@ from ..db.base_class import Base
 
 if TYPE_CHECKING:
     from .chore import Chore
+    from .chore_assignment import ChoreAssignment
     from .reward_adjustment import RewardAdjustment
     from .activity import Activity
     from .family import Family
@@ -25,17 +26,53 @@ class User(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
 
     # Relationships
-    chores_assigned: Mapped[List["Chore"]] = relationship(back_populates="assignee", foreign_keys="Chore.assignee_id")
-    chores_created: Mapped[List["Chore"]] = relationship(back_populates="creator", foreign_keys="Chore.creator_id")
-    children: Mapped[List["User"]] = relationship("User", back_populates="parent", foreign_keys="User.parent_id")
-    parent: Mapped[Optional["User"]] = relationship("User", back_populates="children", remote_side=id)
-    
+    # Chores
+    chores_created: Mapped[List["Chore"]] = relationship(
+        "Chore",
+        back_populates="creator",
+        foreign_keys="Chore.creator_id"
+    )
+    chore_assignments: Mapped[List["ChoreAssignment"]] = relationship(
+        "ChoreAssignment",
+        back_populates="assignee",
+        foreign_keys="ChoreAssignment.assignee_id",
+        cascade="all, delete-orphan"
+    )
+
+    # Family hierarchy
+    children: Mapped[List["User"]] = relationship(
+        "User",
+        back_populates="parent",
+        foreign_keys="User.parent_id"
+    )
+    parent: Mapped[Optional["User"]] = relationship(
+        "User",
+        back_populates="children",
+        remote_side=id
+    )
+
     # Reward adjustments
-    adjustments_received: Mapped[List["RewardAdjustment"]] = relationship(back_populates="child", foreign_keys="RewardAdjustment.child_id")
-    adjustments_created: Mapped[List["RewardAdjustment"]] = relationship(back_populates="parent", foreign_keys="RewardAdjustment.parent_id")
-    
+    adjustments_received: Mapped[List["RewardAdjustment"]] = relationship(
+        "RewardAdjustment",
+        back_populates="child",
+        foreign_keys="RewardAdjustment.child_id"
+    )
+    adjustments_created: Mapped[List["RewardAdjustment"]] = relationship(
+        "RewardAdjustment",
+        back_populates="parent",
+        foreign_keys="RewardAdjustment.parent_id"
+    )
+
     # Activities
-    activities: Mapped[List["Activity"]] = relationship(back_populates="user", foreign_keys="Activity.user_id")
-    
+    activities: Mapped[List["Activity"]] = relationship(
+        "Activity",
+        back_populates="user",
+        foreign_keys="Activity.user_id"
+    )
+
     # Family
-    family: Mapped[Optional["Family"]] = relationship(back_populates="members", foreign_keys="User.family_id")
+    family: Mapped[Optional["Family"]] = relationship(
+        "Family",
+        back_populates="members",
+        foreign_keys="User.family_id"
+    )

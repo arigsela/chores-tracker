@@ -12,6 +12,7 @@ from contextlib import asynccontextmanager
 from ..db.base import AsyncSessionLocal
 from ..repositories.user import UserRepository
 from ..repositories.chore import ChoreRepository
+from ..repositories.chore_assignment import ChoreAssignmentRepository
 
 
 class UnitOfWork:
@@ -34,6 +35,7 @@ class UnitOfWork:
         self.session: Optional[AsyncSession] = None
         self._users: Optional[UserRepository] = None
         self._chores: Optional[ChoreRepository] = None
+        self._assignments: Optional[ChoreAssignmentRepository] = None
     
     async def __aenter__(self):
         """Enter the async context manager."""
@@ -60,7 +62,14 @@ class UnitOfWork:
         if self._chores is None:
             self._chores = ChoreRepository()
         return self._chores
-    
+
+    @property
+    def assignments(self) -> ChoreAssignmentRepository:
+        """Get the chore assignment repository instance."""
+        if self._assignments is None:
+            self._assignments = ChoreAssignmentRepository()
+        return self._assignments
+
     async def commit(self):
         """Commit the current transaction."""
         if self.session:

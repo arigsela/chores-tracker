@@ -1,0 +1,78 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: check-actual-schema-job
+  namespace: chores-tracker-backend
+spec:
+  template:
+    spec:
+      containers:
+      - name: check-actual-schema
+        image: 852893458518.dkr.ecr.us-east-2.amazonaws.com/chores-tracker:5.4.2
+        command: ["python", "-c"]
+        args:
+        - |
+          import asyncio
+          import os
+          import sys
+          from pathlib import Path
+
+          # Add backend directory to path
+          backend_dir = Path("/app/backend")
+          sys.path.insert(0, str(backend_dir))
+
+          async def check_actual_schema():
+              print("🔍 Checking actual database schema...")
+              print("=" * 60)
+
+              try:
+                  from backend.app.core.config import settings
+                  from sqlalchemy.ext.asyncio import create_async_engine
+                  from sqlalchemy import text
+
+                  # Create engine
+                  engine = create_async_engine(settings.DATABASE_URL, echo=False)
+
+                  async with engine.connect() as conn:
+                      # Check users table structure
+                      print("📋 Users table structure:")
+                      result = await conn.execute(text("DESCRIBE users"))
+                      users_columns = list(result.fetchall())
+                      for col in users_columns:
+                          print(f"  - {col[0]}: {col[1]}")
+
+                      print("\n📌 Current Alembic version:")
+                      result = await conn.execute(text("SELECT version_num FROM alembic_version"))
+                      versions = [row[0] for row in result.fetchall()]
+                      print(f"  {versions}")
+
+                      # Check if timestamp columns exist
+                      user_col_names = [col[0] for col in users_columns]
+                      has_created_at = 'created_at' in user_col_names
+                      has_updated_at = 'updated_at' in user_col_names
+
+                      print(f"\n✅ Analysis:")
+                      print(f"  - created_at exists: {has_created_at}")
+                      print(f"  - updated_at exists: {has_updated_at}")
+                      print(f"  - Current version: {versions[0] if versions else 'None'}")
+
+                      if not has_created_at or not has_updated_at:
+                          print("\n⚠️  PROBLEM: Database schema is incomplete!")
+                          print("  The alembic version says migrations are applied but columns are missing.")
+                          print("  Need to reset alembic version and run proper migrations.")
+                      else:
+                          print("\n✅ Schema is complete!")
+
+                  await engine.dispose()
+                  return True
+
+              except Exception as e:
+                  print(f"❌ Schema check failed: {e}")
+                  return False
+
+          asyncio.run(check_actual_schema())
+        env:
+        - name: ENVIRONMENT
+          value: "production"
+      restartPolicy: Never
+  backoffLimit: 3

@@ -10,19 +10,30 @@ import {
   Alert,
   TextInput,
 } from 'react-native';
-import { Chore, choreAPI } from '../api/chores';
+import { Chore, choreAPI, PendingApprovalItem, Assignment } from '../api/chores';
 import { usersAPI, ChildWithChores } from '../api/users';
 import { familyAPI } from '../api/families';
 import { RejectChoreModal } from '../components/RejectChoreModal';
 
 interface ApprovalCardProps {
   chore: Chore;
+  assignment: Assignment;
+  assignmentId: number;
   childName: string;
-  onApprove: (choreId: number, rewardValue?: number) => void;
-  onReject: (choreId: number) => void;
+  onApprove: (assignmentId: number, rewardValue?: number) => void;
+  onReject: (assignmentId: number) => void;
+  assignmentMode?: string; // For displaying mode badge
 }
 
-const ApprovalCard: React.FC<ApprovalCardProps> = ({ chore, childName, onApprove, onReject }) => {
+const ApprovalCard: React.FC<ApprovalCardProps> = ({
+  chore,
+  assignment,
+  assignmentId,
+  childName,
+  onApprove,
+  onReject,
+  assignmentMode
+}) => {
   const [customReward, setCustomReward] = useState('');
   const [showCustomInput, setShowCustomInput] = useState(false);
 
@@ -37,13 +48,13 @@ const ApprovalCard: React.FC<ApprovalCardProps> = ({ chore, childName, onApprove
           );
           return;
         }
-        onApprove(chore.id, value);
+        onApprove(assignmentId, value);
       } else {
         setShowCustomInput(true);
         setCustomReward(((chore.min_reward || 0) + (chore.max_reward || 0)) / 2 + '');
       }
     } else {
-      onApprove(chore.id);
+      onApprove(assignmentId);
     }
   };
 
@@ -54,10 +65,10 @@ const ApprovalCard: React.FC<ApprovalCardProps> = ({ chore, childName, onApprove
     return `$${chore.reward?.toFixed(2) || '0.00'}`;
   };
 
-  const completedDate = chore.completion_date || chore.completed_at;
-  const formattedDate = completedDate 
-    ? new Date(completedDate).toLocaleDateString('en-US', { 
-        month: 'short', 
+  const completedDate = assignment.completion_date || chore.completion_date || chore.completed_at;
+  const formattedDate = completedDate
+    ? new Date(completedDate).toLocaleDateString('en-US', {
+        month: 'short',
         day: 'numeric',
         hour: '2-digit',
         minute: '2-digit'
@@ -71,6 +82,11 @@ const ApprovalCard: React.FC<ApprovalCardProps> = ({ chore, childName, onApprove
           <Text style={styles.choreTitle}>{chore.title}</Text>
           <Text style={styles.childName}>Completed by: {childName}</Text>
           <Text style={styles.completedDate}>Completed: {formattedDate}</Text>
+          {assignmentMode === 'multi_independent' && (
+            <View style={styles.modeBadge}>
+              <Text style={styles.modeBadgeText}>Multi-Child Chore</Text>
+            </View>
+          )}
         </View>
         <View style={styles.rewardBadge}>
           <Text style={styles.rewardLabel}>Reward</Text>
@@ -105,7 +121,7 @@ const ApprovalCard: React.FC<ApprovalCardProps> = ({ chore, childName, onApprove
       <View style={styles.actionButtons}>
         <TouchableOpacity
           style={[styles.button, styles.rejectButton]}
-          onPress={() => onReject(chore.id)}
+          onPress={() => onReject(assignmentId)}
         >
           <Text style={styles.rejectButtonText}>Reject</Text>
         </TouchableOpacity>
@@ -144,16 +160,18 @@ const ApprovalCard: React.FC<ApprovalCardProps> = ({ chore, childName, onApprove
 };
 
 const ApprovalsScreen: React.FC = () => {
-  const [pendingChores, setPendingChores] = useState<Chore[]>([]);
+  // NEW: Changed from Chore[] to PendingApprovalItem[]
+  const [pendingItems, setPendingItems] = useState<PendingApprovalItem[]>([]);
   const [children, setChildren] = useState<ChildWithChores[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [selectedChores, setSelectedChores] = useState<Set<number>>(new Set());
+  // NEW: Changed from chore IDs to assignment IDs
+  const [selectedAssignments, setSelectedAssignments] = useState<Set<number>>(new Set());
   const [bulkMode, setBulkMode] = useState(false);
-  
+
   // Rejection modal state
   const [rejectModalVisible, setRejectModalVisible] = useState(false);
-  const [choreToReject, setChoreToReject] = useState<Chore | null>(null);
+  const [itemToReject, setItemToReject] = useState<PendingApprovalItem | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -163,17 +181,18 @@ const ApprovalsScreen: React.FC = () => {
     try {
       // First get family context to understand if user has a family
       const familyCtx = await familyAPI.getFamilyContext();
-      
+
       // Use family children if user has family, otherwise fallback to personal children
-      const childrenEndpoint = familyCtx.has_family 
-        ? usersAPI.getFamilyChildren() 
+      const childrenEndpoint = familyCtx.has_family
+        ? usersAPI.getFamilyChildren()
         : usersAPI.getMyChildren();
-      
-      const [choresData, childrenData] = await Promise.all([
+
+      // NEW: getPendingApprovalChores now returns PendingApprovalItem[]
+      const [pendingData, childrenData] = await Promise.all([
         choreAPI.getPendingApprovalChores(),
         childrenEndpoint,
       ]);
-      setPendingChores(choresData);
+      setPendingItems(pendingData);
       setChildren(childrenData);
     } catch (error) {
       console.error('Failed to fetch pending approvals:', error);
@@ -186,102 +205,101 @@ const ApprovalsScreen: React.FC = () => {
 
   const onRefresh = () => {
     setRefreshing(true);
-    setSelectedChores(new Set());
+    setSelectedAssignments(new Set());
     setBulkMode(false);
     fetchData();
   };
 
-  const getChildName = (choreId: number): string => {
-    const chore = pendingChores.find(c => c.id === choreId);
-    if (!chore) return 'Unknown';
-    
-    const childId = chore.assignee_id || chore.assigned_to_id;
-    const child = children.find(c => c.id === childId);
-    return child?.username || `Child #${childId}`;
-  };
-
-  const handleApprove = async (choreId: number, rewardValue?: number) => {
+  // NEW: Uses assignment_id instead of chore_id
+  const handleApprove = async (assignmentId: number, rewardValue?: number) => {
     try {
-      await choreAPI.approveChore(choreId, rewardValue);
-      
+      await choreAPI.approveAssignment(assignmentId, rewardValue);
+
+      // Find the item being approved for success message
+      const item = pendingItems.find(i => i.assignment_id === assignmentId);
+
       // Remove from pending list immediately for better UX
-      setPendingChores(prev => prev.filter(c => c.id !== choreId));
-      
-      const childName = getChildName(choreId);
+      setPendingItems(prev => prev.filter(i => i.assignment_id !== assignmentId));
+
+      const childName = item?.assignee_name || 'Unknown';
+      const choreTitle = item?.chore.title || 'Unknown';
       Alert.alert(
         'Success',
-        `Chore approved for ${childName}${rewardValue ? ` ($${rewardValue.toFixed(2)})` : ''}!`
+        `Approved "${choreTitle}" for ${childName}${rewardValue ? ` ($${rewardValue.toFixed(2)})` : ''}!`
       );
     } catch (error) {
-      console.error('Failed to approve chore:', error);
-      Alert.alert('Error', 'Failed to approve chore');
+      console.error('Failed to approve assignment:', error);
+      Alert.alert('Error', 'Failed to approve assignment');
       fetchData(); // Refresh on error to restore state
     }
   };
 
-  const handleReject = (choreId: number) => {
-    const chore = pendingChores.find(c => c.id === choreId);
-    if (chore) {
-      setChoreToReject(chore);
+  // NEW: Uses assignment_id instead of chore_id
+  const handleReject = (assignmentId: number) => {
+    const item = pendingItems.find(i => i.assignment_id === assignmentId);
+    if (item) {
+      setItemToReject(item);
       setRejectModalVisible(true);
     }
   };
 
   const handleRejectConfirm = async (rejectionReason: string) => {
-    if (!choreToReject) return;
+    if (!itemToReject) return;
 
     try {
-      await choreAPI.rejectChore(choreToReject.id, rejectionReason);
-      
+      await choreAPI.rejectAssignment(itemToReject.assignment_id, rejectionReason);
+
       // Remove from pending list
-      setPendingChores(prev => prev.filter(c => c.id !== choreToReject.id));
-      
+      setPendingItems(prev => prev.filter(i => i.assignment_id !== itemToReject.assignment_id));
+
       // Close modal
       setRejectModalVisible(false);
-      setChoreToReject(null);
-      
-      const childName = getChildName(choreToReject.id);
+      setItemToReject(null);
+
+      const childName = itemToReject.assignee_name;
+      const choreTitle = itemToReject.chore.title;
       Alert.alert(
-        'Chore Rejected',
-        `"${choreToReject.title}" has been rejected. ${childName} will need to complete it again.`
+        'Assignment Rejected',
+        `"${choreTitle}" has been rejected. ${childName} will need to complete it again.`
       );
     } catch (error) {
-      console.error('Failed to reject chore:', error);
-      Alert.alert('Error', 'Failed to reject chore');
+      console.error('Failed to reject assignment:', error);
+      Alert.alert('Error', 'Failed to reject assignment');
       fetchData(); // Refresh on error to restore state
     }
   };
 
   const handleRejectCancel = () => {
     setRejectModalVisible(false);
-    setChoreToReject(null);
+    setItemToReject(null);
   };
 
-  const toggleChoreSelection = (choreId: number) => {
-    const newSelection = new Set(selectedChores);
-    if (newSelection.has(choreId)) {
-      newSelection.delete(choreId);
+  // NEW: Uses assignment IDs instead of chore IDs
+  const toggleAssignmentSelection = (assignmentId: number) => {
+    const newSelection = new Set(selectedAssignments);
+    if (newSelection.has(assignmentId)) {
+      newSelection.delete(assignmentId);
     } else {
-      newSelection.add(choreId);
+      newSelection.add(assignmentId);
     }
-    setSelectedChores(newSelection);
+    setSelectedAssignments(newSelection);
   };
 
   const handleBulkApprove = async () => {
-    if (selectedChores.size === 0) {
-      Alert.alert('No Selection', 'Please select chores to approve');
+    if (selectedAssignments.size === 0) {
+      Alert.alert('No Selection', 'Please select assignments to approve');
       return;
     }
 
-    // Check if any selected chores have range rewards
-    const hasRangeRewards = pendingChores
-      .filter(c => selectedChores.has(c.id))
-      .some(c => c.is_range_reward);
+    // Check if any selected assignments have range rewards
+    const hasRangeRewards = pendingItems
+      .filter(i => selectedAssignments.has(i.assignment_id))
+      .some(i => i.chore.is_range_reward);
 
     if (hasRangeRewards) {
       Alert.alert(
         'Range Rewards',
-        'Some selected chores have range rewards. Please approve them individually to set specific amounts.',
+        'Some selected assignments have range rewards. Please approve them individually to set specific amounts.',
         [{ text: 'OK' }]
       );
       return;
@@ -289,15 +307,15 @@ const ApprovalsScreen: React.FC = () => {
 
     Alert.alert(
       'Bulk Approve',
-      `Approve ${selectedChores.size} chore(s)?`,
+      `Approve ${selectedAssignments.size} assignment(s)?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Approve All',
           onPress: async () => {
-            const approvalPromises = Array.from(selectedChores).map(choreId =>
-              choreAPI.approveChore(choreId).catch(err => {
-                console.error(`Failed to approve chore ${choreId}:`, err);
+            const approvalPromises = Array.from(selectedAssignments).map(assignmentId =>
+              choreAPI.approveAssignment(assignmentId).catch(err => {
+                console.error(`Failed to approve assignment ${assignmentId}:`, err);
                 return null;
               })
             );
@@ -305,16 +323,16 @@ const ApprovalsScreen: React.FC = () => {
             const results = await Promise.all(approvalPromises);
             const successCount = results.filter(r => r !== null).length;
 
-            setPendingChores(prev => 
-              prev.filter(c => !selectedChores.has(c.id) || results[Array.from(selectedChores).indexOf(c.id)] === null)
+            setPendingItems(prev =>
+              prev.filter(i => !selectedAssignments.has(i.assignment_id) || results[Array.from(selectedAssignments).indexOf(i.assignment_id)] === null)
             );
 
-            setSelectedChores(new Set());
+            setSelectedAssignments(new Set());
             setBulkMode(false);
 
             Alert.alert(
               'Bulk Approval Complete',
-              `Successfully approved ${successCount} out of ${selectedChores.size} chores.`
+              `Successfully approved ${successCount} out of ${selectedAssignments.size} assignments.`
             );
           },
         },
@@ -330,7 +348,8 @@ const ApprovalsScreen: React.FC = () => {
     );
   }
 
-  const totalPendingReward = pendingChores.reduce((sum, chore) => {
+  const totalPendingReward = pendingItems.reduce((sum, item) => {
+    const chore = item.chore;
     if (chore.is_range_reward) {
       // Use average of range for estimate
       return sum + ((chore.min_reward || 0) + (chore.max_reward || 0)) / 2;
@@ -344,15 +363,15 @@ const ApprovalsScreen: React.FC = () => {
         <View>
           <Text style={styles.title}>Pending Approvals</Text>
           <Text style={styles.subtitle}>
-            {pendingChores.length} chore{pendingChores.length !== 1 ? 's' : ''} pending
+            {pendingItems.length} assignment{pendingItems.length !== 1 ? 's' : ''} pending
           </Text>
         </View>
-        {pendingChores.length > 0 && (
+        {pendingItems.length > 0 && (
           <TouchableOpacity
             style={styles.bulkButton}
             onPress={() => {
               if (bulkMode) {
-                setSelectedChores(new Set());
+                setSelectedAssignments(new Set());
               }
               setBulkMode(!bulkMode);
             }}
@@ -364,7 +383,7 @@ const ApprovalsScreen: React.FC = () => {
         )}
       </View>
 
-      {pendingChores.length > 0 && (
+      {pendingItems.length > 0 && (
         <View style={styles.summaryCard}>
           <Text style={styles.summaryLabel}>Estimated Total Rewards</Text>
           <Text style={styles.summaryAmount}>${totalPendingReward.toFixed(2)}</Text>
@@ -374,10 +393,10 @@ const ApprovalsScreen: React.FC = () => {
         </View>
       )}
 
-      {bulkMode && selectedChores.size > 0 && (
+      {bulkMode && selectedAssignments.size > 0 && (
         <View style={styles.bulkActionBar}>
           <Text style={styles.bulkSelectionText}>
-            {selectedChores.size} selected
+            {selectedAssignments.size} selected
           </Text>
           <TouchableOpacity
             style={styles.bulkApproveButton}
@@ -392,43 +411,44 @@ const ApprovalsScreen: React.FC = () => {
         style={styles.scrollView}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
-        {pendingChores.length === 0 ? (
+        {pendingItems.length === 0 ? (
           <View style={styles.emptyState}>
             <Text style={styles.emptyIcon}>✅</Text>
             <Text style={styles.emptyText}>No pending approvals</Text>
             <Text style={styles.emptySubtext}>
-              All completed chores have been reviewed
+              All completed assignments have been reviewed
             </Text>
           </View>
         ) : (
-          pendingChores.map((chore) => {
-            const childId = chore.assignee_id || chore.assigned_to_id;
-            const child = children.find(c => c.id === childId);
-            const childName = child?.username || `Child #${childId}`;
+          pendingItems.map((item) => {
+            const { chore, assignment, assignment_id, assignee_name } = item;
 
             if (bulkMode) {
               return (
                 <TouchableOpacity
-                  key={chore.id}
-                  onPress={() => toggleChoreSelection(chore.id)}
+                  key={assignment_id}
+                  onPress={() => toggleAssignmentSelection(assignment_id)}
                   style={[
                     styles.selectableCard,
-                    selectedChores.has(chore.id) && styles.selectedCard,
+                    selectedAssignments.has(assignment_id) && styles.selectedCard,
                   ]}
                 >
                   <View style={styles.selectionIndicator}>
                     <View style={[
                       styles.checkbox,
-                      selectedChores.has(chore.id) && styles.checkboxSelected,
+                      selectedAssignments.has(assignment_id) && styles.checkboxSelected,
                     ]}>
-                      {selectedChores.has(chore.id) && (
+                      {selectedAssignments.has(assignment_id) && (
                         <Text style={styles.checkmark}>✓</Text>
                       )}
                     </View>
                   </View>
                   <ApprovalCard
                     chore={chore}
-                    childName={childName}
+                    assignment={assignment}
+                    assignmentId={assignment_id}
+                    childName={assignee_name}
+                    assignmentMode={chore.assignment_mode}
                     onApprove={() => {}} // Disabled in bulk mode
                     onReject={() => {}} // Disabled in bulk mode
                   />
@@ -438,9 +458,12 @@ const ApprovalsScreen: React.FC = () => {
 
             return (
               <ApprovalCard
-                key={chore.id}
+                key={assignment_id}
                 chore={chore}
-                childName={childName}
+                assignment={assignment}
+                assignmentId={assignment_id}
+                childName={assignee_name}
+                assignmentMode={chore.assignment_mode}
                 onApprove={handleApprove}
                 onReject={handleReject}
               />
@@ -451,8 +474,8 @@ const ApprovalsScreen: React.FC = () => {
 
       <RejectChoreModal
         visible={rejectModalVisible}
-        choreTitle={choreToReject?.title || ''}
-        childName={choreToReject ? getChildName(choreToReject.id) : ''}
+        choreTitle={itemToReject?.chore.title || ''}
+        childName={itemToReject?.assignee_name || ''}
         onReject={handleRejectConfirm}
         onCancel={handleRejectCancel}
       />
@@ -618,6 +641,19 @@ const styles = StyleSheet.create({
   completedDate: {
     fontSize: 12,
     color: '#999',
+  },
+  modeBadge: {
+    backgroundColor: '#FFA726',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginTop: 6,
+    alignSelf: 'flex-start',
+  },
+  modeBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#fff',
   },
   rewardBadge: {
     backgroundColor: '#e8f5e9',

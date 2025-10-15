@@ -78,8 +78,13 @@ A modern web application for families to manage household chores, built with Fas
 ### Core Features
 - **Parent accounts** can create and manage chores
 - **Child accounts** can view and complete assigned chores
+- **Multi-assignment modes** - Three flexible chore assignment patterns:
+  - **Single**: Traditional one-child assignment
+  - **Multi-Independent**: Personal chores for multiple children (e.g., "Clean your room")
+  - **Unassigned Pool**: Shared chores, first-come-first-served (e.g., "Walk the dog")
 - **Reward system** with fixed or range-based rewards
-- **Recurring chores** with cooldown periods
+- **Per-assignment tracking** - Each child's completion tracked independently
+- **Recurring chores** with cooldown periods (mode-specific reset behavior)
 - **Real-time updates** using HTMX
 - **Responsive design** with Tailwind CSS
 - **Reward adjustments** - Parents can add bonuses or penalties to children's balances
@@ -245,6 +250,36 @@ npm run dev:simulator  # In another terminal
 ```
 
 ## 🎯 Recent Feature Highlights
+
+### Multi-Assignment Chore System (January 2025) 🆕
+The application now supports three distinct chore assignment patterns to accommodate different family scenarios:
+
+**Single Assignment Mode**:
+- Traditional one-child-one-chore assignment (backward compatible)
+- Example: "Mow the lawn" assigned to Alice
+- Child completes → parent approves → balance increases
+
+**Multi-Independent Mode**:
+- Personal chores where each child does their own version
+- Example: "Clean your room" assigned to Alice, Bob, and Charlie
+- Each child completes independently
+- Parent approves each completion separately
+- Each child's balance increases independently
+
+**Unassigned Pool Mode**:
+- Shared household chores, first-come-first-served
+- Example: "Walk the dog", "Take out trash"
+- Any child can claim and complete
+- Great for encouraging initiative and sharing responsibilities
+
+**Technical Implementation**:
+- Assignment-level tracking with `chore_assignments` junction table
+- Per-assignment completion and approval status
+- Mode-specific cooldown behavior for recurring chores
+- Comprehensive validation and error handling
+- 83 passing tests across unit, integration, and edge cases
+
+See [CLAUDE.md](CLAUDE.md) for detailed API examples and usage patterns.
 
 ### Child Balance Display (August 2025)
 The child balance feature provides a prominent display of rewards earned:

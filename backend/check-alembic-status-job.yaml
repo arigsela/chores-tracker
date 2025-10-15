@@ -1,0 +1,28 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: check-alembic-status-job
+  namespace: chores-tracker-backend
+spec:
+  template:
+    spec:
+      containers:
+      - name: check-alembic-status
+        image: 852893458518.dkr.ecr.us-east-2.amazonaws.com/chores-tracker:5.4.2
+        command: ["sh", "-c"]
+        args:
+        - |
+          echo "🔍 Checking current Alembic revision..."
+          cd /app/backend
+          python -m alembic -c alembic.ini current
+          echo ""
+          echo "🎯 Checking head revision..."
+          python -m alembic -c alembic.ini heads
+          echo ""
+          echo "📋 Checking migration history..."
+          python -m alembic -c alembic.ini history
+        env:
+        - name: ENVIRONMENT
+          value: "production"
+      restartPolicy: Never
+  backoffLimit: 3
