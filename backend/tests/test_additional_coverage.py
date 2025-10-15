@@ -111,10 +111,11 @@ class TestAdditionalCoverage:
                 "title": "Assignee Test 1",
                 "description": "Test",
                 "reward": 5.0,
-                "assignee_id": child.id
+                "assignment_mode": "single",
+                "assignee_ids": [child.id]
             }
         )
-        
+
         chore2 = await chore_service.create_chore(
             db_session,
             creator_id=parent.id,
@@ -122,7 +123,8 @@ class TestAdditionalCoverage:
                 "title": "Assignee Test 2",
                 "description": "Test",
                 "reward": 10.0,
-                "assignee_id": child.id
+                "assignment_mode": "single",
+                "assignee_ids": [child.id]
             }
         )
         
@@ -211,26 +213,28 @@ class TestAdditionalCoverage:
                 "title": "Pending Approval Test",
                 "description": "Test",
                 "reward": 5.0,
-                "assignee_id": child.id
+                "assignment_mode": "single",
+                "assignee_ids": [child.id]
             }
         )
-        
+
         # Complete it
         await chore_service.complete_chore(
             db_session,
             chore_id=chore.id,
             user_id=child.id
         )
-        
-        # Get pending approval
+
+        # Get pending approval - returns list of dictionaries with assignment + chore data
         pending = await chore_service.get_pending_approval(
             db_session,
             parent_id=parent.id
         )
         assert len(pending) == 1
-        assert pending[0].title == "Pending Approval Test"
-        assert pending[0].is_completed is True
-        assert pending[0].is_approved is False
+        # pending[0] is a dictionary with 'assignment', 'chore', 'assignee' keys
+        assert pending[0]["chore"].title == "Pending Approval Test"
+        assert pending[0]["assignment"].is_completed is True
+        assert pending[0]["assignment"].is_approved is False
     
     @pytest.mark.asyncio
     async def test_chore_service_update_chore(self, db_session: AsyncSession):
@@ -247,14 +251,16 @@ class TestAdditionalCoverage:
             is_parent=True
         )
         
-        # Create chore
+        # Create chore (unassigned mode for simplicity)
         chore = await chore_service.create_chore(
             db_session,
             creator_id=parent.id,
             chore_data={
                 "title": "Original Title",
                 "description": "Original Description",
-                "reward": 5.0
+                "reward": 5.0,
+                "assignment_mode": "unassigned",
+                "assignee_ids": []
             }
         )
         

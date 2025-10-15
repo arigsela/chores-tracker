@@ -189,7 +189,7 @@ class TestJourney1_SingleToMultiParent(TestE2EFamilyWorkflows):
         # Step 6: Parent1 can see and approve chores created by Parent2
         pending_approvals1 = await client.get("/api/v1/chores/pending-approval", headers=parent1_headers)
         assert pending_approvals1.status_code == 200
-        
+
         # Mark chore2 as completed (child1 completes the chore)
         child1_headers = await self.get_auth_headers(child1.id)
         complete_response = await client.post(
@@ -197,11 +197,15 @@ class TestJourney1_SingleToMultiParent(TestE2EFamilyWorkflows):
             headers=child1_headers  # Child completes their own chore
         )
         assert complete_response.status_code == 200
-        
-        # Parent1 can approve Parent2's chore
+        complete_data = complete_response.json()
+
+        # Get the assignment_id from the completion response
+        assignment_id = complete_data["assignment"]["id"]
+
+        # Parent1 can approve Parent2's chore using the assignment endpoint
         approve_response = await client.post(
-            f"/api/v1/chores/{chore2_data['id']}/approve",
-            json={"final_reward": 10.0},
+            f"/api/v1/assignments/{assignment_id}/approve",
+            json={"reward_value": 10.0},
             headers=parent1_headers
         )
         assert approve_response.status_code == 200
