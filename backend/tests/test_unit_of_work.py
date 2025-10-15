@@ -106,7 +106,9 @@ class TestUnitOfWorkPattern:
         }
         child = await user_repo.create(db_session, obj_in=child_data)
         
-        # Create chore
+        # Create chore with multi-assignment pattern
+        from backend.app.models.chore_assignment import ChoreAssignment
+
         chore_data = {
             "title": "Test Chore Multi",
             "description": "Test description",
@@ -114,20 +116,30 @@ class TestUnitOfWorkPattern:
             "is_range_reward": False,
             "cooldown_days": 0,
             "is_recurring": False,
-            "creator_id": parent.id,
-            "assignee_id": child.id,
-            "is_completed": False,
-            "is_approved": False,
-            "is_disabled": False
+            "is_disabled": False,
+            "assignment_mode": "single",
+            "creator_id": parent.id
         }
         chore = await chore_repo.create(db_session, obj_in=chore_data)
-        
+        await db_session.flush()  # Get chore ID
+
+        # Create assignment
+        from backend.app.repositories.chore_assignment import ChoreAssignmentRepository
+        assignment_repo = ChoreAssignmentRepository()
+        assignment = await assignment_repo.create(db_session, obj_in={
+            "chore_id": chore.id,
+            "assignee_id": child.id,
+            "is_completed": False,
+            "is_approved": False
+        })
+
         # Verify all were created
         assert parent.id is not None
         assert child.id is not None
         assert chore.id is not None
+        assert assignment.id is not None
         assert child.parent_id == parent.id
-        assert chore.assignee_id == child.id
+        assert assignment.assignee_id == child.id
         
         # Transaction commits automatically in test fixture
         
@@ -205,38 +217,49 @@ class TestTransactionalServices:
             "title": "Test Approval Chore",
             "description": "Test",
             "reward": 10.0,
-            "assignee_id": child.id,
+            "assignment_mode": "single",
+            "assignee_ids": [child.id],
             "is_range_reward": False,
             "cooldown_days": 0,
             "is_recurring": False
         }
-        
+
         chore = await chore_service.create_chore(
             db_session,
             creator_id=parent.id,
             chore_data=chore_data
         )
-        
+
         assert chore.title == "Test Approval Chore"
-        assert chore.assignee_id == child.id
-        
+        # Verify assignment was created
+        await db_session.refresh(chore, ['assignments'])
+        assert len(chore.assignments) == 1
+        assert chore.assignments[0].assignee_id == child.id
+
+        assignment_id = chore.assignments[0].id
+
         # Complete chore
-        completed_chore = await chore_service.complete_chore(
+        await chore_service.complete_chore(
             db_session,
             chore_id=chore.id,
             user_id=child.id
         )
-        
-        assert completed_chore.is_completed is True
-        
+
+        # Verify completion
+        await db_session.refresh(chore, ['assignments'])
+        assert chore.assignments[0].is_completed is True
+
         # Approve chore
-        approved_chore = await chore_service.approve_chore(
+        from backend.app.services.chore_service import ChoreService
+        await chore_service.approve_assignment(
             db_session,
-            chore_id=chore.id,
+            assignment_id=assignment_id,
             parent_id=parent.id
         )
-        
-        assert approved_chore.is_approved is True
+
+        # Verify approval
+        await db_session.refresh(chore, ['assignments'])
+        assert chore.assignments[0].is_approved is True
     
     @pytest.mark.asyncio
     async def test_validation_errors_dont_create_partial_data(self, db_session: AsyncSession):

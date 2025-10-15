@@ -406,7 +406,8 @@ class TestChoreServiceBusinessLogic:
                     "title": "Test Chore",
                     "description": "Test",
                     "reward": 5.0,
-                    "assignee_id": 99999  # Non-existent
+                    "assignment_mode": "single",
+                    "assignee_ids": [99999]  # Non-existent
                 }
             )
         
@@ -454,7 +455,8 @@ class TestChoreServiceBusinessLogic:
                     "title": "Test Chore",
                     "description": "Test",
                     "reward": 5.0,
-                    "assignee_id": child.id
+                    "assignment_mode": "single",
+                    "assignee_ids": [child.id]
                 }
             )
         
@@ -500,7 +502,8 @@ class TestChoreServiceBusinessLogic:
                 "title": "Child1 Chore",
                 "description": "Test",
                 "reward": 5.0,
-                "assignee_id": child1.id
+                "assignment_mode": "single",
+                "assignee_ids": [child1.id]
             }
         )
         
@@ -539,6 +542,8 @@ class TestChoreServiceBusinessLogic:
         )
         
         # Create and disable chore
+        from backend.app.models.chore_assignment import ChoreAssignment
+
         chore = Chore(
             title="Disabled Chore",
             description="Test",
@@ -546,13 +551,21 @@ class TestChoreServiceBusinessLogic:
             is_range_reward=False,
             cooldown_days=0,
             is_recurring=False,
-            creator_id=parent.id,
-            assignee_id=child.id,
-            is_completed=False,
-            is_approved=False,
-            is_disabled=True  # Disabled!
+            is_disabled=True,  # Disabled!
+            assignment_mode="single",
+            creator_id=parent.id
         )
         db_session.add(chore)
+        await db_session.flush()  # Get chore ID
+
+        # Create assignment
+        assignment = ChoreAssignment(
+            chore_id=chore.id,
+            assignee_id=child.id,
+            is_completed=False,
+            is_approved=False
+        )
+        db_session.add(assignment)
         await db_session.commit()
         
         # Try to complete it
@@ -597,7 +610,7 @@ class TestChoreServiceBusinessLogic:
             is_parent=False,
             parent_id=parent1.id
         )
-        
+
         # Parent1 creates chore
         chore = await chore_service.create_chore(
             db_session,
@@ -606,7 +619,8 @@ class TestChoreServiceBusinessLogic:
                 "title": "Test Chore",
                 "description": "Test",
                 "reward": 5.0,
-                "assignee_id": child.id
+                "assignment_mode": "single",
+                "assignee_ids": [child.id]
             }
         )
         
@@ -659,7 +673,8 @@ class TestChoreServiceBusinessLogic:
                 "title": "Uncompleted Chore",
                 "description": "Test",
                 "reward": 5.0,
-                "assignee_id": child.id
+                "assignment_mode": "single",
+                "assignee_ids": [child.id]
             }
         )
         
@@ -705,7 +720,8 @@ class TestChoreServiceBusinessLogic:
                 "title": "Test Chore",
                 "description": "Test",
                 "reward": 5.0,
-                "assignee_id": child.id
+                "assignment_mode": "single",
+                "assignee_ids": [child.id]
             }
         )
         
@@ -758,7 +774,7 @@ class TestChoreServiceBusinessLogic:
             is_parent=False,
             parent_id=parent1.id
         )
-        
+
         # Parent1 creates chore
         chore = await chore_service.create_chore(
             db_session,
@@ -767,7 +783,8 @@ class TestChoreServiceBusinessLogic:
                 "title": "Test Chore",
                 "description": "Test",
                 "reward": 5.0,
-                "assignee_id": child.id
+                "assignment_mode": "single",
+                "assignee_ids": [child.id]
             }
         )
         
