@@ -664,26 +664,29 @@ async def read_chore(
     
     Users can only access chores they're authorized to view.
     """
-    chore = await chore_service.get(db, id=chore_id)
+    chore = await chore_service.repository.get_with_assignments(db, chore_id=chore_id)
     if not chore:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Chore not found"
         )
-    
+
     # Check permissions
     if current_user.is_parent and chore.creator_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not authorized to access this chore"
         )
-    
-    if not current_user.is_parent and chore.assignee_id != current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not authorized to access this chore"
-        )
-    
+
+    # For children, check if they have an assignment for this chore
+    if not current_user.is_parent:
+        has_assignment = any(assignment.assignee_id == current_user.id for assignment in chore.assignments)
+        if not has_assignment:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Not authorized to access this chore"
+            )
+
     return chore
 
 @router.put(
@@ -1129,7 +1132,11 @@ async def disable_chore(
         chore_id=chore_id,
         parent_id=current_user.id
     )
-    return updated_chore
+
+    # Eager-load assignments for the response
+    updated_chore_with_assignments = await chore_service.repository.get_with_assignments(db, chore_id=chore_id)
+
+    return updated_chore_with_assignments
 
 
 @router.post(
@@ -1191,32 +1198,35 @@ async def enable_chore(
             detail="Only parents can enable chores"
         )
     
-    # Get the chore using the repository
+    # Get the chore with assignments using the repository
     from ....repositories.chore import ChoreRepository
     chore_repo = ChoreRepository()
-    
-    chore = await chore_repo.get(db, id=chore_id)
+
+    chore = await chore_repo.get_with_assignments(db, chore_id=chore_id)
     if not chore:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Chore not found"
         )
-    
+
     # Check if the parent owns this chore
     if chore.creator_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You can only enable chores you created"
         )
-    
+
     # Check if the chore is actually disabled
     if not chore.is_disabled:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Chore is not disabled"
         )
-    
+
     # Enable the chore using the repository
     updated_chore = await chore_repo.enable_chore(db, chore_id=chore_id)
-    
-    return updated_chore
+
+    # Eager-load assignments for the response
+    updated_chore_with_assignments = await chore_repo.get_with_assignments(db, chore_id=chore_id)
+
+    return updated_chore_with_assignments
