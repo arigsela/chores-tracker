@@ -59,74 +59,8 @@ async def mock_db_session():
     return mock_session
 
 
-@pytest_asyncio.fixture
-async def sample_chores():
-    """Create sample chores for testing calculations."""
-    return [
-        # Child 1 approved chores
-        Chore(
-            id=1,
-            title="Clean room",
-            reward=5.0,
-            approval_reward=5.0,
-            assignee_id=101,
-            creator_id=100,
-            is_completed=True,
-            is_approved=True,
-            created_at=datetime.now() - timedelta(days=5),
-            updated_at=datetime.now() - timedelta(days=4)
-        ),
-        Chore(
-            id=2,
-            title="Do dishes",
-            reward=3.50,
-            approval_reward=4.0,  # Parent increased reward
-            assignee_id=101,
-            creator_id=100,
-            is_completed=True,
-            is_approved=True,
-            created_at=datetime.now() - timedelta(days=3),
-            updated_at=datetime.now() - timedelta(days=2)
-        ),
-        # Child 1 pending chore
-        Chore(
-            id=3,
-            title="Take out trash",
-            reward=2.0,
-            approval_reward=None,  # Not approved yet
-            assignee_id=101,
-            creator_id=100,
-            is_completed=True,
-            is_approved=False,
-            created_at=datetime.now() - timedelta(days=1),
-            updated_at=datetime.now() - timedelta(hours=2)
-        ),
-        # Child 2 approved chore
-        Chore(
-            id=4,
-            title="Vacuum living room",
-            reward=7.25,
-            approval_reward=7.25,
-            assignee_id=102,
-            creator_id=100,
-            is_completed=True,
-            is_approved=True,
-            created_at=datetime.now() - timedelta(days=6),
-            updated_at=datetime.now() - timedelta(days=5)
-        ),
-        # Child 2 incomplete chore (should not count)
-        Chore(
-            id=5,
-            title="Organize closet",
-            reward=10.0,
-            approval_reward=None,
-            assignee_id=102,
-            creator_id=100,
-            is_completed=False,
-            is_approved=False,
-            created_at=datetime.now() - timedelta(hours=1)
-        )
-    ]
+# DEPRECATED: sample_chores fixture removed - not compatible with multi-assignment architecture
+# Tests now use direct mocking instead
 
 
 @pytest_asyncio.fixture
@@ -167,32 +101,48 @@ class TestSingleChildCalculations:
     """Test financial calculations for a single child."""
     
     @pytest.mark.asyncio
-    async def test_single_child_basic_calculation(self, mock_db_session, mock_parent_user, mock_child_users, sample_chores, sample_adjustments):
+    async def test_single_child_basic_calculation(self, mock_db_session, mock_parent_user, mock_child_users, sample_adjustments):
         """Test basic allowance calculation for single child."""
-        # Arrange - Child 1 has 2 approved chores (5.0 + 4.0) + adjustments (2.50 - 1.00) = 10.50
+        # Arrange - Child 1 has 2 approved assignments (5.0 + 4.0) + adjustments (2.50 - 1.00) = 10.50
         child1 = mock_child_users[0]
-        child1_chores = [c for c in sample_chores if c.assignee_id == 101 and c.is_approved]
-        child1_adjustments = [a for a in sample_adjustments if a.child_id == 101]
         
         # Mock database queries
         with patch('backend.app.api.api_v1.endpoints.reports.select') as mock_select:
             # Mock children query
-            mock_children_query = Mock()
             mock_children_result = Mock()
             mock_children_result.scalars.return_value.all.return_value = [child1]
-            
-            # Mock chores query  
-            mock_chores_query = Mock()
-            mock_chores_result = Mock()
-            mock_chores_result.scalars.return_value.all.return_value = child1_chores
-            
+
+            # Mock assignments query - assignments with chore relationships
+            mock_chore1 = Mock()
+            mock_chore1.reward = 5.0
+            mock_assignment1 = Mock()
+            mock_assignment1.id = 1
+            mock_assignment1.is_completed = True
+            mock_assignment1.is_approved = True
+            mock_assignment1.approval_reward = 5.0
+            mock_assignment1.chore = mock_chore1
+            mock_assignment1.updated_at = datetime.now()
+
+            mock_chore2 = Mock()
+            mock_chore2.reward = 3.50
+            mock_assignment2 = Mock()
+            mock_assignment2.id = 2
+            mock_assignment2.is_completed = True
+            mock_assignment2.is_approved = True
+            mock_assignment2.approval_reward = 4.0  # Parent increased reward
+            mock_assignment2.chore = mock_chore2
+            mock_assignment2.updated_at = datetime.now()
+
+            mock_assignments_result = Mock()
+            mock_assignments_result.scalars.return_value.all.return_value = [mock_assignment1, mock_assignment2]
+
             # Mock adjustments query
             mock_adjustments_result = Mock()
             mock_adjustments_result.scalar.return_value = Decimal("1.50")  # 2.50 - 1.00
-            
+
             mock_db_session.execute.side_effect = [
                 mock_children_result,
-                mock_chores_result,
+                mock_assignments_result,
                 mock_adjustments_result
             ]
             
@@ -320,28 +270,43 @@ class TestMultipleChildrenCalculations:
                 
                 if call_count == 1:
                     return mock_children_result
-                elif call_count == 2:  # Child 1 chores
+                elif call_count == 2:  # Child 1 assignments
                     mock_result = Mock()
-                    # Mock 3 completed chores totaling $15.50
-                    mock_chores = [
-                        Mock(is_completed=True, is_approved=True, approval_reward=5.50, reward=5.0),
-                        Mock(is_completed=True, is_approved=True, approval_reward=None, reward=4.00),
-                        Mock(is_completed=True, is_approved=True, approval_reward=6.00, reward=5.50),
-                    ]
-                    mock_result.scalars.return_value.all.return_value = mock_chores
+                    # Mock 3 completed assignments totaling $15.50
+                    mock_assignments = []
+                    for idx, (approval_rew, chore_rew) in enumerate([(5.50, 5.0), (None, 4.00), (6.00, 5.50)]):
+                        mock_chore = Mock()
+                        mock_chore.reward = chore_rew
+                        mock_assignment = Mock()
+                        mock_assignment.id = idx + 1
+                        mock_assignment.is_completed = True
+                        mock_assignment.is_approved = True
+                        mock_assignment.approval_reward = approval_rew
+                        mock_assignment.chore = mock_chore
+                        mock_assignment.updated_at = datetime.now()
+                        mock_assignments.append(mock_assignment)
+                    mock_result.scalars.return_value.all.return_value = mock_assignments
                     return mock_result
                 elif call_count == 3:  # Child 1 adjustments
                     mock_result = Mock()
                     mock_result.scalar.return_value = Decimal("2.00")
                     return mock_result
-                elif call_count == 4:  # Child 2 chores
+                elif call_count == 4:  # Child 2 assignments
                     mock_result = Mock()
-                    # Mock 2 completed chores totaling $10.25
-                    mock_chores = [
-                        Mock(is_completed=True, is_approved=True, approval_reward=7.25, reward=7.00),
-                        Mock(is_completed=True, is_approved=True, approval_reward=None, reward=3.00),
-                    ]
-                    mock_result.scalars.return_value.all.return_value = mock_chores
+                    # Mock 2 completed assignments totaling $10.25
+                    mock_assignments = []
+                    for idx, (approval_rew, chore_rew) in enumerate([(7.25, 7.00), (None, 3.00)]):
+                        mock_chore = Mock()
+                        mock_chore.reward = chore_rew
+                        mock_assignment = Mock()
+                        mock_assignment.id = idx + 10  # Different IDs
+                        mock_assignment.is_completed = True
+                        mock_assignment.is_approved = True
+                        mock_assignment.approval_reward = approval_rew
+                        mock_assignment.chore = mock_chore
+                        mock_assignment.updated_at = datetime.now()
+                        mock_assignments.append(mock_assignment)
+                    mock_result.scalars.return_value.all.return_value = mock_assignments
                     return mock_result
                 elif call_count == 5:  # Child 2 adjustments
                     mock_result = Mock()
@@ -396,25 +361,45 @@ class TestPendingChoresCalculation:
             mock_children_result = Mock()
             mock_children_result.scalars.return_value.all.return_value = [child1]
             
-            # Mock chores: 1 approved for $5, 2 pending for $3 + $4 = $7
-            mock_chores = [
-                Mock(is_completed=True, is_approved=True, approval_reward=5.0, reward=5.0),  # Approved
-                Mock(is_completed=True, is_approved=False, approval_reward=None, reward=3.0),  # Pending
-                Mock(is_completed=True, is_approved=False, approval_reward=None, reward=4.0),  # Pending
-            ]
-            
-            mock_chores_result = Mock()
-            mock_chores_result.scalars.return_value.all.return_value = mock_chores
+            # Mock assignments: 1 approved for $5, 2 pending for $3 + $4 = $7
+            mock_assignments = []
+            # Approved assignment
+            mock_chore1 = Mock()
+            mock_chore1.reward = 5.0
+            mock_assignment1 = Mock()
+            mock_assignment1.id = 1
+            mock_assignment1.is_completed = True
+            mock_assignment1.is_approved = True
+            mock_assignment1.approval_reward = 5.0
+            mock_assignment1.chore = mock_chore1
+            mock_assignment1.updated_at = datetime.now()
+            mock_assignments.append(mock_assignment1)
+
+            # Pending assignments
+            for idx, reward in enumerate([3.0, 4.0], start=2):
+                mock_chore = Mock()
+                mock_chore.reward = reward
+                mock_assignment = Mock()
+                mock_assignment.id = idx
+                mock_assignment.is_completed = True
+                mock_assignment.is_approved = False
+                mock_assignment.approval_reward = None
+                mock_assignment.chore = mock_chore
+                mock_assignment.updated_at = datetime.now()
+                mock_assignments.append(mock_assignment)
+
+            mock_assignments_result = Mock()
+            mock_assignments_result.scalars.return_value.all.return_value = mock_assignments
             
             mock_adjustments_result = Mock()
             mock_adjustments_result.scalar.return_value = None
-            
+
             mock_db_session.execute.side_effect = [
                 mock_children_result,
-                mock_chores_result,
+                mock_assignments_result,
                 mock_adjustments_result
             ]
-            
+
             # Act
             result = await get_allowance_summary(
                 date_from=None,
@@ -423,13 +408,13 @@ class TestPendingChoresCalculation:
                 current_user=mock_parent_user,
                 db=mock_db_session
             )
-            
+
             # Assert
             child_summary = result.child_summaries[0]
-            assert child_summary.total_earned == 5.0  # Only approved chore
+            assert child_summary.total_earned == 5.0  # Only approved assignment
             assert child_summary.pending_chores_value == 7.0  # $3 + $4 pending
             assert child_summary.balance_due == 5.0  # Only approved amount affects balance
-            assert child_summary.completed_chores == 1  # Only approved chores count
+            assert child_summary.completed_chores == 1  # Only approved assignments count
 
 
 class TestPrecisionAndEdgeCases:
@@ -445,15 +430,22 @@ class TestPrecisionAndEdgeCases:
             mock_children_result = Mock()
             mock_children_result.scalars.return_value.all.return_value = [child1]
             
-            # Mock chores with precise decimal values
-            mock_chores = [
-                Mock(is_completed=True, is_approved=True, approval_reward=3.33, reward=3.00),
-                Mock(is_completed=True, is_approved=True, approval_reward=None, reward=2.67),
-                Mock(is_completed=True, is_approved=True, approval_reward=1.50, reward=1.25),
-            ]
-            
-            mock_chores_result = Mock()
-            mock_chores_result.scalars.return_value.all.return_value = mock_chores
+            # Mock assignments with precise decimal values
+            mock_assignments = []
+            for idx, (approval_rew, chore_rew) in enumerate([(3.33, 3.00), (None, 2.67), (1.50, 1.25)], start=1):
+                mock_chore = Mock()
+                mock_chore.reward = chore_rew
+                mock_assignment = Mock()
+                mock_assignment.id = idx
+                mock_assignment.is_completed = True
+                mock_assignment.is_approved = True
+                mock_assignment.approval_reward = approval_rew
+                mock_assignment.chore = mock_chore
+                mock_assignment.updated_at = datetime.now()
+                mock_assignments.append(mock_assignment)
+
+            mock_assignments_result = Mock()
+            mock_assignments_result.scalars.return_value.all.return_value = mock_assignments
             
             # Precise adjustment calculation: 0.33 + (-0.83) = -0.50
             mock_adjustments_result = Mock()
@@ -461,10 +453,10 @@ class TestPrecisionAndEdgeCases:
             
             mock_db_session.execute.side_effect = [
                 mock_children_result,
-                mock_chores_result,
+                mock_assignments_result,
                 mock_adjustments_result
             ]
-            
+
             # Act
             result = await get_allowance_summary(
                 date_from=None,
@@ -473,7 +465,7 @@ class TestPrecisionAndEdgeCases:
                 current_user=mock_parent_user,
                 db=mock_db_session
             )
-            
+
             # Assert precise calculations
             child_summary = result.child_summaries[0]
             # Earnings: 3.33 + 2.67 + 1.50 = 7.50
@@ -487,29 +479,50 @@ class TestPrecisionAndEdgeCases:
         """Test calculations with large monetary values."""
         # Arrange
         child1 = mock_child_users[0]
-        
+
         with patch('backend.app.api.api_v1.endpoints.reports.select') as mock_select:
             mock_children_result = Mock()
             mock_children_result.scalars.return_value.all.return_value = [child1]
-            
-            # Mock high-value chores
-            mock_chores = [
-                Mock(is_completed=True, is_approved=True, approval_reward=999.99, reward=500.00),
-                Mock(is_completed=True, is_approved=True, approval_reward=None, reward=1500.50),
-            ]
-            
-            mock_chores_result = Mock()
-            mock_chores_result.scalars.return_value.all.return_value = mock_chores
-            
+
+            # Mock high-value assignments
+            mock_assignments = []
+
+            # Assignment 1: approval_reward=999.99
+            mock_chore1 = Mock()
+            mock_chore1.reward = 500.00
+            mock_assignment1 = Mock()
+            mock_assignment1.id = 1
+            mock_assignment1.is_completed = True
+            mock_assignment1.is_approved = True
+            mock_assignment1.approval_reward = 999.99
+            mock_assignment1.chore = mock_chore1
+            mock_assignment1.updated_at = datetime.now()
+            mock_assignments.append(mock_assignment1)
+
+            # Assignment 2: uses chore.reward=1500.50
+            mock_chore2 = Mock()
+            mock_chore2.reward = 1500.50
+            mock_assignment2 = Mock()
+            mock_assignment2.id = 2
+            mock_assignment2.is_completed = True
+            mock_assignment2.is_approved = True
+            mock_assignment2.approval_reward = None
+            mock_assignment2.chore = mock_chore2
+            mock_assignment2.updated_at = datetime.now()
+            mock_assignments.append(mock_assignment2)
+
+            mock_assignments_result = Mock()
+            mock_assignments_result.scalars.return_value.all.return_value = mock_assignments
+
             mock_adjustments_result = Mock()
             mock_adjustments_result.scalar.return_value = Decimal("250.75")
-            
+
             mock_db_session.execute.side_effect = [
                 mock_children_result,
-                mock_chores_result,
+                mock_assignments_result,
                 mock_adjustments_result
             ]
-            
+
             # Act
             result = await get_allowance_summary(
                 date_from=None,
@@ -518,7 +531,7 @@ class TestPrecisionAndEdgeCases:
                 current_user=mock_parent_user,
                 db=mock_db_session
             )
-            
+
             # Assert large value handling
             child_summary = result.child_summaries[0]
             assert child_summary.total_earned == 2500.49  # 999.99 + 1500.50
@@ -530,30 +543,62 @@ class TestPrecisionAndEdgeCases:
         """Test proper handling of zero and null values."""
         # Arrange
         child1 = mock_child_users[0]
-        
+
         with patch('backend.app.api.api_v1.endpoints.reports.select') as mock_select:
             mock_children_result = Mock()
             mock_children_result.scalars.return_value.all.return_value = [child1]
-            
-            # Mock chores with null/zero values
-            mock_chores = [
-                Mock(is_completed=True, is_approved=True, approval_reward=None, reward=0.0),
-                Mock(is_completed=True, is_approved=True, approval_reward=0.0, reward=None),
-                Mock(is_completed=True, is_approved=True, approval_reward=5.0, reward=3.0),
-            ]
-            
-            mock_chores_result = Mock()
-            mock_chores_result.scalars.return_value.all.return_value = mock_chores
-            
+
+            # Mock assignments with null/zero values
+            mock_assignments = []
+
+            # Assignment 1: approval_reward=None, chore.reward=0.0 -> fallback to 0
+            mock_chore1 = Mock()
+            mock_chore1.reward = 0.0
+            mock_assignment1 = Mock()
+            mock_assignment1.id = 1
+            mock_assignment1.is_completed = True
+            mock_assignment1.is_approved = True
+            mock_assignment1.approval_reward = None
+            mock_assignment1.chore = mock_chore1
+            mock_assignment1.updated_at = datetime.now()
+            mock_assignments.append(mock_assignment1)
+
+            # Assignment 2: approval_reward=0.0, chore.reward=None -> use 0.0
+            mock_chore2 = Mock()
+            mock_chore2.reward = None
+            mock_assignment2 = Mock()
+            mock_assignment2.id = 2
+            mock_assignment2.is_completed = True
+            mock_assignment2.is_approved = True
+            mock_assignment2.approval_reward = 0.0
+            mock_assignment2.chore = mock_chore2
+            mock_assignment2.updated_at = datetime.now()
+            mock_assignments.append(mock_assignment2)
+
+            # Assignment 3: approval_reward=5.0 (normal case)
+            mock_chore3 = Mock()
+            mock_chore3.reward = 3.0
+            mock_assignment3 = Mock()
+            mock_assignment3.id = 3
+            mock_assignment3.is_completed = True
+            mock_assignment3.is_approved = True
+            mock_assignment3.approval_reward = 5.0
+            mock_assignment3.chore = mock_chore3
+            mock_assignment3.updated_at = datetime.now()
+            mock_assignments.append(mock_assignment3)
+
+            mock_assignments_result = Mock()
+            mock_assignments_result.scalars.return_value.all.return_value = mock_assignments
+
             mock_adjustments_result = Mock()
             mock_adjustments_result.scalar.return_value = None  # No adjustments
-            
+
             mock_db_session.execute.side_effect = [
                 mock_children_result,
-                mock_chores_result,
+                mock_assignments_result,
                 mock_adjustments_result
             ]
-            
+
             # Act
             result = await get_allowance_summary(
                 date_from=None,
@@ -562,7 +607,7 @@ class TestPrecisionAndEdgeCases:
                 current_user=mock_parent_user,
                 db=mock_db_session
             )
-            
+
             # Assert null/zero handling
             child_summary = result.child_summaries[0]
             # Should handle null/zero gracefully: 0 + 0 + 5.0 = 5.0
