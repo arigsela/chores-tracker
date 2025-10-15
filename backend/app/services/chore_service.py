@@ -821,104 +821,62 @@ class ChoreService(BaseService[Chore, ChoreRepository]):
         reward_value: Optional[float] = None
     ) -> Chore:
         """
-        Approve a completed chore.
-        
+        Approve a completed chore (legacy endpoint compatibility).
+
+        This method is kept for backward compatibility with the /chores/{id}/approve endpoint.
+        It finds the first completed assignment for the chore and approves it.
+
+        For multi-assignment chores, use approve_assignment() with assignment_id instead.
+
         Business rules:
         - Only parent who created the chore can approve
-        - Chore must be completed
+        - Chore must have at least one completed assignment
         - For range rewards, reward_value must be provided and within range
         """
-        chore = await self.get(db, id=chore_id)
+        # Get chore with assignments
+        chore = await self.repository.get_with_assignments(db, chore_id=chore_id)
         if not chore:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Chore not found"
             )
-        
-        # Check if user has permission to approve this chore (family-based access control)
-        approver = await self.user_repo.get(db, id=parent_id)
-        if not approver:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Approver not found"
-            )
-        
-        creator = await self.user_repo.get(db, id=chore.creator_id)
-        if not creator:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Chore creator not found"
-            )
-        
-        # Family-based access control: approver must be in same family as creator
-        if approver.family_id and creator.family_id:
-            # Both users are in families - check if they're in the same family
-            if approver.family_id != creator.family_id:
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="You can only approve chores from your family"
-                )
-        else:
-            # Legacy single-parent mode - use original validation
-            if chore.creator_id != parent_id:
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="You can only approve chores you created"
-                )
-        
-        # Check if chore is completed
-        if not chore.is_completed:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Chore must be completed before approval"
-            )
-        
-        # Check if already approved
-        if chore.is_approved:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Chore is already approved"
-            )
-        
-        # Validate reward for range rewards
-        update_data = {"is_approved": True}
-        
-        if chore.is_range_reward:
-            if reward_value is None:
-                raise HTTPException(
-                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                    detail="Reward value is required for range-based rewards"
-                )
-            if reward_value < chore.min_reward or reward_value > chore.max_reward:
-                raise HTTPException(
-                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                    detail=f"Reward value must be between {chore.min_reward} and {chore.max_reward}"
-                )
-            update_data["approval_reward"] = reward_value
-            # Also update the reward field to the final approved amount
-            update_data["reward"] = reward_value
-        
-        # Approve chore
-        updated_chore = await self.repository.update(
-            db, id=chore_id, obj_in=update_data
+
+        # Find first completed (not approved) assignment
+        from sqlalchemy import select
+        from ..models.chore_assignment import ChoreAssignment
+
+        stmt = select(ChoreAssignment).where(
+            ChoreAssignment.chore_id == chore_id,
+            ChoreAssignment.is_completed == True,
+            ChoreAssignment.is_approved == False
         )
-        
-        # Log activity
-        try:
-            final_reward = reward_value if reward_value is not None else chore.reward
-            await self.activity_service.log_chore_approved(
-                db,
-                parent_id=parent_id,
-                child_id=chore.assignee_id or chore.assigned_to_id,
-                chore_id=chore_id,
-                chore_title=updated_chore.title,
-                reward_amount=final_reward or 0.0
+        result = await db.execute(stmt)
+        assignment = result.scalars().first()
+
+        if not assignment:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No completed assignment found for this chore"
             )
-        except Exception as e:
-            # Don't fail chore approval if activity logging fails
-            print(f"Failed to log chore approval activity: {e}")
-        
-        return updated_chore
+
+        # Delegate to assignment-based approval
+        approval_result = await self.approve_assignment(
+            db,
+            assignment_id=assignment.id,
+            parent_id=parent_id,
+            reward_value=reward_value
+        )
+
+        # For backward compatibility, populate chore fields from approved assignment
+        approved_assignment = approval_result["assignment"]
+        chore.is_completed = True
+        chore.is_approved = True
+        chore.completed_at = approved_assignment.completion_date
+        chore.approved_at = approved_assignment.approval_date
+        chore.approval_reward = approved_assignment.approval_reward
+        chore.reward = approved_assignment.approval_reward or chore.reward
+
+        return chore
     
     async def reject_chore(
         self,
@@ -929,75 +887,61 @@ class ChoreService(BaseService[Chore, ChoreRepository]):
         rejection_reason: str
     ) -> Chore:
         """
-        Reject a completed chore.
-        
+        Reject a completed chore (legacy endpoint compatibility).
+
+        This method is kept for backward compatibility with the /chores/{id}/reject endpoint.
+        It finds the first completed assignment for the chore and rejects it.
+
+        For multi-assignment chores, use reject_assignment() with assignment_id instead.
+
         Business rules:
         - Only parent who created the chore can reject
-        - Chore must be completed but not approved
+        - Chore must have at least one completed assignment
         - Rejection reason is required
         """
-        chore = await self.get(db, id=chore_id)
+        # Get chore with assignments
+        chore = await self.repository.get_with_assignments(db, chore_id=chore_id)
         if not chore:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Chore not found"
             )
-        
-        # Check if user is the creator
-        if chore.creator_id != parent_id:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="You can only reject chores you created"
-            )
-        
-        # Check if chore is completed
-        if not chore.is_completed:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Chore must be completed before rejection"
-            )
-        
-        # Check if already approved
-        if chore.is_approved:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Cannot reject already approved chore"
-            )
-        
-        # Validate rejection reason
-        if not rejection_reason.strip():
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail="Rejection reason is required"
-            )
-        
-        # Reject chore - reset completion status and add rejection reason
-        update_data = {
-            "is_completed": False,
-            "completion_date": None,
-            "rejection_reason": rejection_reason.strip()
-        }
-        
-        # Reject chore
-        updated_chore = await self.repository.update(
-            db, id=chore_id, obj_in=update_data
+
+        # Find first completed (not approved) assignment
+        from sqlalchemy import select
+        from ..models.chore_assignment import ChoreAssignment
+
+        stmt = select(ChoreAssignment).where(
+            ChoreAssignment.chore_id == chore_id,
+            ChoreAssignment.is_completed == True,
+            ChoreAssignment.is_approved == False
         )
-        
-        # Log activity
-        try:
-            await self.activity_service.log_chore_rejected(
-                db,
-                parent_id=parent_id,
-                child_id=chore.assignee_id or chore.assigned_to_id,
-                chore_id=chore_id,
-                chore_title=updated_chore.title,
-                rejection_reason=rejection_reason
+        result = await db.execute(stmt)
+        assignment = result.scalars().first()
+
+        if not assignment:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No completed assignment found for this chore"
             )
-        except Exception as e:
-            # Don't fail chore rejection if activity logging fails
-            print(f"Failed to log chore rejection activity: {e}")
-        
-        return updated_chore
+
+        # Delegate to assignment-based rejection
+        rejection_result = await self.reject_assignment(
+            db,
+            assignment_id=assignment.id,
+            parent_id=parent_id,
+            rejection_reason=rejection_reason
+        )
+
+        # For backward compatibility, populate chore fields from rejected assignment
+        rejected_assignment = rejection_result["assignment"]
+        chore.is_completed = False
+        chore.is_approved = False
+        chore.completed_at = None
+        chore.approved_at = None
+        chore.rejection_reason = rejected_assignment.rejection_reason
+
+        return chore
     
     async def update_chore(
         self,
