@@ -640,7 +640,8 @@ class TestChoreServiceBusinessLogic:
             )
         
         assert exc_info.value.status_code == 403
-        assert "You can only approve chores you created" in str(exc_info.value.detail)
+        # Multi-assignment architecture: error message refers to "assignments for chores"
+        assert "You can only approve assignments for chores you created" in str(exc_info.value.detail)
     
     @pytest.mark.asyncio
     async def test_approve_uncompleted_chore(self, db_session: AsyncSession):

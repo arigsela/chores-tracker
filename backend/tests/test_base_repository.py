@@ -141,15 +141,17 @@ class TestBaseRepository:
         chore_base_repo: BaseRepository,
         test_chore: Chore
     ):
-        """Test get with eager loading relationships."""
+        """Test get with eager loading relationships (multi-assignment architecture)."""
         # Get chore with eager loaded relationships
+        # Note: 'assignee' no longer exists, replaced by 'assignments' many-to-many
         chore = await chore_base_repo.get(
             db_session,
             id=test_chore.id,
-            eager_load_relations=["assignee", "creator"]
+            eager_load_relations=["assignments", "creator"]
         )
-        
+
         assert chore is not None
         # Relationships should be loaded (not raising lazy load error)
-        assert chore.assignee is not None
+        assert chore.assignments is not None  # Many-to-many relationship
+        assert len(chore.assignments) > 0  # Should have at least one assignment
         assert chore.creator is not None
