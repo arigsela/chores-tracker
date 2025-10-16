@@ -603,17 +603,111 @@ describe('Chores API Module', () => {
     });
   });
 
+  describe('Multi-Assignment Methods', () => {
+    describe('approveAssignment', () => {
+      it('should approve an assignment without reward value', async () => {
+        const mockResponse = {
+          assignment: { id: 1, is_approved: true },
+          chore: createMockChore({ id: 1 }),
+          message: 'Assignment approved successfully'
+        };
+
+        mockApiClient.post.mockResolvedValue(createMockApiResponse(mockResponse));
+
+        const result = await choreAPI.approveAssignment(1);
+
+        expect(mockApiClient.post).toHaveBeenCalledWith('/assignments/1/approve', {});
+        expect(result.assignment.is_approved).toBe(true);
+        expect(result.message).toBe('Assignment approved successfully');
+      });
+
+      it('should approve an assignment with custom reward value', async () => {
+        const mockResponse = {
+          assignment: { id: 1, is_approved: true, approval_reward: 7.50 },
+          chore: createMockChore({ id: 1, is_range_reward: true, min_reward: 5, max_reward: 10 }),
+          message: 'Assignment approved successfully'
+        };
+
+        mockApiClient.post.mockResolvedValue(createMockApiResponse(mockResponse));
+
+        const result = await choreAPI.approveAssignment(1, 7.50);
+
+        expect(mockApiClient.post).toHaveBeenCalledWith('/assignments/1/approve', {
+          reward_value: 7.50
+        });
+        expect(result.assignment.approval_reward).toBe(7.50);
+      });
+
+      it('should handle assignment not found', async () => {
+        const error = createMockApiError('Assignment not found', 404);
+        mockApiClient.post.mockRejectedValue(error);
+
+        await expect(choreAPI.approveAssignment(999)).rejects.toThrow();
+      });
+
+      it('should handle assignment already approved', async () => {
+        const error = createMockApiError('Assignment already approved', 400);
+        mockApiClient.post.mockRejectedValue(error);
+
+        await expect(choreAPI.approveAssignment(1)).rejects.toThrow();
+      });
+    });
+
+    describe('rejectAssignment', () => {
+      it('should reject an assignment with reason', async () => {
+        const mockResponse = {
+          assignment: { id: 1, is_completed: false, rejection_reason: 'Not done properly' },
+          chore: createMockChore({ id: 1 }),
+          message: 'Assignment rejected successfully'
+        };
+
+        mockApiClient.post.mockResolvedValue(createMockApiResponse(mockResponse));
+
+        const result = await choreAPI.rejectAssignment(1, 'Not done properly');
+
+        expect(mockApiClient.post).toHaveBeenCalledWith('/assignments/1/reject', {
+          rejection_reason: 'Not done properly'
+        });
+        expect(result.assignment.rejection_reason).toBe('Not done properly');
+        expect(result.assignment.is_completed).toBe(false);
+      });
+
+      it('should handle assignment not found', async () => {
+        const error = createMockApiError('Assignment not found', 404);
+        mockApiClient.post.mockRejectedValue(error);
+
+        await expect(choreAPI.rejectAssignment(999, 'reason')).rejects.toThrow();
+      });
+
+      it('should handle empty rejection reason', async () => {
+        const mockResponse = {
+          assignment: { id: 1, rejection_reason: '' },
+          chore: createMockChore({ id: 1 }),
+          message: 'Assignment rejected'
+        };
+
+        mockApiClient.post.mockResolvedValue(createMockApiResponse(mockResponse));
+
+        const result = await choreAPI.rejectAssignment(1, '');
+
+        expect(mockApiClient.post).toHaveBeenCalledWith('/assignments/1/reject', {
+          rejection_reason: ''
+        });
+      });
+    });
+  });
+
   describe('Parameter Validation', () => {
     it('should handle various ChoreStatus values', async () => {
       const statuses: ChoreStatus[] = ['available', 'active', 'completed', 'pending_approval', 'approved'];
-      
+
       for (const status of statuses) {
         mockApiClient.get.mockResolvedValue(createMockApiResponse([]));
-        
+
         await choreAPI.getMyChores(status);
-        
-        expect(mockApiClient.get).toHaveBeenCalledWith('/chores', { 
-          params: { status } 
+
+        expect(mockApiClient.get).toHaveBeenCalledWith('/chores', {
+          params: { status }
         });
       }
     });
@@ -638,10 +732,10 @@ describe('Chores API Module', () => {
       };
 
       mockApiClient.post.mockResolvedValue(createMockApiResponse(createMockChore()));
-      
+
       await choreAPI.createChore(choreData);
-      
-      expect(mockApiClient.post).toHaveBeenCalledWith('/chores', 
+
+      expect(mockApiClient.post).toHaveBeenCalledWith('/chores',
         expect.objectContaining({ reward: 12.34 })
       );
     });

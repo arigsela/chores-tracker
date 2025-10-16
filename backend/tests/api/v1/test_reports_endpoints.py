@@ -17,6 +17,7 @@ from httpx import AsyncClient
 from backend.app.services.activity_service import ActivityService
 from backend.app.models.reward_adjustment import RewardAdjustment
 from backend.app.models.chore import Chore
+from backend.app.models.chore_assignment import ChoreAssignment
 
 
 @pytest_asyncio.fixture
@@ -27,8 +28,8 @@ async def activity_service():
 
 @pytest_asyncio.fixture
 async def test_chores(db_session, test_parent_user, test_child_user):
-    """Create test chores for financial calculations."""
-    # Create completed chores for testing
+    """Create test chores for financial calculations using multi-assignment architecture."""
+    # Create chores (without deprecated fields)
     chore1 = Chore(
         title="Clean Room",
         description="Clean and organize bedroom",
@@ -36,14 +37,10 @@ async def test_chores(db_session, test_parent_user, test_child_user):
         is_range_reward=False,
         cooldown_days=0,
         is_recurring=False,
-        is_completed=True,
-        is_approved=True,
-        approval_reward=5.0,
-        completion_date=datetime.now() - timedelta(days=2),
-        assignee_id=test_child_user.id,
+        assignment_mode="single",
         creator_id=test_parent_user.id
     )
-    
+
     chore2 = Chore(
         title="Do Dishes",
         description="Wash and put away dishes",
@@ -51,14 +48,10 @@ async def test_chores(db_session, test_parent_user, test_child_user):
         is_range_reward=False,
         cooldown_days=0,
         is_recurring=False,
-        is_completed=True,
-        is_approved=True,
-        approval_reward=3.0,
-        completion_date=datetime.now() - timedelta(days=1),
-        assignee_id=test_child_user.id,
+        assignment_mode="single",
         creator_id=test_parent_user.id
     )
-    
+
     # Create pending chore
     chore3 = Chore(
         title="Take Out Trash",
@@ -67,19 +60,54 @@ async def test_chores(db_session, test_parent_user, test_child_user):
         is_range_reward=False,
         cooldown_days=0,
         is_recurring=False,
-        is_completed=True,
-        is_approved=False,
-        completion_date=datetime.now(),
-        assignee_id=test_child_user.id,
+        assignment_mode="single",
         creator_id=test_parent_user.id
     )
-    
+
     db_session.add_all([chore1, chore2, chore3])
     await db_session.commit()
     await db_session.refresh(chore1)
     await db_session.refresh(chore2)
     await db_session.refresh(chore3)
-    
+
+    # Create assignments with completion/approval state
+    assignment1 = ChoreAssignment(
+        chore_id=chore1.id,
+        assignee_id=test_child_user.id,
+        is_completed=True,
+        is_approved=True,
+        completion_date=datetime.now() - timedelta(days=2),
+        approval_date=datetime.now() - timedelta(days=2),
+        approval_reward=5.0
+    )
+
+    assignment2 = ChoreAssignment(
+        chore_id=chore2.id,
+        assignee_id=test_child_user.id,
+        is_completed=True,
+        is_approved=True,
+        completion_date=datetime.now() - timedelta(days=1),
+        approval_date=datetime.now() - timedelta(days=1),
+        approval_reward=3.0
+    )
+
+    # Pending assignment (completed but not approved)
+    assignment3 = ChoreAssignment(
+        chore_id=chore3.id,
+        assignee_id=test_child_user.id,
+        is_completed=True,
+        is_approved=False,
+        completion_date=datetime.now(),
+        approval_date=None,
+        approval_reward=None
+    )
+
+    db_session.add_all([assignment1, assignment2, assignment3])
+    await db_session.commit()
+    await db_session.refresh(assignment1)
+    await db_session.refresh(assignment2)
+    await db_session.refresh(assignment3)
+
     return [chore1, chore2, chore3]
 
 

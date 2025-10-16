@@ -236,26 +236,26 @@ async def get_my_balance(
             detail="Parents should use /api/v1/users/summary endpoint"
         )
     
-    # Reuse the balance calculation logic from the summary endpoint
-    from .repositories.chore import ChoreRepository
+    # Use assignment-based balance calculation (multi-assignment architecture)
+    from .repositories.chore_assignment import ChoreAssignmentRepository
     from .repositories.reward_adjustment import RewardAdjustmentRepository
-    chore_repo = ChoreRepository()
+    assignment_repo = ChoreAssignmentRepository()
     adjustment_repo = RewardAdjustmentRepository()
-    
-    # Get chores for the current user
-    chores = await chore_repo.get_by_assignee(db, assignee_id=current_user.id)
-    
-    # Helper function to get final reward amount (matches frontend logic)
-    def get_final_reward_amount(chore):
-        # For approved chores, prioritize approval_reward field
-        if chore.approval_reward is not None:
-            return chore.approval_reward
-        # Fallback to reward field (legacy and fixed rewards)
-        return chore.reward or 0
-    
-    # Calculate totals using correct reward amounts
-    total_earned = sum(get_final_reward_amount(c) for c in chores if c.is_completed and c.is_approved)
-    pending_chores_value = sum(get_final_reward_amount(c) for c in chores if c.is_completed and not c.is_approved)
+
+    # Get assignments for the current user (not chores)
+    assignments = await assignment_repo.get_by_assignee(db, assignee_id=current_user.id)
+
+    # Helper function to get final reward amount from assignment
+    def get_assignment_reward(assignment):
+        # For approved assignments, use approval_reward if set (range rewards)
+        if assignment.approval_reward is not None:
+            return assignment.approval_reward
+        # Fallback to chore's base reward (fixed rewards)
+        return assignment.chore.reward or 0
+
+    # Calculate totals using assignment-level data
+    total_earned = sum(get_assignment_reward(a) for a in assignments if a.is_completed and a.is_approved)
+    pending_chores_value = sum(get_assignment_reward(a) for a in assignments if a.is_completed and not a.is_approved)
     
     # Get total adjustments
     total_adjustments = await adjustment_repo.calculate_total_adjustments(db, child_id=current_user.id)

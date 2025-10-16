@@ -17,7 +17,9 @@ async def test_chore_pagination(
     db_session: AsyncSession
 ):
     """Test pagination for the chores endpoint."""
-    # Create 25 test chores
+    from backend.app.models.chore_assignment import ChoreAssignment
+
+    # Create 25 test chores with assignments
     for i in range(25):
         chore = Chore(
             title=f"Test chore {i+1}",
@@ -27,10 +29,20 @@ async def test_chore_pagination(
             cooldown_days=0,
             is_recurring=False,
             is_disabled=False,
-            assignee_id=test_child_user.id,
+            assignment_mode="single",
             creator_id=test_parent_user.id
         )
         db_session.add(chore)
+        await db_session.flush()  # Get chore.id
+
+        # Create assignment for the child
+        assignment = ChoreAssignment(
+            chore_id=chore.id,
+            assignee_id=test_child_user.id,
+            is_completed=False,
+            is_approved=False
+        )
+        db_session.add(assignment)
     await db_session.commit()
     
     # Test default pagination (first page)
@@ -88,7 +100,8 @@ async def test_validation_special_characters(
             "title": f"Special Characters {special_chars}",
             "description": "Test description",
             "reward": 5.0,
-            "assignee_id": 2  # Assuming child ID is 2
+            "assignment_mode": "single",
+            "assignee_ids": [2]  # Assuming child ID is 2
         },
         headers={"Authorization": f"Bearer {parent_token}"}
     )
@@ -128,7 +141,8 @@ async def test_validation_long_inputs(
             "title": long_title,
             "description": long_description,
             "reward": 5.0,
-            "assignee_id": 2  # Assuming child ID is 2
+            "assignment_mode": "single",
+            "assignee_ids": [2]  # Assuming child ID is 2
         },
         headers={"Authorization": f"Bearer {parent_token}"}
     )

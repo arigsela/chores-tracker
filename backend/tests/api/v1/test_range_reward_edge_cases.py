@@ -145,7 +145,8 @@ async def test_zero_reward_for_range_chore(
             "is_range_reward": True,
             "min_reward": 0.0,
             "max_reward": 0.0,
-            "assignee_id": 2  # Assuming child ID is 2
+            "assignment_mode": "single",
+            "assignee_ids": [2]  # Assuming child ID is 2
         },
         headers={"Authorization": f"Bearer {parent_token}"}
     )

@@ -42,19 +42,36 @@ class TestE2EFamilyWorkflows:
         return {"Authorization": f"Bearer {token}"}
 
     async def create_test_chore(self, db_session: AsyncSession, creator_id: int, assignee_id: int, title: str = "Test Chore"):
-        """Helper to create test chores."""
-        chore_repo = ChoreRepository()
-        return await chore_repo.create(
-            db_session,
-            obj_in={
-                "title": title,
-                "description": "Test chore description",
-                "reward": 5.0,
-                "creator_id": creator_id,
-                "assignee_id": assignee_id,
-                "is_recurring": False
-            }
+        """Helper to create test chores with single assignment."""
+        from backend.app.models.chore import Chore
+        from backend.app.models.chore_assignment import ChoreAssignment
+
+        # Create chore with multi-assignment architecture
+        chore = Chore(
+            title=title,
+            description="Test chore description",
+            reward=5.0,
+            is_range_reward=False,
+            cooldown_days=0,
+            is_recurring=False,
+            is_disabled=False,
+            assignment_mode="single",
+            creator_id=creator_id
         )
+        db_session.add(chore)
+        await db_session.flush()  # Get chore.id
+
+        # Create assignment
+        assignment = ChoreAssignment(
+            chore_id=chore.id,
+            assignee_id=assignee_id,
+            is_completed=False,
+            is_approved=False
+        )
+        db_session.add(assignment)
+        await db_session.commit()
+        await db_session.refresh(chore)
+        return chore
 
 
 @pytest.mark.asyncio
@@ -172,7 +189,7 @@ class TestJourney1_SingleToMultiParent(TestE2EFamilyWorkflows):
         # Step 6: Parent1 can see and approve chores created by Parent2
         pending_approvals1 = await client.get("/api/v1/chores/pending-approval", headers=parent1_headers)
         assert pending_approvals1.status_code == 200
-        
+
         # Mark chore2 as completed (child1 completes the chore)
         child1_headers = await self.get_auth_headers(child1.id)
         complete_response = await client.post(
@@ -180,11 +197,15 @@ class TestJourney1_SingleToMultiParent(TestE2EFamilyWorkflows):
             headers=child1_headers  # Child completes their own chore
         )
         assert complete_response.status_code == 200
-        
-        # Parent1 can approve Parent2's chore
+        complete_data = complete_response.json()
+
+        # Get the assignment_id from the completion response
+        assignment_id = complete_data["assignment"]["id"]
+
+        # Parent1 can approve Parent2's chore using the assignment endpoint
         approve_response = await client.post(
-            f"/api/v1/chores/{chore2_data['id']}/approve",
-            json={"final_reward": 10.0},
+            f"/api/v1/assignments/{assignment_id}/approve",
+            json={"reward_value": 10.0},
             headers=parent1_headers
         )
         assert approve_response.status_code == 200

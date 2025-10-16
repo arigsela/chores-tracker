@@ -16,14 +16,15 @@ from httpx import AsyncClient
 
 from backend.app.models.reward_adjustment import RewardAdjustment
 from backend.app.models.chore import Chore
+from backend.app.models.chore_assignment import ChoreAssignment
 
 
 @pytest_asyncio.fixture
 async def time_series_test_data(db_session, test_parent_user, test_child_user):
-    """Create time-series test data for statistics calculations."""
+    """Create time-series test data for statistics calculations using multi-assignment architecture."""
     # Create chores spanning multiple weeks/months for trend analysis
     today = datetime.now().date()
-    
+
     # Week 1 (4 weeks ago): 2 chores, $8 earned
     week_1_start = today - timedelta(weeks=4)
     chore1 = Chore(
@@ -33,11 +34,7 @@ async def time_series_test_data(db_session, test_parent_user, test_child_user):
         is_range_reward=False,
         cooldown_days=0,
         is_recurring=False,
-        is_completed=True,
-        is_approved=True,
-        approval_reward=5.0,
-        completion_date=week_1_start + timedelta(days=1),
-        assignee_id=test_child_user.id,
+        assignment_mode="single",
         creator_id=test_parent_user.id
     )
     
@@ -48,14 +45,10 @@ async def time_series_test_data(db_session, test_parent_user, test_child_user):
         is_range_reward=False,
         cooldown_days=0,
         is_recurring=False,
-        is_completed=True,
-        is_approved=True,
-        approval_reward=3.0,
-        completion_date=week_1_start + timedelta(days=3),
-        assignee_id=test_child_user.id,
+        assignment_mode="single",
         creator_id=test_parent_user.id
     )
-    
+
     # Week 2 (3 weeks ago): 3 chores, $12 earned
     week_2_start = today - timedelta(weeks=3)
     chore3 = Chore(
@@ -65,14 +58,10 @@ async def time_series_test_data(db_session, test_parent_user, test_child_user):
         is_range_reward=False,
         cooldown_days=0,
         is_recurring=False,
-        is_completed=True,
-        is_approved=True,
-        approval_reward=4.0,
-        completion_date=week_2_start + timedelta(days=2),
-        assignee_id=test_child_user.id,
+        assignment_mode="single",
         creator_id=test_parent_user.id
     )
-    
+
     chore4 = Chore(
         title="Week 2 Chore B",
         description="Take out trash",
@@ -80,14 +69,10 @@ async def time_series_test_data(db_session, test_parent_user, test_child_user):
         is_range_reward=False,
         cooldown_days=0,
         is_recurring=False,
-        is_completed=True,
-        is_approved=True,
-        approval_reward=3.0,
-        completion_date=week_2_start + timedelta(days=4),
-        assignee_id=test_child_user.id,
+        assignment_mode="single",
         creator_id=test_parent_user.id
     )
-    
+
     chore5 = Chore(
         title="Week 2 Chore C",
         description="Clean bathroom",
@@ -95,14 +80,10 @@ async def time_series_test_data(db_session, test_parent_user, test_child_user):
         is_range_reward=False,
         cooldown_days=0,
         is_recurring=False,
-        is_completed=True,
-        is_approved=True,
-        approval_reward=5.0,
-        completion_date=week_2_start + timedelta(days=6),
-        assignee_id=test_child_user.id,
+        assignment_mode="single",
         creator_id=test_parent_user.id
     )
-    
+
     # Week 3 (2 weeks ago): 1 chore, $6 earned
     week_3_start = today - timedelta(weeks=2)
     chore6 = Chore(
@@ -112,14 +93,10 @@ async def time_series_test_data(db_session, test_parent_user, test_child_user):
         is_range_reward=False,
         cooldown_days=0,
         is_recurring=False,
-        is_completed=True,
-        is_approved=True,
-        approval_reward=6.0,
-        completion_date=week_3_start + timedelta(days=1),
-        assignee_id=test_child_user.id,
+        assignment_mode="single",
         creator_id=test_parent_user.id
     )
-    
+
     # Current week: 4 chores, $15 earned (shows increasing trend)
     current_week_start = today - timedelta(days=today.weekday())
     chore7 = Chore(
@@ -129,14 +106,10 @@ async def time_series_test_data(db_session, test_parent_user, test_child_user):
         is_range_reward=False,
         cooldown_days=0,
         is_recurring=False,
-        is_completed=True,
-        is_approved=True,
-        approval_reward=4.0,
-        completion_date=current_week_start + timedelta(days=1),
-        assignee_id=test_child_user.id,
+        assignment_mode="single",
         creator_id=test_parent_user.id
     )
-    
+
     chore8 = Chore(
         title="Current Week Chore B",
         description="Clean windows",
@@ -144,14 +117,10 @@ async def time_series_test_data(db_session, test_parent_user, test_child_user):
         is_range_reward=False,
         cooldown_days=0,
         is_recurring=False,
-        is_completed=True,
-        is_approved=True,
-        approval_reward=3.0,
-        completion_date=current_week_start + timedelta(days=2),
-        assignee_id=test_child_user.id,
+        assignment_mode="single",
         creator_id=test_parent_user.id
     )
-    
+
     chore9 = Chore(
         title="Current Week Chore C",
         description="Weed garden",
@@ -159,14 +128,10 @@ async def time_series_test_data(db_session, test_parent_user, test_child_user):
         is_range_reward=False,
         cooldown_days=0,
         is_recurring=False,
-        is_completed=True,
-        is_approved=True,
-        approval_reward=4.0,
-        completion_date=current_week_start + timedelta(days=3),
-        assignee_id=test_child_user.id,
+        assignment_mode="single",
         creator_id=test_parent_user.id
     )
-    
+
     chore10 = Chore(
         title="Current Week Chore D",
         description="Wash car",
@@ -174,11 +139,7 @@ async def time_series_test_data(db_session, test_parent_user, test_child_user):
         is_range_reward=False,
         cooldown_days=0,
         is_recurring=False,
-        is_completed=True,
-        is_approved=True,
-        approval_reward=4.0,
-        completion_date=current_week_start + timedelta(days=4),
-        assignee_id=test_child_user.id,
+        assignment_mode="single",
         creator_id=test_parent_user.id
     )
     
@@ -201,16 +162,126 @@ async def time_series_test_data(db_session, test_parent_user, test_child_user):
     
     all_chores = [chore1, chore2, chore3, chore4, chore5, chore6, chore7, chore8, chore9, chore10]
     all_adjustments = [adjustment1, adjustment2]
-    
+
     db_session.add_all(all_chores + all_adjustments)
     await db_session.commit()
-    
+
     # Refresh all objects to get IDs
     for chore in all_chores:
         await db_session.refresh(chore)
     for adjustment in all_adjustments:
         await db_session.refresh(adjustment)
-    
+
+    # Create assignments for all chores with completion/approval state
+    assignment1 = ChoreAssignment(
+        chore_id=chore1.id,
+        assignee_id=test_child_user.id,
+        is_completed=True,
+        is_approved=True,
+        completion_date=week_1_start + timedelta(days=1),
+        approval_date=week_1_start + timedelta(days=1),
+        approval_reward=5.0
+    )
+
+    assignment2 = ChoreAssignment(
+        chore_id=chore2.id,
+        assignee_id=test_child_user.id,
+        is_completed=True,
+        is_approved=True,
+        completion_date=week_1_start + timedelta(days=3),
+        approval_date=week_1_start + timedelta(days=3),
+        approval_reward=3.0
+    )
+
+    assignment3 = ChoreAssignment(
+        chore_id=chore3.id,
+        assignee_id=test_child_user.id,
+        is_completed=True,
+        is_approved=True,
+        completion_date=week_2_start + timedelta(days=2),
+        approval_date=week_2_start + timedelta(days=2),
+        approval_reward=4.0
+    )
+
+    assignment4 = ChoreAssignment(
+        chore_id=chore4.id,
+        assignee_id=test_child_user.id,
+        is_completed=True,
+        is_approved=True,
+        completion_date=week_2_start + timedelta(days=4),
+        approval_date=week_2_start + timedelta(days=4),
+        approval_reward=3.0
+    )
+
+    assignment5 = ChoreAssignment(
+        chore_id=chore5.id,
+        assignee_id=test_child_user.id,
+        is_completed=True,
+        is_approved=True,
+        completion_date=week_2_start + timedelta(days=6),
+        approval_date=week_2_start + timedelta(days=6),
+        approval_reward=5.0
+    )
+
+    assignment6 = ChoreAssignment(
+        chore_id=chore6.id,
+        assignee_id=test_child_user.id,
+        is_completed=True,
+        is_approved=True,
+        completion_date=week_3_start + timedelta(days=1),
+        approval_date=week_3_start + timedelta(days=1),
+        approval_reward=6.0
+    )
+
+    assignment7 = ChoreAssignment(
+        chore_id=chore7.id,
+        assignee_id=test_child_user.id,
+        is_completed=True,
+        is_approved=True,
+        completion_date=current_week_start + timedelta(days=1),
+        approval_date=current_week_start + timedelta(days=1),
+        approval_reward=4.0
+    )
+
+    assignment8 = ChoreAssignment(
+        chore_id=chore8.id,
+        assignee_id=test_child_user.id,
+        is_completed=True,
+        is_approved=True,
+        completion_date=current_week_start + timedelta(days=2),
+        approval_date=current_week_start + timedelta(days=2),
+        approval_reward=3.0
+    )
+
+    assignment9 = ChoreAssignment(
+        chore_id=chore9.id,
+        assignee_id=test_child_user.id,
+        is_completed=True,
+        is_approved=True,
+        completion_date=current_week_start + timedelta(days=3),
+        approval_date=current_week_start + timedelta(days=3),
+        approval_reward=4.0
+    )
+
+    assignment10 = ChoreAssignment(
+        chore_id=chore10.id,
+        assignee_id=test_child_user.id,
+        is_completed=True,
+        is_approved=True,
+        completion_date=current_week_start + timedelta(days=4),
+        approval_date=current_week_start + timedelta(days=4),
+        approval_reward=4.0
+    )
+
+    all_assignments = [assignment1, assignment2, assignment3, assignment4, assignment5,
+                       assignment6, assignment7, assignment8, assignment9, assignment10]
+
+    db_session.add_all(all_assignments)
+    await db_session.commit()
+
+    for assignment in all_assignments:
+        await db_session.refresh(assignment)
+
     return {
         'chores': all_chores,
         'adjustments': all_adjustments,
@@ -673,7 +744,7 @@ class TestStatisticsEndpointSecurity:
         await db_session.commit()
         await db_session.refresh(other_child)
         
-        # Create chores for other family
+        # Create chores for other family using multi-assignment architecture
         other_chore = Chore(
             title="Other Family Chore",
             description="Should not appear in original family stats",
@@ -681,14 +752,24 @@ class TestStatisticsEndpointSecurity:
             is_range_reward=False,
             cooldown_days=0,
             is_recurring=False,
-            is_completed=True,
-            is_approved=True,
-            approval_reward=10.0,
-            completion_date=datetime.now() - timedelta(days=1),
-            assignee_id=other_child.id,
+            assignment_mode="single",
             creator_id=other_parent.id
         )
         db_session.add(other_chore)
+        await db_session.commit()
+        await db_session.refresh(other_chore)
+
+        # Create assignment for the chore
+        other_assignment = ChoreAssignment(
+            chore_id=other_chore.id,
+            assignee_id=other_child.id,
+            is_completed=True,
+            is_approved=True,
+            completion_date=datetime.now() - timedelta(days=1),
+            approval_date=datetime.now() - timedelta(days=1),
+            approval_reward=10.0
+        )
+        db_session.add(other_assignment)
         await db_session.commit()
         
         # Create token for other parent

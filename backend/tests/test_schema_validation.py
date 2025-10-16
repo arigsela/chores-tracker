@@ -36,17 +36,15 @@ class TestChoreSchemas:
             "cooldown_days": 7,
             "is_recurring": True,
             "is_disabled": False,
-            "assignee_id": 2,
+            "assignment_mode": "single",
             "creator_id": 1,
-            "is_completed": False,
-            "is_approved": False,
             "created_at": datetime.now(),
             "updated_at": datetime.now()
         }
         chore = ChoreResponse(**chore_data)
-        # Note: assignee and creator fields are commented out in ChoreResponse 
+        # Note: assignee and creator fields are commented out in ChoreResponse
         # to avoid SQLAlchemy lazy loading issues. Test IDs instead.
-        assert chore.assignee_id == 2
+        assert chore.assignment_mode == "single"
         assert chore.creator_id == 1
     
     def test_chore_approve_range_validation(self):

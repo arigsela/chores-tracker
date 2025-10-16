@@ -1,0 +1,28 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: run-migrations-job
+  namespace: chores-tracker-backend
+spec:
+  template:
+    spec:
+      containers:
+      - name: run-migrations
+        image: 852893458518.dkr.ecr.us-east-2.amazonaws.com/chores-tracker:5.4.2
+        command: ["sh", "-c"]
+        args:
+        - |
+          echo "🔍 Finding alembic directory..."
+          find /app -name "alembic.ini" -type f
+          find /app -name "alembic" -type d
+          echo ""
+          echo "🔧 Running Alembic migrations..."
+          cd /app
+          python -m alembic -c backend/alembic.ini upgrade head
+          echo ""
+          echo "✅ Migration completed"
+        env:
+        - name: ENVIRONMENT
+          value: "production"
+      restartPolicy: Never
+  backoffLimit: 3

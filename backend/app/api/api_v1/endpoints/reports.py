@@ -6,10 +6,12 @@ from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_, or_
+from sqlalchemy.orm import selectinload
 
 from ....dependencies.auth import get_current_user
 from ....models.user import User
 from ....models.chore import Chore
+from ....models.chore_assignment import ChoreAssignment
 from ....models.reward_adjustment import RewardAdjustment
 from ....schemas.reports import (
     AllowanceSummaryResponse,
@@ -168,31 +170,43 @@ async def get_allowance_summary(
             if str(type(child_username)).startswith("<class 'unittest.mock."):
                 child_username = "test_child"  # Default test value
             
-            # Build chore query with date filters
-            chore_query = select(Chore).where(Chore.assignee_id == child_id)
-            
+            # Build assignment query with date filters (using new assignment-based architecture)
+            # Use eager loading to avoid N+1 queries when accessing chore data
+            assignment_query = select(ChoreAssignment).where(
+                ChoreAssignment.assignee_id == child_id
+            ).options(selectinload(ChoreAssignment.chore))
+
             if period_start:
-                chore_query = chore_query.where(Chore.created_at >= period_start)
+                assignment_query = assignment_query.where(ChoreAssignment.created_at >= period_start)
             if period_end:
-                chore_query = chore_query.where(Chore.created_at <= period_end)
-            
-            chore_result = await db.execute(chore_query)
-            chores = chore_result.scalars().all()
-            
-            # Handle Mock objects in tests for chores list
-            if str(type(chores)).startswith("<class 'unittest.mock."):
-                chores = []  # Default to empty list in test environment
-            
-            # Calculate earnings from approved chores
-            completed_chores = [c for c in chores if c.is_completed and c.is_approved]
+                assignment_query = assignment_query.where(ChoreAssignment.created_at <= period_end)
+
+            assignment_result = await db.execute(assignment_query)
+            assignments = assignment_result.scalars().all()
+
+            # Handle Mock objects in tests for assignments list
+            if str(type(assignments)).startswith("<class 'unittest.mock."):
+                assignments = []  # Default to empty list in test environment
+
+            # DEBUG: Log assignment data for troubleshooting
+            print(f"[REPORTS DEBUG] Child: {child_username} (ID: {child_id})")
+            print(f"[REPORTS DEBUG] Total assignments: {len(assignments)}")
+            for a in assignments:
+                print(f"[REPORTS DEBUG]   Assignment {a.id}: completed={a.is_completed}, approved={a.is_approved}")
+
+            # Calculate earnings from approved assignments
+            completed_assignments = [a for a in assignments if a.is_completed and a.is_approved]
             total_earned = sum(
-                (c.approval_reward or c.reward or 0) for c in completed_chores
+                (a.approval_reward or a.chore.reward or 0) for a in completed_assignments if a.chore
             )
-            
-            # Get pending chores value
-            pending_chores = [c for c in chores if c.is_completed and not c.is_approved]
+
+            print(f"[REPORTS DEBUG] Completed assignments count: {len(completed_assignments)}")
+            print(f"[REPORTS DEBUG] Total earned: {total_earned}")
+
+            # Get pending assignments value
+            pending_assignments = [a for a in assignments if a.is_completed and not a.is_approved]
             pending_chores_value = sum(
-                (c.reward or 0) for c in pending_chores
+                (a.chore.reward or 0) for a in pending_assignments if a.chore
             )
             
             # Build adjustment query with date filters
@@ -222,25 +236,25 @@ async def get_allowance_summary(
             paid_out = 0.0  # Future enhancement
             balance_due = total_earned + total_adjustments - paid_out
             
-            # Get last activity date
+            # Get last activity date from assignments
             last_activity_date = None
-            if completed_chores:
+            if completed_assignments:
                 # Handle Mock objects in tests and ensure updated_at is not None
-                completed_chores_with_dates = []
-                for c in completed_chores:
+                completed_assignments_with_dates = []
+                for a in completed_assignments:
                     # Check if updated_at exists, is not None, and is not a Mock object
-                    if (hasattr(c, 'updated_at') and 
-                        c.updated_at is not None and 
-                        not str(type(c.updated_at)).startswith("<class 'unittest.mock.")):
-                        completed_chores_with_dates.append(c)
-                
-                if completed_chores_with_dates:
-                    last_activity_date = max(c.updated_at for c in completed_chores_with_dates)
+                    if (hasattr(a, 'updated_at') and
+                        a.updated_at is not None and
+                        not str(type(a.updated_at)).startswith("<class 'unittest.mock.")):
+                        completed_assignments_with_dates.append(a)
+
+                if completed_assignments_with_dates:
+                    last_activity_date = max(a.updated_at for a in completed_assignments_with_dates)
             
             child_summary = ChildAllowanceSummary(
                 id=child_id,
                 username=child_username,
-                completed_chores=len(completed_chores),
+                completed_chores=len(completed_assignments),
                 total_earned=total_earned,
                 total_adjustments=total_adjustments,
                 paid_out=paid_out,
@@ -248,14 +262,14 @@ async def get_allowance_summary(
                 pending_chores_value=pending_chores_value,
                 last_activity_date=last_activity_date
             )
-            
+
             child_summaries.append(child_summary)
-            
+
             # Add to family totals
             family_totals["total_earned"] += total_earned
             family_totals["total_adjustments"] += total_adjustments
             family_totals["total_balance_due"] += balance_due
-            family_totals["total_completed_chores"] += len(completed_chores)
+            family_totals["total_completed_chores"] += len(completed_assignments)
         
         # Create family summary
         family_summary = FamilyFinancialSummary(
@@ -464,36 +478,38 @@ async def get_reward_history(
                 period_end = None
         
         reward_history = []
-        
-        # Get approved chores (earnings)
-        chore_query = select(Chore).where(
+
+        # Get approved assignments (earnings) - using new assignment-based architecture
+        assignment_query = select(ChoreAssignment).where(
             and_(
-                Chore.assignee_id == child_id,
-                Chore.is_completed == True,
-                Chore.is_approved == True
+                ChoreAssignment.assignee_id == child_id,
+                ChoreAssignment.is_completed == True,
+                ChoreAssignment.is_approved == True
             )
-        )
-        
+        ).options(selectinload(ChoreAssignment.chore))
+
         if period_start:
-            chore_query = chore_query.where(Chore.updated_at >= period_start)
+            assignment_query = assignment_query.where(ChoreAssignment.updated_at >= period_start)
         if period_end:
-            chore_query = chore_query.where(Chore.updated_at <= period_end)
-        
-        chore_query = chore_query.order_by(Chore.updated_at.desc()).limit(limit)
-        
-        chore_result = await db.execute(chore_query)
-        chores = chore_result.scalars().all()
-        
-        for chore in chores:
-            reward_amount = chore.approval_reward or chore.reward or 0
-            reward_history.append({
-                "type": "chore_earning",
-                "date": chore.updated_at.isoformat(),
-                "amount": float(reward_amount),
-                "description": f"Completed chore: {chore.title}",
-                "chore_id": chore.id,
-                "chore_title": chore.title
-            })
+            assignment_query = assignment_query.where(ChoreAssignment.updated_at <= period_end)
+
+        assignment_query = assignment_query.order_by(ChoreAssignment.updated_at.desc()).limit(limit)
+
+        assignment_result = await db.execute(assignment_query)
+        assignments = assignment_result.scalars().all()
+
+        for assignment in assignments:
+            if assignment.chore:  # Safety check
+                reward_amount = assignment.approval_reward or assignment.chore.reward or 0
+                reward_history.append({
+                    "type": "chore_earning",
+                    "date": assignment.updated_at.isoformat(),
+                    "amount": float(reward_amount),
+                    "description": f"Completed chore: {assignment.chore.title}",
+                    "chore_id": assignment.chore.id,
+                    "chore_title": assignment.chore.title,
+                    "assignment_id": assignment.id
+                })
         
         # Get reward adjustments
         adjustment_query = select(RewardAdjustment).where(

@@ -146,11 +146,21 @@ async def create_chore(
             )
     
     # Validate required fields in JSON data
-    if not chore_data or "title" not in chore_data or "assignee_id" not in chore_data:
+    if not chore_data or "title" not in chore_data:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Missing required fields: title and assignee_id"
+            detail="Missing required field: title"
         )
+
+    # Convert legacy assignee_id to assignee_ids for backward compatibility
+    if "assignee_id" in chore_data and "assignee_ids" not in chore_data:
+        assignee_id = chore_data.pop("assignee_id")
+        if assignee_id is not None:
+            chore_data["assignee_ids"] = [assignee_id]
+            chore_data.setdefault("assignment_mode", "single")
+        else:
+            chore_data["assignee_ids"] = []
+            chore_data.setdefault("assignment_mode", "unassigned")
     
     # Use service to create chore
     try:
@@ -159,7 +169,13 @@ async def create_chore(
             creator_id=current_user.id,
             chore_data=chore_data
         )
-        return chore
+
+        # Eager-load assignments to avoid lazy-load errors when serializing response
+        chore_with_assignments = await chore_service.repository.get_with_assignments(
+            db,
+            chore_id=chore.id
+        )
+        return chore_with_assignments
     except HTTPException:
         raise
     except Exception as e:
@@ -250,36 +266,67 @@ async def read_chores(
 
 @router.get(
     "/available",
-    response_model=List[ChoreResponse],
-    summary="Get available chores for child",
+    response_model=Dict[str, Any],
+    summary="Get available chores for child with multi-assignment support",
     description="""
     Get chores that are currently available for the child to complete.
-    
+
     **Access**: Children only
-    
+
+    **Returns**:
+    - `assigned`: List of chores with existing assignments (not completed, outside cooldown)
+    - `pool`: List of unassigned pool chores available to claim
+    - `total_count`: Total number of available chores
+
+    **Each chore entry includes**:
+    - `chore`: The chore object
+    - `assignment`: The assignment object (null for pool chores)
+    - `assignment_id`: The assignment ID (null for pool chores)
+
     **Availability criteria**:
-    - Chore is assigned to the child
-    - Chore is not disabled
-    - Chore is not currently completed (pending approval)
-    - For recurring chores: cooldown period has passed since last completion
-    
+    - Assigned chores: Not completed, not disabled, outside cooldown
+    - Pool chores: Unassigned mode, not disabled, not already claimed by child
+
     This endpoint helps children see what tasks they can work on right now.
     """,
     responses={
         200: {
-            "description": "List of available chores",
+            "description": "Available chores grouped by type",
             "content": {
                 "application/json": {
-                    "example": [
-                        {
-                            "id": 1,
-                            "title": "Take out trash",
-                            "description": "Empty all wastebaskets",
-                            "reward": 2.0,
-                            "cooldown_days": 1,
-                            "is_recurring": True
-                        }
-                    ]
+                    "example": {
+                        "assigned": [
+                            {
+                                "chore": {
+                                    "id": 1,
+                                    "title": "Clean Your Room",
+                                    "description": "Vacuum and organize",
+                                    "reward": 5.0,
+                                    "assignment_mode": "single"
+                                },
+                                "assignment": {
+                                    "id": 10,
+                                    "assignee_id": 2,
+                                    "is_completed": False
+                                },
+                                "assignment_id": 10
+                            }
+                        ],
+                        "pool": [
+                            {
+                                "chore": {
+                                    "id": 3,
+                                    "title": "Walk the Dog",
+                                    "description": "30 minute walk",
+                                    "reward": 3.0,
+                                    "assignment_mode": "unassigned"
+                                },
+                                "assignment": None,
+                                "assignment_id": None
+                            }
+                        ],
+                        "total_count": 2
+                    }
                 }
             }
         },
@@ -300,50 +347,74 @@ async def read_available_chores(
 ):
     """
     Get chores currently available for a child to complete.
-    
-    Filters out completed chores and those still in cooldown period.
+
+    Returns both assigned chores and pool chores with assignment details.
     """
     if current_user.is_parent:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="This endpoint is only for children users"
         )
-    
-    chores = await chore_service.get_available_chores(db, child_id=current_user.id)
-    return chores
+
+    result = await chore_service.get_available_chores(db, child_id=current_user.id)
+    return result
 
 @router.get(
     "/pending-approval",
-    response_model=List[ChoreResponse],
-    summary="Get chores pending approval",
+    response_model=List[Dict[str, Any]],
+    summary="Get assignments pending approval with multi-assignment support",
     description="""
-    Get all chores that have been completed by children and are awaiting parent approval.
-    
+    Get all assignments that have been completed by children and are awaiting parent approval.
+
     **Access**: Parents only
-    
-    **Returns chores where**:
-    - Parent created the chore
-    - Child marked it as completed
-    - Parent has not yet approved it
-    
+
+    **Returns assignment-level data**, not chore-level, which is crucial for multi-assignment:
+    - For single mode: 1 assignment per chore
+    - For multi_independent mode: Multiple assignments (one per child) for the same chore
+
+    **Each result includes**:
+    - `assignment`: The ChoreAssignment object
+    - `assignment_id`: Assignment ID (use this for approval/rejection)
+    - `chore`: The Chore object
+    - `assignee`: The User object (child who completed it)
+    - `assignee_name`: Child's username for display
+
+    **Family-aware**: Parents see pending assignments from all family chores, not just those they personally created.
+
     This is the parent's "inbox" for reviewing completed work.
     """,
     responses={
         200: {
-            "description": "List of chores pending approval",
+            "description": "List of pending assignments with full context",
             "content": {
                 "application/json": {
                     "example": [
                         {
-                            "id": 3,
-                            "title": "Wash dishes",
-                            "assignee_id": 2,
-                            "is_completed": True,
-                            "is_approved": False,
-                            "completed_at": "2024-12-24T14:30:00",
-                            "is_range_reward": True,
-                            "min_reward": 3.0,
-                            "max_reward": 5.0
+                            "assignment": {
+                                "id": 15,
+                                "chore_id": 3,
+                                "assignee_id": 2,
+                                "is_completed": True,
+                                "is_approved": False,
+                                "completion_date": "2024-12-24T14:30:00"
+                            },
+                            "assignment_id": 15,
+                            "chore": {
+                                "id": 3,
+                                "title": "Wash dishes",
+                                "description": "Clean all dirty dishes",
+                                "reward": 3.0,
+                                "assignment_mode": "single",
+                                "is_range_reward": True,
+                                "min_reward": 3.0,
+                                "max_reward": 5.0
+                            },
+                            "assignee": {
+                                "id": 2,
+                                "username": "alice",
+                                "is_parent": False
+                            },
+                            "assignee_name": "alice"
                         }
                     ]
                 }
@@ -365,8 +436,9 @@ async def read_pending_approval(
     chore_service: ChoreServiceDep = None
 ):
     """
-    Get chores that have been completed by children and need parent approval.
-    
+    Get assignments that have been completed by children and need parent approval.
+
+    Returns assignment-level data with full context (chore + assignee details).
     For range-based rewards, parents will need to specify the exact reward amount during approval.
     """
     if not current_user.is_parent:
@@ -374,9 +446,9 @@ async def read_pending_approval(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="This endpoint is only for parent users"
         )
-    
-    chores = await chore_service.get_pending_approval(db, parent_id=current_user.id)
-    return chores
+
+    pending_assignments = await chore_service.get_pending_approval(db, parent_id=current_user.id)
+    return pending_assignments
 
 @router.get(
     "/child/{child_id}",
@@ -434,7 +506,7 @@ async def read_child_chores(
 ):
     """
     Get all chores for a specific child.
-    
+
     Returns both active and completed chores for the specified child.
     """
     if not current_user.is_parent:
@@ -442,12 +514,23 @@ async def read_child_chores(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only parents can view children's chores"
         )
-    
+
     chores = await chore_service.get_child_chores(
         db,
         parent_id=current_user.id,
         child_id=child_id
     )
+
+    # DEBUG: Log what we're about to return
+    print(f"[CHILD CHORES API] Returning {len(chores)} chores for child {child_id}")
+    for idx, chore in enumerate(chores):
+        print(f"[CHILD CHORES API] Chore {idx + 1}: id={chore.id}, title={chore.title}")
+        print(f"[CHILD CHORES API]   has is_completed attr: {hasattr(chore, 'is_completed')}")
+        print(f"[CHILD CHORES API]   has is_approved attr: {hasattr(chore, 'is_approved')}")
+        if hasattr(chore, 'is_completed'):
+            print(f"[CHILD CHORES API]   is_completed={chore.is_completed}, is_approved={chore.is_approved}")
+            print(f"[CHILD CHORES API]   completed_at={chore.completed_at}, approved_at={chore.approved_at}")
+
     return chores
 
 @router.get(
@@ -523,10 +606,29 @@ async def read_child_completed_chores(
         parent_id=current_user.id,
         child_id=child_id
     )
-    
-    # Get completed chores
-    chores = await chore_service.repository.get_completed_by_child(db, child_id=child_id)
-    return chores
+
+    # Get all assignments for this child that are completed (whether approved or not)
+    from ....repositories.chore_assignment import ChoreAssignmentRepository
+    assignment_repo = ChoreAssignmentRepository()
+
+    assignments = await assignment_repo.get_by_assignee(
+        db,
+        assignee_id=child_id,
+        eager_load=True
+    )
+
+    # Filter to only completed assignments
+    completed_assignments = [a for a in assignments if a.is_completed]
+
+    # Return the chores from these assignments (deduplicate in case of multi-independent)
+    seen_chore_ids = set()
+    completed_chores = []
+    for assignment in completed_assignments:
+        if assignment.chore_id not in seen_chore_ids:
+            seen_chore_ids.add(assignment.chore_id)
+            completed_chores.append(assignment.chore)
+
+    return completed_chores
 
 @router.get(
     "/{chore_id}",
@@ -581,26 +683,29 @@ async def read_chore(
     
     Users can only access chores they're authorized to view.
     """
-    chore = await chore_service.get(db, id=chore_id)
+    chore = await chore_service.repository.get_with_assignments(db, chore_id=chore_id)
     if not chore:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Chore not found"
         )
-    
+
     # Check permissions
     if current_user.is_parent and chore.creator_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not authorized to access this chore"
         )
-    
-    if not current_user.is_parent and chore.assignee_id != current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not authorized to access this chore"
-        )
-    
+
+    # For children, check if they have an assignment for this chore
+    if not current_user.is_parent:
+        has_assignment = any(assignment.assignee_id == current_user.id for assignment in chore.assignments)
+        if not has_assignment:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Not authorized to access this chore"
+            )
+
     return chore
 
 @router.put(
@@ -730,33 +835,52 @@ async def delete_chore(
 
 @router.post(
     "/{chore_id}/complete",
-    response_model=ChoreResponse,
-    summary="Mark chore as completed",
+    response_model=Dict[str, Any],
+    summary="Mark chore as completed with multi-assignment support",
     description="""
     Mark a chore as completed and ready for parent approval.
-    
-    **Access**: Children only (must be assigned to the chore)
-    
+
+    **Access**: Children only
+
+    **Multi-assignment handling**:
+    - **Single mode**: Child must be the assigned child
+    - **Multi-independent mode**: Child completes their own assignment independently
+    - **Unassigned mode**: Child claims the chore and completes it
+
     **Business rules**:
-    - Child must be assigned to the chore
-    - Chore cannot already be completed (pending approval)
+    - Child must be assigned (or chore must be unassigned pool)
+    - Assignment cannot already be completed (pending approval)
     - For recurring chores: must be outside cooldown period
     - Chore cannot be disabled
-    
-    After completion, the chore enters "pending approval" state and appears
+
+    **Returns**:
+    - `chore`: The chore object
+    - `assignment`: The assignment that was marked complete
+    - `message`: Success message
+
+    After completion, the assignment enters "pending approval" state and appears
     in the parent's pending approval list.
     """,
     responses={
         200: {
-            "description": "Chore marked as completed",
+            "description": "Assignment marked as completed",
             "content": {
                 "application/json": {
                     "example": {
-                        "id": 1,
-                        "title": "Clean Room",
-                        "is_completed": True,
-                        "is_approved": False,
-                        "completed_at": "2024-12-24T16:00:00"
+                        "chore": {
+                            "id": 1,
+                            "title": "Clean Room",
+                            "assignment_mode": "single"
+                        },
+                        "assignment": {
+                            "id": 10,
+                            "chore_id": 1,
+                            "assignee_id": 2,
+                            "is_completed": True,
+                            "is_approved": False,
+                            "completion_date": "2024-12-24T16:00:00"
+                        },
+                        "message": "Chore completed successfully. Awaiting parent approval."
                     }
                 }
             }
@@ -765,10 +889,10 @@ async def delete_chore(
             "description": "Not authorized or parents cannot complete chores"
         },
         400: {
-            "description": "Chore already completed or in cooldown period",
+            "description": "Assignment already completed or in cooldown period",
             "content": {
                 "application/json": {
-                    "example": {"detail": "Chore is in cooldown period. Can complete again in 5 days."}
+                    "example": {"detail": "Assignment is in cooldown period. Can complete again in 5 days."}
                 }
             }
         }
@@ -781,9 +905,9 @@ async def complete_chore(
     chore_service: ChoreServiceDep = None
 ):
     """
-    Mark a chore as completed by the assigned child.
-    
-    The chore will need parent approval before any rewards are granted.
+    Mark a chore as completed by the child.
+
+    Returns the chore and assignment details. The assignment will need parent approval before rewards are granted.
     """
     # Only children can complete chores
     if current_user.is_parent:
@@ -791,14 +915,14 @@ async def complete_chore(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Parents cannot complete chores"
         )
-    
+
     # Service will handle all business logic including cooldown checks
-    updated_chore = await chore_service.complete_chore(
+    result = await chore_service.complete_chore(
         db,
         chore_id=chore_id,
         user_id=current_user.id
     )
-    return updated_chore
+    return result
 
 @router.post(
     "/{chore_id}/approve",
@@ -1027,7 +1151,11 @@ async def disable_chore(
         chore_id=chore_id,
         parent_id=current_user.id
     )
-    return updated_chore
+
+    # Eager-load assignments for the response
+    updated_chore_with_assignments = await chore_service.repository.get_with_assignments(db, chore_id=chore_id)
+
+    return updated_chore_with_assignments
 
 
 @router.post(
@@ -1089,32 +1217,35 @@ async def enable_chore(
             detail="Only parents can enable chores"
         )
     
-    # Get the chore using the repository
+    # Get the chore with assignments using the repository
     from ....repositories.chore import ChoreRepository
     chore_repo = ChoreRepository()
-    
-    chore = await chore_repo.get(db, id=chore_id)
+
+    chore = await chore_repo.get_with_assignments(db, chore_id=chore_id)
     if not chore:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Chore not found"
         )
-    
+
     # Check if the parent owns this chore
     if chore.creator_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You can only enable chores you created"
         )
-    
+
     # Check if the chore is actually disabled
     if not chore.is_disabled:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Chore is not disabled"
         )
-    
+
     # Enable the chore using the repository
     updated_chore = await chore_repo.enable_chore(db, chore_id=chore_id)
-    
-    return updated_chore
+
+    # Eager-load assignments for the response
+    updated_chore_with_assignments = await chore_repo.get_with_assignments(db, chore_id=chore_id)
+
+    return updated_chore_with_assignments

@@ -3,7 +3,10 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { ChildWithChores } from '../api/users';
 
 interface ChildCardProps {
-  child: ChildWithChores;
+  child: ChildWithChores & {
+    completed_chores?: number;  // Allow override from allowance summary
+    balance_due?: number;       // Allow override from allowance summary
+  };
   onPress: () => void;
   onResetPassword?: () => void;
   pendingCount?: number; // Override calculated pending count
@@ -12,12 +15,16 @@ interface ChildCardProps {
 const ChildCard: React.FC<ChildCardProps> = (props) => {
   const { child, onPress, onResetPassword } = props;
   // Count active and completed chores if available (handle both field names)
-  const activeChores = child.chores?.filter(c => 
+  const activeChores = child.chores?.filter(c =>
     !c.is_completed && !c.completed_at && !c.completion_date
   ).length || 0;
-  const completedChores = child.chores?.filter(c => 
-    (c.is_approved || c.approved_at)
-  ).length || 0;
+
+  // Use provided completed_chores if available (from allowance summary), otherwise calculate
+  const completedChores = child.completed_chores !== undefined
+    ? child.completed_chores
+    : (child.chores?.filter(c =>
+        (c.is_approved || c.approved_at)
+      ).length || 0);
   // Use provided pendingCount if available, otherwise calculate from child.chores
   const pendingApproval = props.pendingCount !== undefined 
     ? props.pendingCount 

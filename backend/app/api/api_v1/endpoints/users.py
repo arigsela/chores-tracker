@@ -603,13 +603,13 @@ async def read_parent_allowance_summary(
             detail="Only parents can access allowance summary",
         )
 
-    # Reuse repository logic already used by HTML route in main.py
+    # Use assignment-based calculation (multi-assignment architecture)
     from ....repositories.user import UserRepository
-    from ....repositories.chore import ChoreRepository
+    from ....repositories.chore_assignment import ChoreAssignmentRepository
     from ....repositories.reward_adjustment import RewardAdjustmentRepository
 
     user_repo = UserRepository()
-    chore_repo = ChoreRepository()
+    assignment_repo = ChoreAssignmentRepository()
     adjustment_repo = RewardAdjustmentRepository()
 
     # Family-aware logic: get all children in the family or fallback to direct children
@@ -620,19 +620,30 @@ async def read_parent_allowance_summary(
     else:
         children = await user_repo.get_children(db, parent_id=current_user.id)
 
-    # Helper function to get final reward amount (matches frontend logic)
-    def get_final_reward_amount(chore):
-        # For approved chores, prioritize approval_reward field
-        if chore.approval_reward is not None:
-            return chore.approval_reward
-        # Fallback to reward field (legacy and fixed rewards)
-        return chore.reward or 0
+    # Helper function to get final reward amount from assignment
+    def get_assignment_reward(assignment):
+        # For approved assignments, use approval_reward if set (range rewards)
+        if assignment.approval_reward is not None:
+            return assignment.approval_reward
+        # Fallback to chore's base reward (fixed rewards)
+        return assignment.chore.reward or 0
 
     summary: List[ChildAllowanceSummary] = []
     for child in children:
-        chores = await chore_repo.get_by_assignee(db, assignee_id=child.id)
-        completed_chores = len([c for c in chores if c.is_completed and c.is_approved])
-        total_earned = sum(get_final_reward_amount(c) for c in chores if c.is_completed and c.is_approved)
+        # Get assignments for child (not chores)
+        assignments = await assignment_repo.get_by_assignee(db, assignee_id=child.id)
+
+        # DEBUG: Log assignment data for troubleshooting
+        print(f"[ALLOWANCE DEBUG] Child: {child.username} (ID: {child.id})")
+        print(f"[ALLOWANCE DEBUG] Total assignments: {len(assignments)}")
+        for a in assignments:
+            print(f"[ALLOWANCE DEBUG]   Assignment {a.id}: completed={a.is_completed}, approved={a.is_approved}")
+
+        completed_chores = len([a for a in assignments if a.is_completed and a.is_approved])
+        total_earned = sum(get_assignment_reward(a) for a in assignments if a.is_completed and a.is_approved)
+
+        print(f"[ALLOWANCE DEBUG] Completed chores count: {completed_chores}")
+        print(f"[ALLOWANCE DEBUG] Total earned: {total_earned}")
         total_adjustments = float(
             await adjustment_repo.calculate_total_adjustments(db, child_id=child.id)
         )

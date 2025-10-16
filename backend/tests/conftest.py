@@ -101,7 +101,9 @@ async def child_token(test_child_user):
 
 @pytest_asyncio.fixture(scope="function")
 async def test_chore(db_session, test_parent_user, test_child_user):
-    """Create a test chore with fixed reward."""
+    """Create a test chore with fixed reward and single assignment."""
+    from backend.app.models.chore_assignment import ChoreAssignment
+
     chore = Chore(
         title="Clean room",
         description="Make sure to vacuum and dust",
@@ -110,10 +112,20 @@ async def test_chore(db_session, test_parent_user, test_child_user):
         cooldown_days=0,
         is_recurring=False,
         is_disabled=False,
-        assignee_id=test_child_user.id,
+        assignment_mode="single",
         creator_id=test_parent_user.id
     )
     db_session.add(chore)
+    await db_session.flush()  # Get chore.id before creating assignment
+
+    # Create assignment for the child
+    assignment = ChoreAssignment(
+        chore_id=chore.id,
+        assignee_id=test_child_user.id,
+        is_completed=False,
+        is_approved=False
+    )
+    db_session.add(assignment)
     await db_session.commit()
     await db_session.refresh(chore)
     return chore
@@ -121,20 +133,33 @@ async def test_chore(db_session, test_parent_user, test_child_user):
 
 @pytest_asyncio.fixture(scope="function")
 async def test_range_chore(db_session, test_parent_user, test_child_user):
-    """Create a test chore with range-based reward."""
+    """Create a test chore with range-based reward and single assignment."""
+    from backend.app.models.chore_assignment import ChoreAssignment
+
     chore = Chore(
         title="Take out trash",
         description="Empty all trash cans and take to the curb",
+        reward=3.00,  # Default reward
         is_range_reward=True,
         min_reward=2.00,
         max_reward=4.00,
         cooldown_days=7,  # Weekly cooldown
         is_recurring=True,
         is_disabled=False,
-        assignee_id=test_child_user.id,
+        assignment_mode="single",
         creator_id=test_parent_user.id
     )
     db_session.add(chore)
+    await db_session.flush()
+
+    # Create assignment for the child
+    assignment = ChoreAssignment(
+        chore_id=chore.id,
+        assignee_id=test_child_user.id,
+        is_completed=False,
+        is_approved=False
+    )
+    db_session.add(assignment)
     await db_session.commit()
     await db_session.refresh(chore)
     return chore
@@ -142,7 +167,9 @@ async def test_range_chore(db_session, test_parent_user, test_child_user):
 
 @pytest_asyncio.fixture(scope="function")
 async def test_disabled_chore(db_session, test_parent_user, test_child_user):
-    """Create a test disabled chore."""
+    """Create a test disabled chore with single assignment."""
+    from backend.app.models.chore_assignment import ChoreAssignment
+
     chore = Chore(
         title="Mow lawn",
         description="Mow the front and back lawn",
@@ -151,10 +178,20 @@ async def test_disabled_chore(db_session, test_parent_user, test_child_user):
         cooldown_days=14,  # Bi-weekly cooldown
         is_recurring=True,
         is_disabled=True,
-        assignee_id=test_child_user.id,
+        assignment_mode="single",
         creator_id=test_parent_user.id
     )
     db_session.add(chore)
+    await db_session.flush()
+
+    # Create assignment for the child
+    assignment = ChoreAssignment(
+        chore_id=chore.id,
+        assignee_id=test_child_user.id,
+        is_completed=False,
+        is_approved=False
+    )
+    db_session.add(assignment)
     await db_session.commit()
     await db_session.refresh(chore)
     return chore

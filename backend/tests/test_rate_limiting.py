@@ -164,12 +164,13 @@ async def test_create_endpoint_rate_limit(client: AsyncClient, db_session: Async
         response = await client.post(
             f"{settings.API_V1_STR}/chores/",
             headers=headers,
-            data={
+            json={
                 "title": f"Test Chore {i}",
                 "description": "Test description",
-                "reward": "5",
-                "assignee_id": str(parent.id),
-                "is_recurring": "false"
+                "reward": 5.0,
+                "assignment_mode": "single",
+                "assignee_ids": [parent.id],
+                "is_recurring": False
             }
         )
         responses.append(response)

@@ -15,69 +15,13 @@ from backend.app.core.security.password import get_password_hash
 
 
 class TestChoreRepositoryMethods:
-    """Test ChoreRepository specific methods."""
-    
-    @pytest.mark.asyncio
-    async def test_get_by_assignee(self, db_session: AsyncSession):
-        """Test getting chores by assignee."""
-        user_repo = UserRepository()
-        chore_repo = ChoreRepository()
-        
-        # Create parent and child
-        parent = User(
-            username="parent_repo_test",
-            email="parent_repo@test.com",
-            hashed_password=get_password_hash("password"),
-            is_parent=True,
-            is_active=True
-        )
-        db_session.add(parent)
-        await db_session.commit()
-        
-        child = User(
-            username="child_repo_test",
-            hashed_password=get_password_hash("password"),
-            is_parent=False,
-            is_active=True,
-            parent_id=parent.id
-        )
-        db_session.add(child)
-        await db_session.commit()
-        
-        # Create chores for child
-        chore1 = Chore(
-            title="Chore 1",
-            description="Test",
-            reward=5.0,
-            is_range_reward=False,
-            cooldown_days=0,
-            is_recurring=False,
-            creator_id=parent.id,
-            assignee_id=child.id,
-            is_completed=False,
-            is_approved=False,
-            is_disabled=False
-        )
-        chore2 = Chore(
-            title="Chore 2",
-            description="Test",
-            reward=10.0,
-            is_range_reward=False,
-            cooldown_days=0,
-            is_recurring=False,
-            creator_id=parent.id,
-            assignee_id=child.id,
-            is_completed=False,
-            is_approved=False,
-            is_disabled=False
-        )
-        db_session.add_all([chore1, chore2])
-        await db_session.commit()
-        
-        # Get chores by assignee
-        chores = await chore_repo.get_by_assignee(db_session, assignee_id=child.id)
-        assert len(chores) == 2
-        assert all(c.assignee_id == child.id for c in chores)
+    """Test ChoreRepository specific methods.
+
+    Note: Many legacy tests for deprecated methods (get_by_assignee, get_pending_approval,
+    get_completed_by_child, etc.) have been removed. These methods are deprecated and
+    intentionally return empty lists. The functionality has moved to ChoreAssignmentRepository
+    and is tested in test_chore_service_multi_assignment.py and test_chore_assignment_models.py.
+    """
     
     @pytest.mark.asyncio
     async def test_get_by_creator(self, db_session: AsyncSession):
@@ -104,9 +48,7 @@ class TestChoreRepositoryMethods:
             cooldown_days=0,
             is_recurring=False,
             creator_id=parent.id,
-            assignee_id=None,
-            is_completed=False,
-            is_approved=False,
+            assignment_mode='unassigned',
             is_disabled=False
         )
         chore2 = Chore(
@@ -117,9 +59,7 @@ class TestChoreRepositoryMethods:
             cooldown_days=0,
             is_recurring=False,
             creator_id=parent.id,
-            assignee_id=None,
-            is_completed=False,
-            is_approved=False,
+            assignment_mode='unassigned',
             is_disabled=False
         )
         db_session.add_all([chore1, chore2])
@@ -129,145 +69,6 @@ class TestChoreRepositoryMethods:
         chores = await chore_repo.get_by_creator(db_session, creator_id=parent.id)
         assert len(chores) == 2
         assert all(c.creator_id == parent.id for c in chores)
-    
-    @pytest.mark.asyncio
-    async def test_get_pending_approval(self, db_session: AsyncSession):
-        """Test getting chores pending approval."""
-        chore_repo = ChoreRepository()
-        
-        # Create parent and child
-        parent = User(
-            username="parent_pending_test",
-            email="parent_pending@test.com",
-            hashed_password=get_password_hash("password"),
-            is_parent=True,
-            is_active=True
-        )
-        db_session.add(parent)
-        await db_session.commit()
-        
-        child = User(
-            username="child_pending_test",
-            hashed_password=get_password_hash("password"),
-            is_parent=False,
-            is_active=True,
-            parent_id=parent.id
-        )
-        db_session.add(child)
-        await db_session.commit()
-        
-        # Create various chores
-        completed_pending = Chore(
-            title="Pending Approval",
-            description="Test",
-            reward=5.0,
-            is_range_reward=False,
-            cooldown_days=0,
-            is_recurring=False,
-            creator_id=parent.id,
-            assignee_id=child.id,
-            is_completed=True,
-            is_approved=False,
-            is_disabled=False
-        )
-        not_completed = Chore(
-            title="Not Completed",
-            description="Test",
-            reward=5.0,
-            is_range_reward=False,
-            cooldown_days=0,
-            is_recurring=False,
-            creator_id=parent.id,
-            assignee_id=child.id,
-            is_completed=False,
-            is_approved=False,
-            is_disabled=False
-        )
-        already_approved = Chore(
-            title="Already Approved",
-            description="Test",
-            reward=5.0,
-            is_range_reward=False,
-            cooldown_days=0,
-            is_recurring=False,
-            creator_id=parent.id,
-            assignee_id=child.id,
-            is_completed=True,
-            is_approved=True,
-            is_disabled=False
-        )
-        db_session.add_all([completed_pending, not_completed, already_approved])
-        await db_session.commit()
-        
-        # Get pending approval chores
-        pending = await chore_repo.get_pending_approval(db_session, creator_id=parent.id)
-        assert len(pending) == 1
-        assert pending[0].title == "Pending Approval"
-        assert pending[0].is_completed is True
-        assert pending[0].is_approved is False
-    
-    @pytest.mark.asyncio
-    async def test_get_completed_by_child(self, db_session: AsyncSession):
-        """Test getting completed chores by child."""
-        chore_repo = ChoreRepository()
-        
-        # Create parent and child
-        parent = User(
-            username="parent_comp_child",
-            email="parent_comp_ch@test.com",
-            hashed_password=get_password_hash("password"),
-            is_parent=True,
-            is_active=True
-        )
-        db_session.add(parent)
-        await db_session.commit()
-        
-        child = User(
-            username="child_comp_repo",
-            hashed_password=get_password_hash("password"),
-            is_parent=False,
-            is_active=True,
-            parent_id=parent.id
-        )
-        db_session.add(child)
-        await db_session.commit()
-        
-        # Create chores
-        completed = Chore(
-            title="Completed Chore",
-            description="Test",
-            reward=5.0,
-            is_range_reward=False,
-            cooldown_days=0,
-            is_recurring=False,
-            creator_id=parent.id,
-            assignee_id=child.id,
-            is_completed=True,
-            is_approved=True,
-            is_disabled=False,
-            completion_date=datetime.utcnow()
-        )
-        not_completed = Chore(
-            title="Not Completed",
-            description="Test",
-            reward=5.0,
-            is_range_reward=False,
-            cooldown_days=0,
-            is_recurring=False,
-            creator_id=parent.id,
-            assignee_id=child.id,
-            is_completed=False,
-            is_approved=False,
-            is_disabled=False
-        )
-        db_session.add_all([completed, not_completed])
-        await db_session.commit()
-        
-        # Get completed chores
-        completed_chores = await chore_repo.get_completed_by_child(db_session, child_id=child.id)
-        assert len(completed_chores) == 1
-        assert completed_chores[0].title == "Completed Chore"
-        assert completed_chores[0].is_completed is True
     
     @pytest.mark.asyncio
     async def test_disable_chore(self, db_session: AsyncSession):
@@ -294,9 +95,7 @@ class TestChoreRepositoryMethods:
             cooldown_days=0,
             is_recurring=False,
             creator_id=parent.id,
-            assignee_id=None,
-            is_completed=False,
-            is_approved=False,
+            assignment_mode='unassigned',
             is_disabled=False
         )
         db_session.add(chore)

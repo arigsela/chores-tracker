@@ -95,19 +95,47 @@ class TestUnitOfWorkServiceMethods:
         
         # Verify all chores were created
         assert len(created_chores) == 3
-        
+
         # Verify chore details
         assert created_chores[0].title == "Clean Room"
-        assert created_chores[0].assignee_id == child1.id
+        assert created_chores[0].assignment_mode == "single"
         assert created_chores[0].is_recurring is True
-        
+
         assert created_chores[1].title == "Do Homework"
-        assert created_chores[1].assignee_id == child2.id
-        
+        assert created_chores[1].assignment_mode == "single"
+
         assert created_chores[2].title == "Walk Dog"
         assert created_chores[2].is_range_reward is True
         assert created_chores[2].min_reward == 2.0
         assert created_chores[2].max_reward == 5.0
+
+        # Verify assignments were created
+        # Need to check the database for ChoreAssignment records
+        from backend.app.models.chore_assignment import ChoreAssignment
+        from sqlalchemy import select
+
+        # Check assignment for chore 1 (child1)
+        stmt = select(ChoreAssignment).where(ChoreAssignment.chore_id == created_chores[0].id)
+        result = await db_session.execute(stmt)
+        assignment = result.scalars().first()
+        assert assignment is not None
+        assert assignment.assignee_id == child1.id
+        assert assignment.is_completed is False
+        assert assignment.is_approved is False
+
+        # Check assignment for chore 2 (child2)
+        stmt = select(ChoreAssignment).where(ChoreAssignment.chore_id == created_chores[1].id)
+        result = await db_session.execute(stmt)
+        assignment = result.scalars().first()
+        assert assignment is not None
+        assert assignment.assignee_id == child2.id
+
+        # Check assignment for chore 3 (child1)
+        stmt = select(ChoreAssignment).where(ChoreAssignment.chore_id == created_chores[2].id)
+        result = await db_session.execute(stmt)
+        assignment = result.scalars().first()
+        assert assignment is not None
+        assert assignment.assignee_id == child1.id
     
     @pytest.mark.skip(reason="UnitOfWork rollback doesn't work properly with shared test session")
     @pytest.mark.asyncio
@@ -205,29 +233,30 @@ class TestUnitOfWorkServiceMethods:
             parent_id=parent.id
         )
         
-        # Create recurring chore
+        # Create recurring chore with new API
         chore_data = {
             "title": "Daily Task",
             "description": "Do this every day",
-            "assignee_id": child.id,
+            "assignment_mode": "single",
+            "assignee_ids": [child.id],
             "reward": 5.0,
             "cooldown_days": 1,
             "is_recurring": True
         }
-        
+
         chore = await chore_service.create_chore(
             db_session,
             creator_id=parent.id,
             chore_data=chore_data
         )
-        
+
         # Complete the chore
         await chore_service.complete_chore(
             db_session,
             chore_id=chore.id,
             user_id=child.id
         )
-        
+
         # Approve with next instance creation
         async with UnitOfWork(session_factory=test_uow_factory) as uow:
             result = await chore_service.approve_chore_with_next_instance(
@@ -236,18 +265,28 @@ class TestUnitOfWorkServiceMethods:
                 parent_id=parent.id
             )
             await uow.commit()
-        
-        # Verify approval
+
+        # Verify approval - check the chore object returned (has assignment fields populated)
         assert result["approved_chore"].is_approved is True
         assert result["approved_chore"].completion_date is not None
-        
+
         # Verify next instance was created
         assert result["next_instance"] is not None
         next_chore = result["next_instance"]
         assert next_chore.title == "Daily Task"
-        assert next_chore.is_completed is False
-        assert next_chore.is_approved is False
-        assert next_chore.assignee_id == child.id
+        assert next_chore.assignment_mode == "single"
+
+        # Verify next instance has an assignment for the same child
+        from backend.app.models.chore_assignment import ChoreAssignment
+        from sqlalchemy import select
+
+        stmt = select(ChoreAssignment).where(ChoreAssignment.chore_id == next_chore.id)
+        result_db = await db_session.execute(stmt)
+        next_assignment = result_db.scalars().first()
+        assert next_assignment is not None
+        assert next_assignment.assignee_id == child.id
+        assert next_assignment.is_completed is False
+        assert next_assignment.is_approved is False
     
     @pytest.mark.asyncio
     async def test_approve_range_chore_with_next_instance(self, db_session: AsyncSession, test_uow_factory):
@@ -272,31 +311,33 @@ class TestUnitOfWorkServiceMethods:
             parent_id=parent.id
         )
         
-        # Create range-based recurring chore
+        # Create range-based recurring chore with new API
         chore_data = {
             "title": "Variable Task",
             "description": "Reward varies",
-            "assignee_id": child.id,
+            "assignment_mode": "single",
+            "assignee_ids": [child.id],
+            "reward": 10.0,  # Default reward
             "is_range_reward": True,
             "min_reward": 5.0,
             "max_reward": 15.0,
             "cooldown_days": 7,
             "is_recurring": True
         }
-        
+
         chore = await chore_service.create_chore(
             db_session,
             creator_id=parent.id,
             chore_data=chore_data
         )
-        
+
         # Complete the chore
         await chore_service.complete_chore(
             db_session,
             chore_id=chore.id,
             user_id=child.id
         )
-        
+
         # Approve with specific reward value
         async with UnitOfWork(session_factory=test_uow_factory) as uow:
             result = await chore_service.approve_chore_with_next_instance(
@@ -306,11 +347,11 @@ class TestUnitOfWorkServiceMethods:
                 reward_value=10.0
             )
             await uow.commit()
-        
-        # Verify approval with correct reward
+
+        # Verify approval with correct reward - check the populated chore object
         assert result["approved_chore"].is_approved is True
-        assert result["approved_chore"].reward == 10.0
-        
+        assert result["approved_chore"].approval_reward == 10.0
+
         # Verify next instance maintains range reward
         next_chore = result["next_instance"]
         assert next_chore.is_range_reward is True
@@ -340,28 +381,29 @@ class TestUnitOfWorkServiceMethods:
             parent_id=parent.id
         )
         
-        # Create one-time chore
+        # Create one-time chore with new API
         chore_data = {
             "title": "One Time Task",
             "description": "A one-time task",
-            "assignee_id": child.id,
+            "assignment_mode": "single",
+            "assignee_ids": [child.id],
             "reward": 20.0,
             "is_recurring": False
         }
-        
+
         chore = await chore_service.create_chore(
             db_session,
             creator_id=parent.id,
             chore_data=chore_data
         )
-        
+
         # Complete the chore
         await chore_service.complete_chore(
             db_session,
             chore_id=chore.id,
             user_id=child.id
         )
-        
+
         # Approve
         async with UnitOfWork(session_factory=test_uow_factory) as uow:
             result = await chore_service.approve_chore_with_next_instance(
@@ -370,10 +412,10 @@ class TestUnitOfWorkServiceMethods:
                 parent_id=parent.id
             )
             await uow.commit()
-        
-        # Verify approval
+
+        # Verify approval - check the populated chore object
         assert result["approved_chore"].is_approved is True
-        
+
         # Verify no next instance was created
         assert result["next_instance"] is None
     

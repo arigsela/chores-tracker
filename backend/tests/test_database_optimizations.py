@@ -45,8 +45,11 @@ async def test_indexes_exist(db_session: AsyncSession):
 
 @pytest.mark.asyncio
 async def test_eager_loading_prevents_n_plus_one(db_session: AsyncSession):
-    """Test that eager loading prevents N+1 queries."""
-    # Create test data
+    """Test that eager loading prevents N+1 queries (multi-assignment architecture)."""
+    from backend.app.services.chore_service import ChoreService
+    from backend.app.models.chore_assignment import ChoreAssignment
+
+    # Create test data - parent and child
     parent = User(
         username="test_parent",
         email="parent@test.com",
@@ -56,35 +59,51 @@ async def test_eager_loading_prevents_n_plus_one(db_session: AsyncSession):
     )
     db_session.add(parent)
     await db_session.commit()
-    
-    # Create multiple chores
-    for i in range(5):
-        chore = Chore(
-            title=f"Test Chore {i}",
-            description="Test",
-            reward=5.0,
-            creator_id=parent.id,
-            assignee_id=parent.id,
-            is_range_reward=False,
-            cooldown_days=0,
-            is_recurring=False,
-            is_completed=False,
-            is_approved=False,
-            is_disabled=False
-        )
-        db_session.add(chore)
+
+    # Create a child for assignment
+    child = User(
+        username="test_child",
+        email="child@test.com",
+        hashed_password=get_password_hash("password"),
+        is_parent=False,
+        is_active=True,
+        parent_id=parent.id
+    )
+    db_session.add(child)
     await db_session.commit()
-    
+
+    # Create multiple chores using ChoreService (multi-assignment architecture)
+    chore_service = ChoreService()
+    for i in range(5):
+        await chore_service.create_chore(
+            db_session,
+            creator_id=parent.id,
+            chore_data={
+                "title": f"Test Chore {i}",
+                "description": "Test",
+                "reward": 5.0,
+                "is_range_reward": False,
+                "cooldown_days": 0,
+                "is_recurring": False,
+                "assignment_mode": "single",
+                "assignee_ids": [child.id]  # Assign to child
+            }
+        )
+
     # Test that getting chores with eager loading doesn't cause N+1
     chore_repo = ChoreRepository()
-    
+
     # This should execute only 1-2 queries (main query + eager load), not 6 (1 + 5)
-    chores = await chore_repo.get_by_assignee(db_session, assignee_id=parent.id)
-    
+    chores = await chore_repo.get_by_assignee(db_session, assignee_id=child.id)
+
     # Access the relationships - this should not trigger additional queries
+    # In multi-assignment architecture: chore has 'assignments' and 'creator' relationships
     for chore in chores:
-        assert chore.assignee.username == "test_parent"
         assert chore.creator.username == "test_parent"
+        assert len(chore.assignments) > 0  # Should have assignments
+        # Verify the assignment relationship is loaded
+        for assignment in chore.assignments:
+            assert assignment.assignee_id == child.id
 
 
 @pytest.mark.asyncio
@@ -135,7 +154,8 @@ async def test_query_performance_on_indexed_columns(db_session: AsyncSession):
     
     assert len(children) == 50
     
-    # Verify eager loading worked
+    # Verify eager loading worked (multi-assignment architecture)
     for child in children:
         # This should not trigger additional queries
-        assert hasattr(child, 'chores_assigned')
+        # In multi-assignment: User has 'chore_assignments' relationship (defined in ChoreAssignment model)
+        assert hasattr(child, 'chore_assignments')

@@ -53,20 +53,30 @@ class TestMainHTMLEndpoints:
         await db_session.refresh(user)
         
         # Create test chore
+        from backend.app.models.chore_assignment import ChoreAssignment
+
         chore = Chore(
             title="Test Chore",
-            description="A test chore", 
+            description="A test chore",
             reward=5.0,
             cooldown_days=1,
             is_recurring=False,
-            is_completed=True,  # Completed but not approved
-            is_approved=False,
             is_disabled=False,
-            assignee_id=user.id,
+            assignment_mode="single",
             creator_id=user.id,
             is_range_reward=False
         )
         db_session.add(chore)
+        await db_session.flush()  # Get chore ID
+
+        # Create assignment
+        assignment = ChoreAssignment(
+            chore_id=chore.id,
+            assignee_id=user.id,
+            is_completed=True,  # Completed but not approved
+            is_approved=False
+        )
+        db_session.add(assignment)
         await db_session.commit()
         await db_session.refresh(chore)
         
@@ -90,20 +100,30 @@ class TestMainHTMLEndpoints:
         await db_session.refresh(user)
         
         # Create test chore
+        from backend.app.models.chore_assignment import ChoreAssignment
+
         chore = Chore(
             title="Test Chore 2",
             description="Another test chore",
             reward=3.0,
-            cooldown_days=1, 
+            cooldown_days=1,
             is_recurring=False,
-            is_completed=False,
-            is_approved=False,
             is_disabled=False,
-            assignee_id=user.id,
+            assignment_mode="single",
             creator_id=user.id,
             is_range_reward=False
         )
         db_session.add(chore)
+        await db_session.flush()  # Get chore ID
+
+        # Create assignment
+        assignment = ChoreAssignment(
+            chore_id=chore.id,
+            assignee_id=user.id,
+            is_completed=False,
+            is_approved=False
+        )
+        db_session.add(assignment)
         await db_session.commit()
         await db_session.refresh(chore)
         

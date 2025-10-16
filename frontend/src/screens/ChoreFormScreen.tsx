@@ -9,7 +9,7 @@ import {
   Switch,
   ActivityIndicator,
 } from 'react-native';
-import { Chore, choreAPI } from '../api/chores';
+import { Chore, choreAPI, AssignmentMode } from '../api/chores';
 import { usersAPI, ChildWithChores } from '../api/users';
 import { familyAPI, FamilyContext } from '../api/families';
 import { Alert } from '../utils/Alert';
@@ -22,7 +22,7 @@ interface ChoreFormScreenProps {
 
 const ChoreFormScreen: React.FC<ChoreFormScreenProps> = ({ chore, onSave, onCancel }) => {
   const isEditing = !!chore;
-  
+
   // Form state
   const [title, setTitle] = useState(chore?.title || '');
   const [description, setDescription] = useState(chore?.description || '');
@@ -32,10 +32,15 @@ const ChoreFormScreen: React.FC<ChoreFormScreenProps> = ({ chore, onSave, onCanc
   const [maxReward, setMaxReward] = useState(chore?.max_reward?.toString() || '');
   const [isRecurring, setIsRecurring] = useState(chore?.is_recurring || false);
   const [cooldownDays, setCooldownDays] = useState(chore?.cooldown_days?.toString() || '');
-  const [assignedToId, setAssignedToId] = useState<number | null>(
-    chore?.assignee_id || chore?.assigned_to_id || null
+
+  // NEW: Multi-assignment state
+  const [assignmentMode, setAssignmentMode] = useState<AssignmentMode>(
+    chore?.assignment_mode || 'single'
   );
-  
+  const [selectedChildIds, setSelectedChildIds] = useState<number[]>(
+    chore?.assignee_ids || (chore?.assignee_id ? [chore.assignee_id] : [])
+  );
+
   // UI state
   const [children, setChildren] = useState<ChildWithChores[]>([]);
   const [loading, setLoading] = useState(false);
@@ -71,28 +76,44 @@ const ChoreFormScreen: React.FC<ChoreFormScreenProps> = ({ chore, onSave, onCanc
       return false;
     }
 
+    // NEW: Assignment mode validation
+    if (assignmentMode === 'single' && selectedChildIds.length !== 1) {
+      Alert.alert('Validation Error', 'Single mode requires exactly one child to be selected');
+      return false;
+    }
+
+    if (assignmentMode === 'multi_independent' && selectedChildIds.length === 0) {
+      Alert.alert('Validation Error', 'Multi-independent mode requires at least one child to be selected');
+      return false;
+    }
+
+    if (assignmentMode === 'unassigned' && selectedChildIds.length > 0) {
+      Alert.alert('Validation Error', 'Unassigned pool mode cannot have children selected');
+      return false;
+    }
+
     if (isRangeReward) {
       if (!minReward || !maxReward) {
         Alert.alert('Validation Error', 'Please enter both minimum and maximum reward amounts');
         console.log('Validation failed: minReward=', minReward, 'maxReward=', maxReward);
         return false;
       }
-      
+
       const min = parseFloat(minReward);
       const max = parseFloat(maxReward);
-      
+
       if (isNaN(min) || isNaN(max)) {
         Alert.alert('Validation Error', 'Please enter valid numeric reward amounts');
         console.log('Validation failed: min=', min, 'max=', max);
         return false;
       }
-      
+
       if (min >= max) {
         Alert.alert('Validation Error', 'Minimum reward must be less than maximum reward');
         console.log('Validation failed: min >= max', min, '>=', max);
         return false;
       }
-      
+
       if (min < 0 || max < 0) {
         Alert.alert('Validation Error', 'Reward amounts must be positive');
         console.log('Validation failed: negative values', min, max);
@@ -128,10 +149,11 @@ const ChoreFormScreen: React.FC<ChoreFormScreenProps> = ({ chore, onSave, onCanc
       maxReward,
       isRecurring,
       cooldownDays,
-      assignedToId,
+      assignmentMode,
+      selectedChildIds,
       children: children.length
     });
-    
+
     if (!validateForm()) {
       console.log('Form validation failed');
       return;
@@ -139,11 +161,14 @@ const ChoreFormScreen: React.FC<ChoreFormScreenProps> = ({ chore, onSave, onCanc
 
     setLoading(true);
 
+    // NEW: Build chore data with multi-assignment fields
     const choreData: any = {
       title: title.trim(),
       description: description.trim() || '',
       is_range_reward: isRangeReward,
       is_recurring: isRecurring,
+      assignment_mode: assignmentMode,
+      assignee_ids: selectedChildIds,
     };
 
     if (isRangeReward) {
@@ -158,28 +183,18 @@ const ChoreFormScreen: React.FC<ChoreFormScreenProps> = ({ chore, onSave, onCanc
       choreData.cooldown_days = parseInt(cooldownDays);
     }
 
-    // assignee_id is required by backend, use first child if none selected
-    if (assignedToId) {
-      choreData.assignee_id = assignedToId;
-    } else if (children.length > 0) {
-      choreData.assignee_id = children[0].id;
-    } else {
-      Alert.alert('Error', 'No children available to assign chore to');
-      setLoading(false);
-      return;
-    }
-
     try {
       console.log('Submitting chore data:', choreData);
       let savedChore: Chore;
-      
+
       if (isEditing && chore) {
         savedChore = await choreAPI.updateChore(chore.id, choreData);
         Alert.alert('Success', 'Chore updated successfully');
       } else {
         savedChore = await choreAPI.createChore(choreData);
+        // Success popup removed - just proceed with navigation
       }
-      
+
       onSave(savedChore);
     } catch (error: any) {
       console.error('Failed to save chore:', error);
@@ -298,41 +313,140 @@ const ChoreFormScreen: React.FC<ChoreFormScreenProps> = ({ chore, onSave, onCanc
           />
         </View>
 
+        {/* NEW: Assignment Mode Selector */}
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Assign To</Text>
-          <View style={styles.childrenList}>
+          <Text style={styles.label}>Assignment Mode *</Text>
+          <View style={styles.modeSelector}>
             <TouchableOpacity
               style={[
-                styles.childOption,
-                !assignedToId && styles.childOptionSelected,
+                styles.modeOption,
+                assignmentMode === 'single' && styles.modeOptionSelected,
               ]}
-              onPress={() => setAssignedToId(null)}
+              onPress={() => {
+                setAssignmentMode('single');
+                // When switching to single, keep first selected child only
+                if (selectedChildIds.length > 1) {
+                  setSelectedChildIds([selectedChildIds[0]]);
+                }
+              }}
             >
               <Text style={[
-                styles.childOptionText,
-                !assignedToId && styles.childOptionTextSelected,
+                styles.modeOptionTitle,
+                assignmentMode === 'single' && styles.modeOptionTitleSelected,
               ]}>
-                Unassigned (Any child can claim)
+                Single Child
               </Text>
+              <Text style={styles.modeOptionDesc}>Assign to one child</Text>
             </TouchableOpacity>
-            {children.map((child) => (
-              <TouchableOpacity
-                key={child.id}
-                style={[
-                  styles.childOption,
-                  assignedToId === child.id && styles.childOptionSelected,
-                ]}
-                onPress={() => setAssignedToId(child.id)}
-              >
-                <Text style={[
-                  styles.childOptionText,
-                  assignedToId === child.id && styles.childOptionTextSelected,
-                ]}>
-                  {child.username}
-                </Text>
-              </TouchableOpacity>
-            ))}
+
+            <TouchableOpacity
+              style={[
+                styles.modeOption,
+                assignmentMode === 'multi_independent' && styles.modeOptionSelected,
+              ]}
+              onPress={() => setAssignmentMode('multi_independent')}
+            >
+              <Text style={[
+                styles.modeOptionTitle,
+                assignmentMode === 'multi_independent' && styles.modeOptionTitleSelected,
+              ]}>
+                Multiple Children
+              </Text>
+              <Text style={styles.modeOptionDesc}>Each child does their own</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.modeOption,
+                assignmentMode === 'unassigned' && styles.modeOptionSelected,
+              ]}
+              onPress={() => {
+                setAssignmentMode('unassigned');
+                // When switching to unassigned, clear all selections
+                setSelectedChildIds([]);
+              }}
+            >
+              <Text style={[
+                styles.modeOptionTitle,
+                assignmentMode === 'unassigned' && styles.modeOptionTitleSelected,
+              ]}>
+                Unassigned Pool
+              </Text>
+              <Text style={styles.modeOptionDesc}>Any child can claim</Text>
+            </TouchableOpacity>
           </View>
+        </View>
+
+        {/* Updated: Child Selection (Multi-select support) */}
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>
+            {assignmentMode === 'unassigned'
+              ? 'Assignees (Not needed for pool chores)'
+              : assignmentMode === 'single'
+              ? 'Assign To *'
+              : 'Assign To (Select multiple) *'}
+          </Text>
+          {assignmentMode === 'multi_independent' && selectedChildIds.length > 0 && (
+            <Text style={styles.selectionCount}>
+              {selectedChildIds.length} {selectedChildIds.length === 1 ? 'child' : 'children'} selected
+            </Text>
+          )}
+          <View style={styles.childrenList}>
+            {children.map((child) => {
+              const isSelected = selectedChildIds.includes(child.id);
+              const isDisabled = assignmentMode === 'unassigned';
+
+              return (
+                <TouchableOpacity
+                  key={child.id}
+                  style={[
+                    styles.childOption,
+                    isSelected && styles.childOptionSelected,
+                    isDisabled && styles.childOptionDisabled,
+                  ]}
+                  onPress={() => {
+                    if (isDisabled) return;
+
+                    if (assignmentMode === 'single') {
+                      // Single mode: replace selection
+                      setSelectedChildIds([child.id]);
+                    } else {
+                      // Multi mode: toggle selection
+                      if (isSelected) {
+                        setSelectedChildIds(selectedChildIds.filter(id => id !== child.id));
+                      } else {
+                        setSelectedChildIds([...selectedChildIds, child.id]);
+                      }
+                    }
+                  }}
+                  disabled={isDisabled}
+                >
+                  <View style={styles.childOptionContent}>
+                    {assignmentMode === 'multi_independent' && (
+                      <View style={[
+                        styles.checkbox,
+                        isSelected && styles.checkboxSelected,
+                      ]}>
+                        {isSelected && <Text style={styles.checkmark}>✓</Text>}
+                      </View>
+                    )}
+                    <Text style={[
+                      styles.childOptionText,
+                      isSelected && styles.childOptionTextSelected,
+                      isDisabled && styles.childOptionTextDisabled,
+                    ]}>
+                      {child.username}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+          {assignmentMode === 'unassigned' && (
+            <Text style={styles.helperText}>
+              Pool chores can be claimed by any child in the family
+            </Text>
+          )}
         </View>
 
         <View style={styles.switchGroup}>
@@ -478,7 +592,47 @@ const styles = StyleSheet.create({
     minHeight: 80,
     textAlignVertical: 'top',
   },
+  // NEW: Assignment mode selector styles
+  modeSelector: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  modeOption: {
+    flex: 1,
+    backgroundColor: '#fff',
+    borderWidth: 2,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    padding: 12,
+    alignItems: 'center',
+  },
+  modeOptionSelected: {
+    borderColor: '#2196f3',
+    backgroundColor: '#e3f2fd',
+  },
+  modeOptionTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  modeOptionTitleSelected: {
+    color: '#2196f3',
+  },
+  modeOptionDesc: {
+    fontSize: 12,
+    color: '#666',
+    textAlign: 'center',
+  },
+  selectionCount: {
+    fontSize: 14,
+    color: '#2196f3',
+    fontWeight: '600',
+    marginBottom: 8,
+  },
   childrenList: {
+    gap: 8,
   },
   childOption: {
     backgroundColor: '#fff',
@@ -491,13 +645,45 @@ const styles = StyleSheet.create({
     borderColor: '#2196f3',
     backgroundColor: '#e3f2fd',
   },
+  childOptionDisabled: {
+    backgroundColor: '#f5f5f5',
+    opacity: 0.5,
+  },
+  childOptionContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: '#ddd',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fff',
+  },
+  checkboxSelected: {
+    backgroundColor: '#2196f3',
+    borderColor: '#2196f3',
+  },
+  checkmark: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
   childOptionText: {
     fontSize: 16,
     color: '#333',
+    flex: 1,
   },
   childOptionTextSelected: {
     color: '#2196f3',
     fontWeight: '600',
+  },
+  childOptionTextDisabled: {
+    color: '#999',
   },
   switchGroup: {
     marginBottom: 20,

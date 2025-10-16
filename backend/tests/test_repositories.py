@@ -220,156 +220,221 @@ class TestChoreRepository:
     
     @pytest.mark.asyncio
     async def test_get_available_for_assignee(
-        self, 
-        db_session: AsyncSession, 
+        self,
+        db_session: AsyncSession,
         chore_repo: ChoreRepository,
         test_parent_user: User,
         test_child_user: User
     ):
-        """Test getting available chores for a child."""
-        # Create multiple chores
+        """Test getting available chores for a child using ChoreAssignmentRepository."""
+        from backend.app.models.chore_assignment import ChoreAssignment
+        from backend.app.repositories.chore_assignment import ChoreAssignmentRepository
+
+        assignment_repo = ChoreAssignmentRepository()
+
+        # Create multiple chores with different states
         chores_data = [
             {
                 "title": "Available Chore 1",
                 "description": "Test",
                 "reward": 5.0,
-                "assignee_id": test_child_user.id,
+                "is_range_reward": False,
+                "cooldown_days": 0,
+                "is_recurring": False,
+                "assignment_mode": "single",
                 "creator_id": test_parent_user.id,
-                "is_completed": False,
                 "is_disabled": False
             },
             {
                 "title": "Completed Chore",
                 "description": "Test",
                 "reward": 5.0,
-                "assignee_id": test_child_user.id,
+                "is_range_reward": False,
+                "cooldown_days": 0,
+                "is_recurring": False,
+                "assignment_mode": "single",
                 "creator_id": test_parent_user.id,
-                "is_completed": True,
                 "is_disabled": False
             },
             {
                 "title": "Disabled Chore",
                 "description": "Test",
                 "reward": 5.0,
-                "assignee_id": test_child_user.id,
+                "is_range_reward": False,
+                "cooldown_days": 0,
+                "is_recurring": False,
+                "assignment_mode": "single",
                 "creator_id": test_parent_user.id,
-                "is_completed": False,
                 "is_disabled": True
             },
             {
                 "title": "Available Chore 2",
                 "description": "Test",
                 "reward": 10.0,
-                "assignee_id": test_child_user.id,
+                "is_range_reward": False,
+                "cooldown_days": 0,
+                "is_recurring": False,
+                "assignment_mode": "single",
                 "creator_id": test_parent_user.id,
-                "is_completed": False,
                 "is_disabled": False
             }
         ]
-        
-        for chore_data in chores_data:
+
+        for i, chore_data in enumerate(chores_data):
             chore = Chore(**chore_data)
             db_session.add(chore)
+            await db_session.flush()
+
+            # Create assignment for each chore
+            assignment = ChoreAssignment(
+                chore_id=chore.id,
+                assignee_id=test_child_user.id,
+                is_completed=(i == 1),  # Second chore is completed
+                is_approved=False
+            )
+            db_session.add(assignment)
+
         await db_session.commit()
-        
-        # Get available chores
-        available_chores = await chore_repo.get_available_for_assignee(
-            db_session, 
+
+        # Get available assignments using new repository
+        available_assignments = await assignment_repo.get_available_for_child(
+            db_session,
             assignee_id=test_child_user.id
         )
-        
-        assert len(available_chores) == 2
-        assert all(not chore.is_completed for chore in available_chores)
-        assert all(not chore.is_disabled for chore in available_chores)
-        assert all(chore.assignee_id == test_child_user.id for chore in available_chores)
+
+        assert len(available_assignments) == 2
+        assert all(not assignment.is_completed for assignment in available_assignments)
+        assert all(not assignment.chore.is_disabled for assignment in available_assignments)
+        assert all(assignment.assignee_id == test_child_user.id for assignment in available_assignments)
     
     @pytest.mark.asyncio
     async def test_get_pending_approval(
-        self, 
-        db_session: AsyncSession, 
+        self,
+        db_session: AsyncSession,
         chore_repo: ChoreRepository,
         test_parent_user: User,
         test_child_user: User
     ):
-        """Test getting chores pending approval."""
-        # Create chores with different states
+        """Test getting assignments pending approval."""
+        from backend.app.models.chore_assignment import ChoreAssignment
+        from backend.app.repositories.chore_assignment import ChoreAssignmentRepository
+
+        assignment_repo = ChoreAssignmentRepository()
+
+        # Create chores with different assignment states
         chores_data = [
             {
                 "title": "Pending Approval 1",
                 "description": "Test",
                 "reward": 5.0,
-                "assignee_id": test_child_user.id,
+                "is_range_reward": False,
+                "cooldown_days": 0,
+                "is_recurring": False,
+                "assignment_mode": "single",
                 "creator_id": test_parent_user.id,
-                "is_completed": True,
-                "is_approved": False,
                 "is_disabled": False
             },
             {
                 "title": "Already Approved",
                 "description": "Test",
                 "reward": 5.0,
-                "assignee_id": test_child_user.id,
+                "is_range_reward": False,
+                "cooldown_days": 0,
+                "is_recurring": False,
+                "assignment_mode": "single",
                 "creator_id": test_parent_user.id,
-                "is_completed": True,
-                "is_approved": True,
                 "is_disabled": False
             },
             {
                 "title": "Not Completed",
                 "description": "Test",
                 "reward": 5.0,
-                "assignee_id": test_child_user.id,
+                "is_range_reward": False,
+                "cooldown_days": 0,
+                "is_recurring": False,
+                "assignment_mode": "single",
                 "creator_id": test_parent_user.id,
-                "is_completed": False,
-                "is_approved": False,
                 "is_disabled": False
             },
             {
                 "title": "Pending Approval 2",
                 "description": "Test",
                 "reward": 10.0,
-                "assignee_id": test_child_user.id,
+                "is_range_reward": False,
+                "cooldown_days": 0,
+                "is_recurring": False,
+                "assignment_mode": "single",
                 "creator_id": test_parent_user.id,
-                "is_completed": True,
-                "is_approved": False,
                 "is_disabled": False
             }
         ]
-        
-        for chore_data in chores_data:
+
+        assignment_states = [
+            {"is_completed": True, "is_approved": False},   # Pending approval
+            {"is_completed": True, "is_approved": True},    # Already approved
+            {"is_completed": False, "is_approved": False},  # Not completed
+            {"is_completed": True, "is_approved": False}    # Pending approval
+        ]
+
+        for chore_data, assignment_state in zip(chores_data, assignment_states):
             chore = Chore(**chore_data)
             db_session.add(chore)
+            await db_session.flush()
+
+            # Create assignment with specific state
+            assignment = ChoreAssignment(
+                chore_id=chore.id,
+                assignee_id=test_child_user.id,
+                **assignment_state
+            )
+            db_session.add(assignment)
+
         await db_session.commit()
-        
-        # Get pending approval chores
-        pending_chores = await chore_repo.get_pending_approval(
-            db_session, 
+
+        # Get pending approval assignments
+        pending_assignments = await assignment_repo.get_pending_approval(
+            db_session,
             creator_id=test_parent_user.id
         )
-        
-        assert len(pending_chores) == 2
-        assert all(chore.is_completed for chore in pending_chores)
-        assert all(not chore.is_approved for chore in pending_chores)
-        assert all(chore.creator_id == test_parent_user.id for chore in pending_chores)
+
+        assert len(pending_assignments) == 2
+        assert all(assignment.is_completed for assignment in pending_assignments)
+        assert all(not assignment.is_approved for assignment in pending_assignments)
+        assert all(assignment.chore.creator_id == test_parent_user.id for assignment in pending_assignments)
     
     @pytest.mark.asyncio
     async def test_mark_completed(
-        self, 
-        db_session: AsyncSession, 
+        self,
+        db_session: AsyncSession,
         chore_repo: ChoreRepository,
-        test_chore: Chore
+        test_chore: Chore,
+        test_child_user: User
     ):
-        """Test completing a chore."""
-        assert test_chore.is_completed is False
-        
-        completed_chore = await chore_repo.mark_completed(
-            db_session, 
-            chore_id=test_chore.id
+        """Test completing a chore assignment."""
+        from backend.app.models.chore_assignment import ChoreAssignment
+        from backend.app.repositories.chore_assignment import ChoreAssignmentRepository
+
+        assignment_repo = ChoreAssignmentRepository()
+
+        # Get the assignment created by the test_chore fixture
+        assignment = await assignment_repo.get_by_chore_and_assignee(
+            db_session,
+            chore_id=test_chore.id,
+            assignee_id=test_child_user.id
         )
-        
-        assert completed_chore is not None
-        assert completed_chore.is_completed is True
-        assert completed_chore.completion_date is not None
+
+        assert assignment is not None
+        assert assignment.is_completed is False
+
+        # Mark the assignment as completed
+        completed_assignment = await assignment_repo.mark_completed(
+            db_session,
+            assignment_id=assignment.id
+        )
+
+        assert completed_assignment is not None
+        assert completed_assignment.is_completed is True
+        assert completed_assignment.completion_date is not None
     
     @pytest.mark.asyncio
     async def test_mark_completed_nonexistent(
@@ -387,48 +452,72 @@ class TestChoreRepository:
     
     @pytest.mark.asyncio
     async def test_approve_chore_fixed_reward(
-        self, 
-        db_session: AsyncSession, 
+        self,
+        db_session: AsyncSession,
         chore_repo: ChoreRepository,
-        test_chore: Chore
+        test_chore: Chore,
+        test_child_user: User
     ):
-        """Test approving a chore with fixed reward."""
-        # First complete the chore
-        await chore_repo.mark_completed(db_session, chore_id=test_chore.id)
-        
-        # Then approve it
-        approved_chore = await chore_repo.approve_chore(
-            db_session, 
+        """Test approving an assignment with fixed reward."""
+        from backend.app.repositories.chore_assignment import ChoreAssignmentRepository
+
+        assignment_repo = ChoreAssignmentRepository()
+
+        # Get the assignment
+        assignment = await assignment_repo.get_by_chore_and_assignee(
+            db_session,
             chore_id=test_chore.id,
+            assignee_id=test_child_user.id
+        )
+
+        # First complete the assignment
+        await assignment_repo.mark_completed(db_session, assignment_id=assignment.id)
+
+        # Then approve it
+        approved_assignment = await assignment_repo.approve_assignment(
+            db_session,
+            assignment_id=assignment.id,
             reward_value=None  # Fixed reward doesn't need value
         )
-        
-        assert approved_chore is not None
-        assert approved_chore.is_approved is True
-        assert approved_chore.reward == test_chore.reward
+
+        assert approved_assignment is not None
+        assert approved_assignment.is_approved is True
+        assert approved_assignment.chore.reward == test_chore.reward
     
     @pytest.mark.asyncio
     async def test_approve_chore_range_reward(
-        self, 
-        db_session: AsyncSession, 
+        self,
+        db_session: AsyncSession,
         chore_repo: ChoreRepository,
-        test_range_chore: Chore
+        test_range_chore: Chore,
+        test_child_user: User
     ):
-        """Test approving a chore with range reward."""
-        # First complete the chore
-        await chore_repo.mark_completed(db_session, chore_id=test_range_chore.id)
-        
+        """Test approving an assignment with range reward."""
+        from backend.app.repositories.chore_assignment import ChoreAssignmentRepository
+
+        assignment_repo = ChoreAssignmentRepository()
+
+        # Get the assignment
+        assignment = await assignment_repo.get_by_chore_and_assignee(
+            db_session,
+            chore_id=test_range_chore.id,
+            assignee_id=test_child_user.id
+        )
+
+        # First complete the assignment
+        await assignment_repo.mark_completed(db_session, assignment_id=assignment.id)
+
         # Then approve it with specific reward
         reward_value = 3.0  # Between min (2.0) and max (4.0)
-        approved_chore = await chore_repo.approve_chore(
-            db_session, 
-            chore_id=test_range_chore.id,
+        approved_assignment = await assignment_repo.approve_assignment(
+            db_session,
+            assignment_id=assignment.id,
             reward_value=reward_value
         )
-        
-        assert approved_chore is not None
-        assert approved_chore.is_approved is True
-        assert approved_chore.reward == reward_value
+
+        assert approved_assignment is not None
+        assert approved_assignment.is_approved is True
+        assert approved_assignment.approval_reward == reward_value
     
     @pytest.mark.asyncio
     async def test_disable_chore(
@@ -450,84 +539,123 @@ class TestChoreRepository:
     
     @pytest.mark.asyncio
     async def test_get_by_assignee(
-        self, 
-        db_session: AsyncSession, 
+        self,
+        db_session: AsyncSession,
         chore_repo: ChoreRepository,
         test_parent_user: User,
         test_child_user: User
     ):
-        """Test getting all chores for a child in various states."""
-        # Create chores in different states
-        chores_data = [
+        """Test getting all assignments for a child in various states."""
+        from backend.app.models.chore_assignment import ChoreAssignment
+        from backend.app.repositories.chore_assignment import ChoreAssignmentRepository
+
+        assignment_repo = ChoreAssignmentRepository()
+
+        # Create chores in different states with assignments
+        assignment_states = [
             {"is_completed": False, "is_approved": False, "is_disabled": False},
             {"is_completed": True, "is_approved": False, "is_disabled": False},
             {"is_completed": True, "is_approved": True, "is_disabled": False},
             {"is_completed": False, "is_approved": False, "is_disabled": True},
         ]
-        
-        for i, state in enumerate(chores_data):
+
+        for i, state in enumerate(assignment_states):
             chore = Chore(
                 title=f"Chore {i}",
                 description="Test",
                 reward=5.0,
-                assignee_id=test_child_user.id,
+                is_range_reward=False,
+                cooldown_days=0,
+                is_recurring=False,
+                assignment_mode="single",
                 creator_id=test_parent_user.id,
-                **state
+                is_disabled=state["is_disabled"]
             )
             db_session.add(chore)
+            await db_session.flush()
+
+            # Create assignment with completion/approval state
+            assignment = ChoreAssignment(
+                chore_id=chore.id,
+                assignee_id=test_child_user.id,
+                is_completed=state["is_completed"],
+                is_approved=state["is_approved"]
+            )
+            db_session.add(assignment)
+
         await db_session.commit()
-        
-        # Get all child chores
-        all_chores = await chore_repo.get_by_assignee(
-            db_session, 
+
+        # Get all assignments for the child
+        all_assignments = await assignment_repo.get_by_assignee(
+            db_session,
             assignee_id=test_child_user.id
         )
-        
-        # Note: get_by_assignee filters out disabled chores
-        assert len(all_chores) == 3  # Only non-disabled chores
-        assert all(chore.assignee_id == test_child_user.id for chore in all_chores)
-        assert all(not chore.is_disabled for chore in all_chores)
+
+        # Should get all 4 assignments (including disabled chore)
+        assert len(all_assignments) == 4
+        assert all(assignment.assignee_id == test_child_user.id for assignment in all_assignments)
     
     @pytest.mark.asyncio
     async def test_get_completed_by_child(
-        self, 
-        db_session: AsyncSession, 
+        self,
+        db_session: AsyncSession,
         chore_repo: ChoreRepository,
         test_parent_user: User,
         test_child_user: User
     ):
-        """Test getting completed and approved chores for a child."""
-        # Create chores in different states
-        chores_data = [
+        """Test getting assignment history (completed and approved) for a child."""
+        from backend.app.models.chore_assignment import ChoreAssignment
+        from backend.app.repositories.chore_assignment import ChoreAssignmentRepository
+        from datetime import datetime
+
+        assignment_repo = ChoreAssignmentRepository()
+
+        # Create chores with different assignment states
+        assignment_states = [
             {"is_completed": False, "is_approved": False},  # Not completed
             {"is_completed": True, "is_approved": False},   # Completed but not approved
             {"is_completed": True, "is_approved": True},    # Completed and approved
             {"is_completed": True, "is_approved": True},    # Another completed and approved
         ]
-        
-        for i, state in enumerate(chores_data):
+
+        for i, state in enumerate(assignment_states):
             chore = Chore(
                 title=f"Chore {i}",
                 description="Test",
                 reward=5.0 * (i + 1),
-                assignee_id=test_child_user.id,
+                is_range_reward=False,
+                cooldown_days=0,
+                is_recurring=False,
+                assignment_mode="single",
                 creator_id=test_parent_user.id,
-                is_disabled=False,
-                **state
+                is_disabled=False
             )
             db_session.add(chore)
+            await db_session.flush()
+
+            # Create assignment with state
+            assignment = ChoreAssignment(
+                chore_id=chore.id,
+                assignee_id=test_child_user.id,
+                is_completed=state["is_completed"],
+                is_approved=state["is_approved"],
+                approval_date=datetime.utcnow() if state["is_approved"] else None
+            )
+            db_session.add(assignment)
+
         await db_session.commit()
-        
-        # Get completed chores
-        completed_chores = await chore_repo.get_completed_by_child(
-            db_session, 
-            child_id=test_child_user.id
+
+        # Get assignment history (approved assignments)
+        approved_assignments = await assignment_repo.get_assignment_history(
+            db_session,
+            assignee_id=test_child_user.id
         )
-        
-        # Note: get_completed_by_child returns ALL completed chores, not just approved ones
-        assert len(completed_chores) == 3  # 2 approved + 1 not approved
-        assert all(chore.is_completed for chore in completed_chores)
-        # Filter to only approved ones for reward calculation
-        approved_chores = [c for c in completed_chores if c.is_approved]
-        assert len(approved_chores) == 2
-        assert sum(chore.reward for chore in approved_chores) == 15.0 + 20.0
+
+        # Should only get approved assignments
+        assert len(approved_assignments) == 2
+        assert all(assignment.is_approved for assignment in approved_assignments)
+        assert all(assignment.is_completed for assignment in approved_assignments)
+
+        # Verify reward calculation
+        total_reward = sum(assignment.chore.reward for assignment in approved_assignments)
+        assert total_reward == 15.0 + 20.0

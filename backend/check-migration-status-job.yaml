@@ -1,0 +1,17 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: check-migration-status-job
+  namespace: chores-tracker-backend
+spec:
+  template:
+    spec:
+      containers:
+      - name: check-migration-status
+        image: 852893458518.dkr.ecr.us-east-2.amazonaws.com/chores-tracker:5.4.2
+        command: ["python", "/app/backend/app/scripts/check_database_state.py"]
+        env:
+        - name: ENVIRONMENT
+          value: "production"
+      restartPolicy: Never
+  backoffLimit: 3

@@ -12,28 +12,32 @@ from contextlib import asynccontextmanager
 from ..db.base import AsyncSessionLocal
 from ..repositories.user import UserRepository
 from ..repositories.chore import ChoreRepository
+from ..repositories.chore_assignment import ChoreAssignmentRepository
+from ..repositories.reward_adjustment import RewardAdjustmentRepository
 
 
 class UnitOfWork:
     """
     Unit of Work pattern implementation for managing database transactions.
-    
+
     This class ensures that all database operations within its context
     are part of the same transaction. If any operation fails, all changes
     are rolled back.
-    
+
     Example usage:
         async with UnitOfWork() as uow:
             user = await uow.users.create(db=uow.session, obj_in=user_data)
             chore = await uow.chores.create(db=uow.session, obj_in=chore_data)
             await uow.commit()
     """
-    
+
     def __init__(self, session_factory=None):
         self.session_factory = session_factory or AsyncSessionLocal
         self.session: Optional[AsyncSession] = None
         self._users: Optional[UserRepository] = None
         self._chores: Optional[ChoreRepository] = None
+        self._assignments: Optional[ChoreAssignmentRepository] = None
+        self._reward_adjustments: Optional[RewardAdjustmentRepository] = None
     
     async def __aenter__(self):
         """Enter the async context manager."""
@@ -60,7 +64,21 @@ class UnitOfWork:
         if self._chores is None:
             self._chores = ChoreRepository()
         return self._chores
-    
+
+    @property
+    def assignments(self) -> ChoreAssignmentRepository:
+        """Get the chore assignment repository instance."""
+        if self._assignments is None:
+            self._assignments = ChoreAssignmentRepository()
+        return self._assignments
+
+    @property
+    def reward_adjustments(self) -> RewardAdjustmentRepository:
+        """Get the reward adjustment repository instance."""
+        if self._reward_adjustments is None:
+            self._reward_adjustments = RewardAdjustmentRepository()
+        return self._reward_adjustments
+
     async def commit(self):
         """Commit the current transaction."""
         if self.session:

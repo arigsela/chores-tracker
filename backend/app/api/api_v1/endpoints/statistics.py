@@ -7,6 +7,7 @@ from ....dependencies.auth import get_current_user
 from ....db.base import get_db
 from ....models.user import User
 from ....models.chore import Chore
+from ....models.chore_assignment import ChoreAssignment
 from ....models.reward_adjustment import RewardAdjustment
 from ....schemas.statistics import (
     WeeklyStatsResponse, 
@@ -39,16 +40,18 @@ async def get_weekly_summary(
         week_start = current_week_start - timedelta(weeks=week_offset)
         week_end = week_start + timedelta(days=6)
         
-        # Base query for this week
-        chore_query = select(Chore).where(
+        # Base query for this week - join Chore with ChoreAssignment
+        assignment_query = select(ChoreAssignment).join(
+            Chore, ChoreAssignment.chore_id == Chore.id
+        ).where(
             and_(
                 Chore.creator_id == current_user.id,
-                func.date(Chore.completion_date) >= week_start,
-                func.date(Chore.completion_date) <= week_end,
-                Chore.is_approved == True
+                func.date(ChoreAssignment.completion_date) >= week_start,
+                func.date(ChoreAssignment.completion_date) <= week_end,
+                ChoreAssignment.is_approved == True
             )
         )
-        
+
         # Filter by child if specified
         if child_id:
             child_query = select(User).where(
@@ -58,16 +61,16 @@ async def get_weekly_summary(
             child = child_result.scalar_one_or_none()
             if not child:
                 raise HTTPException(status_code=404, detail="Child not found")
-            
-            chore_query = chore_query.where(Chore.assignee_id == child_id)
-        
-        # Get completed chores for the week
-        chore_result = await db.execute(chore_query)
-        weekly_chores = chore_result.scalars().all()
-        
+
+            assignment_query = assignment_query.where(ChoreAssignment.assignee_id == child_id)
+
+        # Get completed assignments for the week
+        assignment_result = await db.execute(assignment_query)
+        weekly_assignments = assignment_result.scalars().all()
+
         # Calculate statistics
-        completed_chores = len(weekly_chores)
-        total_earned = sum(chore.approval_reward or chore.reward or 0 for chore in weekly_chores)
+        completed_chores = len(weekly_assignments)
+        total_earned = sum(assignment.approval_reward or 0 for assignment in weekly_assignments)
         
         # Get adjustments for this week
         adjustment_query = select(RewardAdjustment).where(
@@ -87,7 +90,7 @@ async def get_weekly_summary(
         
         # Get unique children who completed chores this week
         if not child_id:
-            active_children = len(set(chore.assignee_id for chore in weekly_chores if chore.assignee_id))
+            active_children = len(set(assignment.assignee_id for assignment in weekly_assignments if assignment.assignee_id))
         else:
             active_children = 1 if completed_chores > 0 else 0
         
@@ -140,21 +143,23 @@ async def get_monthly_summary(
         target_year = target_date.year
         target_month = target_date.month
         
-        # Base query for this month
-        chore_query = select(Chore).where(
+        # Base query for this month - join Chore with ChoreAssignment
+        assignment_query = select(ChoreAssignment).join(
+            Chore, ChoreAssignment.chore_id == Chore.id
+        ).where(
             and_(
                 Chore.creator_id == current_user.id,
-                extract('year', Chore.completion_date) == target_year,
-                extract('month', Chore.completion_date) == target_month,
-                Chore.is_approved == True
+                extract('year', ChoreAssignment.completion_date) == target_year,
+                extract('month', ChoreAssignment.completion_date) == target_month,
+                ChoreAssignment.is_approved == True
             )
         )
-        
+
         if child_id:
-            chore_query = chore_query.where(Chore.assignee_id == child_id)
-        
-        chore_result = await db.execute(chore_query)
-        monthly_chores = chore_result.scalars().all()
+            assignment_query = assignment_query.where(ChoreAssignment.assignee_id == child_id)
+
+        assignment_result = await db.execute(assignment_query)
+        monthly_assignments = assignment_result.scalars().all()
         
         # Get adjustments for this month
         adjustment_query = select(RewardAdjustment).where(
@@ -170,15 +175,15 @@ async def get_monthly_summary(
         
         adjustment_result = await db.execute(adjustment_query)
         monthly_adjustments = adjustment_result.scalars().all()
-        
+
         # Calculate statistics
-        completed_chores = len(monthly_chores)
-        total_earned = sum(chore.approval_reward or chore.reward or 0 for chore in monthly_chores)
+        completed_chores = len(monthly_assignments)
+        total_earned = sum(assignment.approval_reward or 0 for assignment in monthly_assignments)
         total_adjustments = sum(float(adj.amount) for adj in monthly_adjustments)
-        
+
         # Get number of unique children active this month
         if not child_id:
-            active_children = len(set(chore.assignee_id for chore in monthly_chores if chore.assignee_id))
+            active_children = len(set(assignment.assignee_id for assignment in monthly_assignments if assignment.assignee_id))
         else:
             active_children = 1 if completed_chores > 0 else 0
         

@@ -32,6 +32,17 @@ const ChildDetailScreen: React.FC<ChildDetailScreenProps> = ({ child, onBack }) 
   const fetchChores = async () => {
     try {
       const childChores = await choreAPI.getChildChores(child.id);
+      console.log('[CHILD DETAIL] Fetched chores for child', child.id, ':', childChores.length);
+      childChores.forEach((chore, idx) => {
+        console.log(`[CHILD DETAIL] Chore ${idx + 1}:`, {
+          id: chore.id,
+          title: chore.title,
+          is_completed: chore.is_completed,
+          is_approved: chore.is_approved,
+          completed_at: chore.completed_at,
+          approved_at: chore.approved_at
+        });
+      });
       setChores(childChores);
     } catch (error) {
       console.error('Failed to fetch child chores:', error);
