@@ -201,7 +201,14 @@ async def root():
 
 @app.get("/health")
 async def health_check(db: AsyncSession = Depends(get_db)):
-    """Health check endpoint."""
+    """
+    Legacy health check endpoint for backward compatibility.
+
+    Note: New health check endpoints are available at:
+    - GET /api/v1/health (basic liveness)
+    - GET /api/v1/health/ready (readiness with DB check)
+    - GET /api/v1/health/detailed (component diagnostics)
+    """
     try:
         # Try to execute a simple query
         from sqlalchemy import text

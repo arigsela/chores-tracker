@@ -179,3 +179,10 @@ cython_debug/
 backend/chores_tracker.db
 *.db
 commands.sh
+
+# Monitoring service account credentials
+monitoring_credentials.txt
+monitoring_credentials.json
+.monitoring_env
+*monitoring_password*
+*monitoring_secret*
