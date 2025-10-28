@@ -1,7 +1,8 @@
 from fastapi import APIRouter
-from .endpoints import users, chores, assignments, adjustments, activities, reports, statistics, families
+from .endpoints import users, chores, assignments, adjustments, activities, reports, statistics, families, health
 
 api_router = APIRouter()
+api_router.include_router(health.router, tags=["health"])
 api_router.include_router(users.router, prefix="/users", tags=["users"])
 api_router.include_router(chores.router, prefix="/chores", tags=["chores"])
 api_router.include_router(assignments.router, prefix="/assignments", tags=["assignments"])
