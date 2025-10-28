@@ -952,10 +952,10 @@ class ChoreService(BaseService[Chore, ChoreRepository]):
         update_data: Dict[str, Any]
     ) -> Chore:
         """
-        Update a chore.
+        Update a chore with family-aware authorization.
 
         Business rules:
-        - Only parent who created the chore can update
+        - Parent must be in same family as chore creator (or be the creator in legacy mode)
         - Cannot update if any assignments are completed/approved
         """
         chore = await self.repository.get_with_assignments(db, chore_id=chore_id)
@@ -965,12 +965,35 @@ class ChoreService(BaseService[Chore, ChoreRepository]):
                 detail="Chore not found"
             )
 
-        # Check if user is the creator
-        if chore.creator_id != parent_id:
+        # Get parent and creator for family-aware authorization
+        parent = await self.user_repo.get(db, id=parent_id)
+        if not parent:
             raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="You can only update chores you created"
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Parent not found"
             )
+
+        creator = await self.user_repo.get(db, id=chore.creator_id)
+        if not creator:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Chore creator not found"
+            )
+
+        # Family-based access control: parent must be in same family as creator
+        if parent.family_id and creator.family_id:
+            if parent.family_id != creator.family_id:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="You can only update chores from your family"
+                )
+        else:
+            # Legacy single-parent mode: parent must be the creator
+            if chore.creator_id != parent_id:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="You can only update chores you created"
+                )
 
         # Check if any assignments are already completed or approved
         if chore.assignments:
@@ -994,10 +1017,10 @@ class ChoreService(BaseService[Chore, ChoreRepository]):
         parent_id: int
     ) -> Chore:
         """
-        Disable a chore (soft delete).
-        
+        Disable a chore (soft delete) with family-aware authorization.
+
         Business rules:
-        - Only parent who created the chore can disable
+        - Parent must be in same family as chore creator (or be the creator in legacy mode)
         """
         chore = await self.get(db, id=chore_id)
         if not chore:
@@ -1005,14 +1028,37 @@ class ChoreService(BaseService[Chore, ChoreRepository]):
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Chore not found"
             )
-        
-        # Check if user is the creator
-        if chore.creator_id != parent_id:
+
+        # Get parent and creator for family-aware authorization
+        parent = await self.user_repo.get(db, id=parent_id)
+        if not parent:
             raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="You can only disable chores you created"
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Parent not found"
             )
-        
+
+        creator = await self.user_repo.get(db, id=chore.creator_id)
+        if not creator:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Chore creator not found"
+            )
+
+        # Family-based access control: parent must be in same family as creator
+        if parent.family_id and creator.family_id:
+            if parent.family_id != creator.family_id:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="You can only disable chores from your family"
+                )
+        else:
+            # Legacy single-parent mode: parent must be the creator
+            if chore.creator_id != parent_id:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="You can only disable chores you created"
+                )
+
         # Disable chore
         return await self.repository.update(
             db, id=chore_id, obj_in={"is_disabled": True}
@@ -1026,10 +1072,10 @@ class ChoreService(BaseService[Chore, ChoreRepository]):
         parent_id: int
     ) -> None:
         """
-        Delete a chore (hard delete).
-        
+        Delete a chore (hard delete) with family-aware authorization.
+
         Business rules:
-        - Only parent who created the chore can delete
+        - Parent must be in same family as chore creator (or be the creator in legacy mode)
         """
         chore = await self.get(db, id=chore_id)
         if not chore:
@@ -1037,14 +1083,37 @@ class ChoreService(BaseService[Chore, ChoreRepository]):
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Chore not found"
             )
-        
-        # Check if user is the creator
-        if chore.creator_id != parent_id:
+
+        # Get parent and creator for family-aware authorization
+        parent = await self.user_repo.get(db, id=parent_id)
+        if not parent:
             raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="You can only delete chores you created"
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Parent not found"
             )
-        
+
+        creator = await self.user_repo.get(db, id=chore.creator_id)
+        if not creator:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Chore creator not found"
+            )
+
+        # Family-based access control: parent must be in same family as creator
+        if parent.family_id and creator.family_id:
+            if parent.family_id != creator.family_id:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="You can only delete chores from your family"
+                )
+        else:
+            # Legacy single-parent mode: parent must be the creator
+            if chore.creator_id != parent_id:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="You can only delete chores you created"
+                )
+
         # Delete chore
         await self.repository.delete(db, id=chore_id)
     
