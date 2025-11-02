@@ -186,3 +186,4 @@ monitoring_credentials.json
 .monitoring_env
 *monitoring_password*
 *monitoring_secret*
+*.sql.gz
