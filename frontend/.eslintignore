@@ -9,5 +9,5 @@ node_modules/
 # Coverage reports
 coverage/
 
-# Test files that should be ignored
-test-chores-ui.js
+# Manual test files
+src/__tests__/manual/
