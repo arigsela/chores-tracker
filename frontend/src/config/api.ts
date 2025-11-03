@@ -35,6 +35,3 @@ export const getAPIUrl = (): string => {
 
 // Note: API_URL is now dynamic - call getAPIUrl() when needed rather than caching at module load time
 // This ensures runtime configuration (window.APP_CONFIG) is available when the URL is requested
-
-// Export the function for dynamic resolution
-export { getAPIUrl };

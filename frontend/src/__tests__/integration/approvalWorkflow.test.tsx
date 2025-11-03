@@ -7,7 +7,7 @@ import React from 'react';
 import { render, fireEvent, waitFor, act } from '@testing-library/react-native';
 // Import components that will be mocked
 import { ChoreCard } from '../../components/ChoreCard';
-import { ChildCard } from '../../components/ChildCard';
+import ChildCard from '../../components/ChildCard';
 import { ActivityFeed } from '../../components/ActivityFeed';
 import { choreAPI } from '../../api/chores';
 import { usersAPI } from '../../api/users';
@@ -205,13 +205,48 @@ describe('Approval Workflow Integration Tests', () => {
     resetAllMocks();
     jest.clearAllMocks();
     mockAlert.mockClear();
-    
-    // Default API responses
-    mockedChoreAPI.approveChore.mockResolvedValue({ success: true });
-    mockedChoreAPI.rejectChore.mockResolvedValue({ success: true });
-    mockedUsersAPI.getChildren.mockResolvedValue([]);
-    mockedUsersAPI.getUserBalance.mockResolvedValue({ current_balance: 25.50 });
-    mockedActivitiesAPI.getRecentActivities.mockResolvedValue([]);
+
+    // Default API responses - use proper response types
+    mockedChoreAPI.approveChore.mockResolvedValue({
+      assignment: {
+        id: 1,
+        chore_id: 1,
+        assignee_id: 2,
+        is_completed: true,
+        is_approved: true,
+        completion_date: '2024-01-15T10:00:00Z',
+        approval_date: '2024-01-15T10:30:00Z',
+        approval_reward: 10.00,
+        rejection_reason: null,
+      },
+      chore: createMockChore({ id: 1, is_approved: true }),
+      message: 'Chore approved successfully',
+    });
+    mockedChoreAPI.rejectChore.mockResolvedValue({
+      assignment: {
+        id: 1,
+        chore_id: 1,
+        assignee_id: 2,
+        is_completed: true,
+        is_approved: false,
+        completion_date: '2024-01-15T10:00:00Z',
+        approval_date: null,
+        approval_reward: null,
+        rejection_reason: 'Not completed to standard',
+      },
+      chore: createMockChore({ id: 1 }),
+      message: 'Chore rejected',
+    });
+    mockedUsersAPI.getMyChildren.mockResolvedValue([]);
+    mockedUsersAPI.getUserBalance.mockResolvedValue({
+      current_balance: 25.50,
+      pending_earnings: 0,
+      total_earned: 25.50,
+    });
+    mockedActivitiesAPI.getRecentActivities.mockResolvedValue({
+      activities: [],
+      has_more: false,
+    });
   });
 
   describe('Parent Chore Approval Workflow', () => {

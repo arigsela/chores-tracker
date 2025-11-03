@@ -114,6 +114,11 @@ export const createMockChore = (overrides: Partial<Chore> = {}): Chore => ({
   min_reward: null,
   max_reward: null,
   cooldown_days: null,
+  // Multi-assignment fields (NEW - required)
+  assignment_mode: 'single', // Default to single for backward compatibility
+  assignee_ids: [2],
+  assignments: [],
+  // Legacy single-assignment fields (DEPRECATED - kept for backward compatibility)
   assigned_to_id: 2,
   assignee_id: 2,
   assigned_to_username: 'testchild',
@@ -122,12 +127,12 @@ export const createMockChore = (overrides: Partial<Chore> = {}): Chore => ({
   approved_at: null,
   approval_reward: null,
   rejection_reason: null,
+  is_completed: false,
+  is_approved: false,
   created_at: '2024-01-01T00:00:00Z',
   created_by_id: 1,
   creator_id: 1,
   is_active: true,
-  is_completed: false,
-  is_approved: false,
   is_disabled: false,
   is_recurring: false,
   next_available_at: null,
@@ -179,21 +184,41 @@ export const createRecurringChore = (overrides: Partial<Chore> = {}): Chore =>
 // Activity factory
 export interface MockActivity {
   id: number;
-  type: string;
+  user_id: number;
+  activity_type: string;
   description: string;
-  amount?: number;
+  activity_data: {
+    chore_id?: number;
+    chore_title?: string;
+    reward_amount?: number;
+    rejection_reason?: string;
+    adjustment_id?: number;
+    amount?: number;
+    reason?: string;
+    adjustment_type?: string;
+  };
   created_at: string;
-  user_id?: number;
+  target_user_id?: number;
+  // Legacy fields for backward compatibility
+  type?: string;
+  amount?: number;
   chore_id?: number;
 }
 
 export const createMockActivity = (overrides: Partial<MockActivity> = {}): MockActivity => ({
   id: 1,
-  type: 'chore_completed',
-  description: 'Completed: Test Chore',
-  amount: 5.00,
-  created_at: '2024-01-01T12:00:00Z',
   user_id: 2,
+  activity_type: 'chore_completed',
+  description: 'Completed: Test Chore',
+  activity_data: {
+    chore_id: 1,
+    chore_title: 'Test Chore',
+    reward_amount: 5.00,
+  },
+  created_at: '2024-01-01T12:00:00Z',
+  // Legacy fields for backward compatibility
+  type: 'chore_completed',
+  amount: 5.00,
   chore_id: 1,
   ...overrides,
 });
@@ -201,24 +226,42 @@ export const createMockActivity = (overrides: Partial<MockActivity> = {}): MockA
 // Activity type variations
 export const createChoreCompletedActivity = (overrides: Partial<MockActivity> = {}): MockActivity =>
   createMockActivity({
-    type: 'chore_completed',
+    activity_type: 'chore_completed',
     description: 'Completed: Test Chore',
+    activity_data: {
+      chore_id: 1,
+      chore_title: 'Test Chore',
+      reward_amount: 5.00,
+    },
+    type: 'chore_completed',
     amount: 5.00,
     ...overrides,
   });
 
 export const createChoreApprovedActivity = (overrides: Partial<MockActivity> = {}): MockActivity =>
   createMockActivity({
-    type: 'chore_approved',
+    activity_type: 'chore_approved',
     description: 'Approved: Test Chore',
+    activity_data: {
+      chore_id: 1,
+      chore_title: 'Test Chore',
+      reward_amount: 5.00,
+    },
+    type: 'chore_approved',
     amount: 5.00,
     ...overrides,
   });
 
 export const createBalanceAdjustmentActivity = (overrides: Partial<MockActivity> = {}): MockActivity =>
   createMockActivity({
-    type: 'balance_adjustment',
+    activity_type: 'adjustment_applied',
     description: 'Balance adjustment: Bonus for good behavior',
+    activity_data: {
+      amount: 10.00,
+      reason: 'Bonus for good behavior',
+      adjustment_type: 'bonus',
+    },
+    type: 'balance_adjustment',
     amount: 10.00,
     chore_id: undefined,
     ...overrides,
