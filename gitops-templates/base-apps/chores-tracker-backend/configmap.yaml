@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: chores-tracker-backend-config
+  namespace: chores-tracker-backend
+  labels:
+    app: chores-tracker-backend
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"  # Create before migration job
+data:
+  # Application configuration
+  ENVIRONMENT: "production"
+  DEBUG: "false"
+  PORT: "8000"
+
+  # CORS configuration (update with your actual frontend URL)
+  BACKEND_CORS_ORIGINS: "https://your-frontend-domain.com"
+
+  # Database configuration (non-sensitive parts)
+  # The full DATABASE_URL will come from secrets
+
+  # Add other non-sensitive configuration here

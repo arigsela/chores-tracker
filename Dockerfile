@@ -24,9 +24,10 @@ RUN pip install -U pip && pip install -r requirements.txt
 # Copy source code
 COPY backend /app/backend
 
-# Copy entrypoint script
+# Copy entrypoint scripts
 COPY docker-entrypoint.sh /app/docker-entrypoint.sh
-RUN chmod +x /app/docker-entrypoint.sh
+COPY migrate-entrypoint.sh /app/migrate-entrypoint.sh
+RUN chmod +x /app/docker-entrypoint.sh /app/migrate-entrypoint.sh
 
 # Verify files are present (debugging)
 RUN ls -la /app/backend && \

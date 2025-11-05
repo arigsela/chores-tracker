@@ -9,6 +9,59 @@ metadata:
   labels:
     environment: development
 ---
+# Database Migration Job (runs before backend deployment)
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: chores-tracker-migration
+  namespace: chores-dev
+  labels:
+    app: chores-tracker-backend
+    component: migration
+spec:
+  # For development, we'll use manual cleanup
+  ttlSecondsAfterFinished: 3600  # Keep for 1 hour after completion
+  backoffLimit: 3
+  activeDeadlineSeconds: 300  # 5 minute timeout
+
+  template:
+    metadata:
+      labels:
+        app: chores-tracker-backend
+        component: migration
+    spec:
+      restartPolicy: OnFailure
+
+      containers:
+      - name: migration
+        image: chores-tracker-api-k8s  # Built locally by Tilt
+        imagePullPolicy: Never
+
+        # Use migration entrypoint
+        command: ["/app/migrate-entrypoint.sh"]
+
+        # Same env as main deployment
+        env:
+        - name: DATABASE_URL
+          value: "mysql+aiomysql://chores_user:chores_pass@mysql.chores-dev.svc.cluster.local:3306/chores_db"
+        - name: SECRET_KEY
+          value: "dev-secret-key-for-local-testing-only"
+        - name: ENVIRONMENT
+          value: "development"
+
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "300m"
+
+        securityContext:
+          allowPrivilegeEscalation: false
+          runAsNonRoot: false
+          readOnlyRootFilesystem: false
+---
 # Backend API Deployment (mirrors your production backend)
 apiVersion: apps/v1
 kind: Deployment
@@ -59,18 +112,18 @@ spec:
           httpGet:
             path: /health
             port: 8000
-          initialDelaySeconds: 90  # Wait for MySQL to be fully ready
+          initialDelaySeconds: 30  # Reduced - no migration blocking
           periodSeconds: 20
-          timeoutSeconds: 15
-          failureThreshold: 5  # More tolerance
+          timeoutSeconds: 10
+          failureThreshold: 3
         readinessProbe:
           httpGet:
             path: /health
             port: 8000
-          initialDelaySeconds: 60  # Wait for MySQL to be ready
+          initialDelaySeconds: 10  # Reduced - no migration blocking
           periodSeconds: 10
-          timeoutSeconds: 10
-          failureThreshold: 8  # Very tolerant during dev
+          timeoutSeconds: 5
+          failureThreshold: 3
         # Match production security context (but relaxed for dev)
         securityContext:
           allowPrivilegeEscalation: false

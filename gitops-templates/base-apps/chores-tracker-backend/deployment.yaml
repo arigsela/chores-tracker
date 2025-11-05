@@ -1,0 +1,86 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: chores-tracker-backend
+  namespace: chores-tracker-backend
+  labels:
+    app: chores-tracker-backend
+    component: backend
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"  # Deploy after migration job (wave 1)
+spec:
+  replicas: 2  # Production: run 2 replicas for high availability
+
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0  # Ensure zero-downtime deployments
+
+  selector:
+    matchLabels:
+      app: chores-tracker-backend
+
+  template:
+    metadata:
+      labels:
+        app: chores-tracker-backend
+        component: backend
+    spec:
+      containers:
+      - name: chores-tracker-backend
+        # This will be updated by your CI/CD pipeline
+        image: 852893458518.dkr.ecr.us-east-2.amazonaws.com/chores-tracker:latest
+        imagePullPolicy: Always
+
+        ports:
+        - containerPort: 8000
+          name: http
+          protocol: TCP
+
+        # Environment configuration from ConfigMap and Secrets
+        envFrom:
+        - configMapRef:
+            name: chores-tracker-backend-config
+        - secretRef:
+            name: chores-tracker-backend-secrets
+
+        # Health checks
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+            scheme: HTTP
+          initialDelaySeconds: 30  # Reduced since no migration blocking
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+          successThreshold: 1
+
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+            scheme: HTTP
+          initialDelaySeconds: 10  # Reduced since no migration blocking
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+          successThreshold: 1
+
+        # Resource limits
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "200m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+
+        # Security context
+        securityContext:
+          allowPrivilegeEscalation: false
+          runAsNonRoot: false
+          readOnlyRootFilesystem: false
+
+      restartPolicy: Always
