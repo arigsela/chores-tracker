@@ -384,73 +384,75 @@ jobs:
         if: steps.check-gitops-pat.outputs.configured == 'true'
         run: |
           cd kubernetes
-          
+
           # Install yq
           sudo wget -qO /usr/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
           sudo chmod +x /usr/bin/yq
-          
+
           echo "::group::Debug - Image URL Update"
           echo "=== Version Information ==="
           echo "New version: ${{ needs.release-and-deploy.outputs.version_number }}"
           echo "::endgroup::"
-          
-          # Update the image tag
-          # Get the current image and update only the tag
-          CURRENT_IMAGE=$(yq '.spec.template.spec.containers[0].image' base-apps/chores-tracker-backend/deployments.yaml)
-          echo "Current image: $CURRENT_IMAGE"
-          
-          # Extract the base image URL (everything before the colon)
-          BASE_IMAGE=$(echo "$CURRENT_IMAGE" | cut -d':' -f1)
-          echo "Base image: $BASE_IMAGE"
-          
-          # Use sed to update just the tag in the file
-          sed -i "s|image: ${BASE_IMAGE}:[^[:space:]]*|image: ${BASE_IMAGE}:${{ needs.release-and-deploy.outputs.version_number }}|" \
-            base-apps/chores-tracker-backend/deployments.yaml
-          
-          # Verify the change
+
+          # Function to update image tag in a file
+          update_image_tag() {
+            local file=$1
+            local container_path=$2
+
+            echo ""
+            echo "=== Updating $file ==="
+
+            # Get the current image and update only the tag
+            CURRENT_IMAGE=$(yq "$container_path" "$file")
+            echo "Current image: $CURRENT_IMAGE"
+
+            # Extract the base image URL (everything before the colon)
+            BASE_IMAGE=$(echo "$CURRENT_IMAGE" | cut -d':' -f1)
+            echo "Base image: $BASE_IMAGE"
+
+            # Use sed to update just the tag in the file
+            sed -i "s|image: ${BASE_IMAGE}:[^[:space:]]*|image: ${BASE_IMAGE}:${{ needs.release-and-deploy.outputs.version_number }}|" "$file"
+
+            # Verify the change
+            UPDATED_IMAGE=$(yq "$container_path" "$file")
+            echo "Updated image: $UPDATED_IMAGE"
+
+            # Verify the tag was updated correctly
+            CURRENT_TAG=$(echo "$CURRENT_IMAGE" | cut -d':' -f2)
+            UPDATED_TAG=$(echo "$UPDATED_IMAGE" | cut -d':' -f2)
+            EXPECTED_TAG="${{ needs.release-and-deploy.outputs.version_number }}"
+
+            echo "Previous tag: $CURRENT_TAG → Updated tag: $UPDATED_TAG"
+
+            if [[ "$UPDATED_TAG" == "$EXPECTED_TAG" ]]; then
+              echo "✅ Tag update successful for $file!"
+            else
+              echo "❌ Tag update failed for $file!"
+              echo "   Expected: $EXPECTED_TAG"
+              echo "   Got: $UPDATED_TAG"
+              exit 1
+            fi
+          }
+
+          echo "::group::Debug - Update Deployment"
+          # Update the main deployment
+          update_image_tag \
+            "base-apps/chores-tracker-backend/deployment.yaml" \
+            '.spec.template.spec.containers[0].image'
+          echo "::endgroup::"
+
+          echo "::group::Debug - Update Migration Job"
+          # Update the migration job
+          update_image_tag \
+            "base-apps/chores-tracker-backend/migration-job.yaml" \
+            '.spec.template.spec.containers[0].image'
+          echo "::endgroup::"
+
           echo ""
-          echo "::group::Debug - Verify Update"
-          echo "=== Before and After ==="
-          UPDATED_IMAGE=$(yq '.spec.template.spec.containers[0].image' base-apps/chores-tracker-backend/deployments.yaml)
-          echo "Previous image: $CURRENT_IMAGE"
-          echo "Updated image: $UPDATED_IMAGE"
-          
-          # Verify the tag was updated correctly
-          CURRENT_TAG=$(echo "$CURRENT_IMAGE" | cut -d':' -f2)
-          UPDATED_TAG=$(echo "$UPDATED_IMAGE" | cut -d':' -f2)
-          EXPECTED_TAG="${{ needs.release-and-deploy.outputs.version_number }}"
-          
-          echo ""
-          echo "=== Tag Validation ==="
-          echo "Previous tag: $CURRENT_TAG"
-          echo "Updated tag: $UPDATED_TAG"
-          echo "Expected tag: $EXPECTED_TAG"
-          
-          if [[ "$UPDATED_TAG" == "$EXPECTED_TAG" ]]; then
-            echo "✅ Tag update successful!"
-          else
-            echo "❌ Tag update failed!"
-            echo "   Expected: $EXPECTED_TAG"
-            echo "   Got: $UPDATED_TAG"
-            exit 1
-          fi
-          
-          # Verify the base image URL is preserved
-          CURRENT_BASE=$(echo "$CURRENT_IMAGE" | cut -d':' -f1)
-          UPDATED_BASE=$(echo "$UPDATED_IMAGE" | cut -d':' -f1)
-          
-          echo ""
-          echo "=== Base Image Validation ==="
-          echo "Previous base: $CURRENT_BASE"
-          echo "Updated base: $UPDATED_BASE"
-          
-          if [[ "$CURRENT_BASE" == "$UPDATED_BASE" ]]; then
-            echo "✅ Base image URL preserved!"
-          else
-            echo "❌ Base image URL changed!"
-            echo "   This should not happen with sed update"
-            exit 1
-          fi
+          echo "::group::Debug - Summary"
+          echo "=== Update Summary ==="
+          echo "✅ Deployment image updated to ${{ needs.release-and-deploy.outputs.version_number }}"
+          echo "✅ Migration job image updated to ${{ needs.release-and-deploy.outputs.version_number }}"
           echo "::endgroup::"
 
       - name: Create Pull Request
@@ -472,27 +474,37 @@ jobs:
           title: "chore: update chores-tracker-backend to ${{ needs.release-and-deploy.outputs.new_version }}"
           body: |
             ## Deployment Update
-            
+
             This PR updates the chores-tracker-backend deployment to version **${{ needs.release-and-deploy.outputs.new_version }}**.
-            
+
             ### Changes
-            - Updated container image tag to version **${{ needs.release-and-deploy.outputs.version_number }}**
+            - ✅ Updated **deployment** container image tag to version **${{ needs.release-and-deploy.outputs.version_number }}**
+            - ✅ Updated **migration job** container image tag to version **${{ needs.release-and-deploy.outputs.version_number }}**
             - Image registry and repository name remain unchanged
-            
+
             ### Release Information
             - **Release URL**: https://github.com/${{ github.repository }}/releases/tag/${{ needs.release-and-deploy.outputs.new_version }}
             - **Commit SHA**: ${{ github.sha }}
             - **Workflow Run**: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-            
+
             ### Deployment Checklist
             - [x] Image successfully pushed to ECR
-            - [ ] ArgoCD sync successful
+            - [ ] Migration job completes successfully (ArgoCD PreSync hook)
+            - [ ] Application deployment rolls out successfully
             - [ ] Health checks passing
             - [ ] No breaking changes
-            
+
+            ### Deployment Flow
+            When this PR is merged, ArgoCD will:
+            1. **Wave 0**: Create/update ConfigMaps and Secrets
+            2. **Wave 1**: Run database migration job (PreSync hook)
+            3. **Wave 2**: Deploy application with new image
+
             ### Notes
-            After merging this PR, ArgoCD will automatically sync and deploy the new version to the cluster.
-            
+            - Database migrations are now handled separately via Kubernetes Job
+            - Migration must complete successfully before app deployment proceeds
+            - See `docs/database-migrations.md` for troubleshooting migration issues
+
             ---
             *This PR was automatically generated by the release workflow.*
           labels: |
