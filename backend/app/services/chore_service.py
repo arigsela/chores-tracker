@@ -19,6 +19,14 @@ from ..schemas.chore import ChoreResponse
 from ..schemas.assignment import AssignmentResponse
 from ..schemas.user import UserResponse
 from ..schemas.reward_adjustment import RewardAdjustmentResponse
+from ..core.metrics import (
+    record_chore_creation,
+    record_chore_completion,
+    record_chore_approval,
+    record_chore_rejection,
+    assignments_created_total,
+    assignments_claimed_total
+)
 
 
 class ChoreService(BaseService[Chore, ChoreRepository]):
@@ -140,6 +148,12 @@ class ChoreService(BaseService[Chore, ChoreRepository]):
             }
             assignment = await self.assignment_repo.create(db, obj_in=assignment_data)
             created_assignments.append(assignment)
+
+            # Record assignment creation metric
+            assignments_created_total.labels(mode=assignment_mode).inc()
+
+        # Record chore creation metric
+        record_chore_creation(mode=assignment_mode)
 
         # Log activity for each assignment
         try:
@@ -521,11 +535,24 @@ class ChoreService(BaseService[Chore, ChoreRepository]):
                 }
                 assignment = await self.assignment_repo.create(db, obj_in=assignment_data)
 
+                # Record claim metric for unassigned pool chores
+                assignments_claimed_total.inc()
+
         else:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Unknown assignment mode: {chore.assignment_mode}"
             )
+
+        # Record metrics
+        completion_time_seconds = None
+        if assignment and assignment.completion_date:
+            # Calculate time from assignment creation to completion
+            # (would need created_at field on assignment model to calculate accurately)
+            # For now, just record the completion without duration
+            pass
+
+        record_chore_completion(mode=chore.assignment_mode, completion_time_seconds=completion_time_seconds)
 
         # Log activity
         try:
@@ -666,6 +693,9 @@ class ChoreService(BaseService[Chore, ChoreRepository]):
             }
         )
 
+        # Record approval metrics
+        record_chore_approval(mode=chore.assignment_mode, reward_amount=final_reward)
+
         # Log activity
         try:
             await self.activity_service.log_chore_approved(
@@ -789,6 +819,9 @@ class ChoreService(BaseService[Chore, ChoreRepository]):
                 "rejection_reason": rejection_reason.strip()
             }
         )
+
+        # Record rejection metrics
+        record_chore_rejection(mode=chore.assignment_mode)
 
         # Log activity
         try:
