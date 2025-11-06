@@ -435,9 +435,9 @@ jobs:
           }
 
           echo "::group::Debug - Update Deployment"
-          # Update the main deployment
+          # Update the main deployment (note: plural filename)
           update_image_tag \
-            "base-apps/chores-tracker-backend/deployment.yaml" \
+            "base-apps/chores-tracker-backend/deployments.yaml" \
             '.spec.template.spec.containers[0].image'
           echo "::endgroup::"
 
