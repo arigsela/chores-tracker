@@ -73,7 +73,7 @@ class TestBusinessMetricsCollection:
 
     @pytest.mark.asyncio
     async def test_chore_creation_increments_metric(
-        self, client: AsyncClient, parent_token: str, db: AsyncSession
+        self, client: AsyncClient, parent_token: str, db_session: AsyncSession
     ):
         """Test that creating a chore increments the chores_created_total metric."""
         # Get initial metric value
@@ -104,7 +104,7 @@ class TestBusinessMetricsCollection:
 
     @pytest.mark.asyncio
     async def test_user_registration_increments_metric(
-        self, client: AsyncClient, db: AsyncSession
+        self, client: AsyncClient, db_session: AsyncSession
     ):
         """Test that user registration increments the user_registrations_total metric."""
         # Get initial metrics
@@ -130,7 +130,7 @@ class TestBusinessMetricsCollection:
 
     @pytest.mark.asyncio
     async def test_login_increments_metric(
-        self, client: AsyncClient, parent_user, db: AsyncSession
+        self, client: AsyncClient, test_parent_user, db_session: AsyncSession
     ):
         """Test that successful login increments the user_logins_total metric."""
         # Get initial metrics
@@ -139,7 +139,7 @@ class TestBusinessMetricsCollection:
 
         # Perform login
         login_data = {
-            "username": parent_user.username,
+            "username": test_parent_user.username,
             "password": "testpassword123"  # Assuming this is the test password
         }
 
@@ -186,7 +186,7 @@ class TestMetricsErrorHandling:
 
     @pytest.mark.asyncio
     async def test_metrics_failure_doesnt_break_chore_creation(
-        self, client: AsyncClient, parent_token: str, db: AsyncSession
+        self, client: AsyncClient, parent_token: str, db_session: AsyncSession
     ):
         """Test that even if metrics fail, chore creation still works."""
         # This test verifies our error-safe pattern
