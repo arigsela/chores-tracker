@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from datetime import datetime
 import os
+from contextlib import asynccontextmanager
 
 from .dependencies.auth import get_current_user
 from . import models, schemas
@@ -20,9 +21,34 @@ from .api.api_v1.api import api_router
 # Prometheus monitoring
 from prometheus_fastapi_instrumentator import Instrumentator
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Application lifespan handler for startup and shutdown events."""
+    # Startup
+    print(f"Starting {settings.APP_NAME}...")
+    print(f"Database URL: {settings.DATABASE_URL}")
+    print(f"CORS Origins: {settings.BACKEND_CORS_ORIGINS}")
+    print(f"Environment: {os.getenv('ENVIRONMENT', 'development')}")
+
+    # Setup query logging if enabled
+    if os.getenv("LOG_QUERIES") == "true":
+        setup_query_logging()
+
+    # Setup connection pool logging if enabled
+    if os.getenv("LOG_CONNECTION_POOL") == "true":
+        setup_connection_pool_logging()
+
+    yield
+
+    # Shutdown
+    print(f"Shutting down {settings.APP_NAME}...")
+
+
 app = FastAPI(
     title=settings.APP_NAME,
     redirect_slashes=False,  # Disable automatic trailing slash redirects
+    lifespan=lifespan,
     description="""
 # Chores Tracker API
 
@@ -183,27 +209,6 @@ instrumentator = Instrumentator(
 
 # Instrument the app and expose the /metrics endpoint
 instrumentator.instrument(app).expose(app, endpoint="/metrics", include_in_schema=True)
-
-# Setup query logging if enabled
-if os.getenv("LOG_QUERIES") == "true":
-    setup_query_logging()
-
-# Setup connection pool logging if enabled  
-if os.getenv("LOG_CONNECTION_POOL") == "true":
-    setup_connection_pool_logging()
-
-@app.on_event("startup")
-async def startup_event():
-    """Initialize the application."""
-    print(f"Starting {settings.APP_NAME}...")
-    print(f"Database URL: {settings.DATABASE_URL}")
-    print(f"CORS Origins: {settings.BACKEND_CORS_ORIGINS}")
-    print(f"Environment: {os.getenv('ENVIRONMENT', 'development')}")
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    """Cleanup on application shutdown."""
-    print(f"Shutting down {settings.APP_NAME}...")
 
 @app.get("/")
 async def root():
