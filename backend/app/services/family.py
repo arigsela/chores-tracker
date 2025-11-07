@@ -6,6 +6,7 @@ from ..repositories.user import UserRepository
 from ..models.family import Family
 from ..models.user import User
 from ..core.exceptions import ValidationError, NotFoundError, AuthorizationError
+from ..core.metrics import record_family_event
 
 
 class FamilyService:
@@ -32,10 +33,15 @@ class FamilyService:
         
         if user.family_id:
             raise ValidationError("User is already a member of a family")
-        
-        return await self.family_repo.create_family_for_user(
+
+        family = await self.family_repo.create_family_for_user(
             db, user_id=user_id, family_name=family_name
         )
+
+        # Record family creation metric
+        record_family_event(event_type='created')
+
+        return family
     
     async def join_family_by_code(
         self, 
@@ -58,10 +64,13 @@ class FamilyService:
         family = await self.family_repo.get_by_invite_code(db, invite_code=invite_code)
         if not family:
             raise NotFoundError("Invalid or expired invite code")
-        
+
         # Update user's family_id
         await self.user_repo.update(db, id=user_id, obj_in={"family_id": family.id})
-        
+
+        # Record family join metric
+        record_family_event(event_type='joined')
+
         return family
     
     async def get_user_family_context(

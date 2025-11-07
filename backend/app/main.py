@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from datetime import datetime
 import os
+from contextlib import asynccontextmanager
 
 from .dependencies.auth import get_current_user
 from . import models, schemas
@@ -17,9 +18,37 @@ from .core.logging import setup_query_logging, setup_connection_pool_logging
 
 from .api.api_v1.api import api_router
 
+# Prometheus monitoring
+from prometheus_fastapi_instrumentator import Instrumentator
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Application lifespan handler for startup and shutdown events."""
+    # Startup
+    print(f"Starting {settings.APP_NAME}...")
+    print(f"Database URL: {settings.DATABASE_URL}")
+    print(f"CORS Origins: {settings.BACKEND_CORS_ORIGINS}")
+    print(f"Environment: {os.getenv('ENVIRONMENT', 'development')}")
+
+    # Setup query logging if enabled
+    if os.getenv("LOG_QUERIES") == "true":
+        setup_query_logging()
+
+    # Setup connection pool logging if enabled
+    if os.getenv("LOG_CONNECTION_POOL") == "true":
+        setup_connection_pool_logging()
+
+    yield
+
+    # Shutdown
+    print(f"Shutting down {settings.APP_NAME}...")
+
+
 app = FastAPI(
     title=settings.APP_NAME,
     redirect_slashes=False,  # Disable automatic trailing slash redirects
+    lifespan=lifespan,
     description="""
 # Chores Tracker API
 
@@ -165,26 +194,21 @@ async def api_redoc():
 # Include API router
 app.include_router(api_router, prefix="/api/v1")
 
-# Setup query logging if enabled
-if os.getenv("LOG_QUERIES") == "true":
-    setup_query_logging()
+# Setup Prometheus metrics instrumentation
+# This will expose automatic HTTP metrics at /metrics endpoint
+instrumentator = Instrumentator(
+    should_group_status_codes=False,  # Keep detailed status codes
+    should_ignore_untemplated=True,   # Ignore non-templated routes
+    should_respect_env_var=False,     # Always enable metrics
+    should_instrument_requests_inprogress=True,  # Track active requests
+    excluded_handlers=["/metrics", "/health", "/"],  # Don't track these endpoints
+    env_var_name="ENABLE_METRICS",
+    inprogress_name="http_requests_inprogress",
+    inprogress_labels=True,
+)
 
-# Setup connection pool logging if enabled  
-if os.getenv("LOG_CONNECTION_POOL") == "true":
-    setup_connection_pool_logging()
-
-@app.on_event("startup")
-async def startup_event():
-    """Initialize the application."""
-    print(f"Starting {settings.APP_NAME}...")
-    print(f"Database URL: {settings.DATABASE_URL}")
-    print(f"CORS Origins: {settings.BACKEND_CORS_ORIGINS}")
-    print(f"Environment: {os.getenv('ENVIRONMENT', 'development')}")
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    """Cleanup on application shutdown."""
-    print(f"Shutting down {settings.APP_NAME}...")
+# Instrument the app and expose the /metrics endpoint
+instrumentator.instrument(app).expose(app, endpoint="/metrics", include_in_schema=True)
 
 @app.get("/")
 async def root():

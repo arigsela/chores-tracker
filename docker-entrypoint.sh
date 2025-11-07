@@ -22,5 +22,10 @@ until nc -z $DB_HOST $DB_PORT; do
 done
 
 echo "MySQL is up - database migrations should be handled by migration job"
+
+# Increase file descriptor limits to prevent "too many open files" errors
+# This is particularly important for production workloads with high concurrency
+ulimit -n 65536 2>/dev/null || echo "Warning: Could not set ulimit (may need pod securityContext)"
+
 echo "Starting application..."
 exec "$@"
