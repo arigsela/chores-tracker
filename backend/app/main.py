@@ -1,3 +1,4 @@
+print("Starting main.py import...")
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -5,21 +6,28 @@ from datetime import datetime
 import os
 from contextlib import asynccontextmanager
 
+print("Importing dependencies...")
 from .dependencies.auth import get_current_user
 from . import models, schemas
 from sqlalchemy.ext.asyncio import AsyncSession
 from .db.base import get_db
 from typing import Optional
 
+print("Importing config...")
 from .core.config import settings
+print("Config imported")
 from .middleware.rate_limit import setup_rate_limiting
 from .middleware.request_validation import RequestValidationMiddleware
 from .core.logging import setup_query_logging, setup_connection_pool_logging
 
+print("Importing API router...")
 from .api.api_v1.api import api_router
+print("API router imported")
 
 # Prometheus monitoring
+print("Importing Prometheus instrumentator...")
 from prometheus_fastapi_instrumentator import Instrumentator
+print("Instrumentator imported")
 
 
 @asynccontextmanager
@@ -194,10 +202,13 @@ async def api_redoc():
     return RedirectResponse(url="/redoc")
 
 # Include API router
+print("Including API router...")
 app.include_router(api_router, prefix="/api/v1")
+print("API router included")
 
 # Setup Prometheus metrics instrumentation
 # This will expose automatic HTTP metrics at /metrics endpoint
+print("Creating Prometheus instrumentator...")
 instrumentator = Instrumentator(
     should_group_status_codes=False,  # Keep detailed status codes
     should_ignore_untemplated=True,   # Ignore non-templated routes
@@ -208,9 +219,12 @@ instrumentator = Instrumentator(
     inprogress_name="http_requests_inprogress",
     inprogress_labels=True,
 )
+print("Instrumentator created")
 
 # Instrument the app and expose the /metrics endpoint
+print("Instrumenting app with Prometheus...")
 instrumentator.instrument(app).expose(app, endpoint="/metrics", include_in_schema=True)
+print("Prometheus instrumentation complete")
 
 @app.get("/")
 async def root():
