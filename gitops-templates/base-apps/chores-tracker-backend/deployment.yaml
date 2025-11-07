@@ -51,7 +51,7 @@ spec:
             path: /health
             port: 8000
             scheme: HTTP
-          initialDelaySeconds: 30  # Reduced since no migration blocking
+          initialDelaySeconds: 90  # Increased to allow for application startup and import time
           periodSeconds: 30
           timeoutSeconds: 10
           failureThreshold: 3
@@ -62,7 +62,7 @@ spec:
             path: /health
             port: 8000
             scheme: HTTP
-          initialDelaySeconds: 10  # Reduced since no migration blocking
+          initialDelaySeconds: 60  # Increased to allow for application startup
           periodSeconds: 10
           timeoutSeconds: 5
           failureThreshold: 3
