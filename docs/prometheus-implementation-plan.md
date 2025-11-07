@@ -259,6 +259,37 @@ scrape_configs:
 
 ## Technical Notes
 
+### Production Issue Resolution
+
+**Issue**: Application crash in production with `asyncio.exceptions.CancelledError` during startup.
+
+**Root Cause**: Deprecated `@app.on_event("startup")` and `@app.on_event("shutdown")` handlers were conflicting with the prometheus-fastapi-instrumentator's lifespan management.
+
+**Solution**: Migrated to modern FastAPI lifespan context manager pattern (FastAPI 0.93+):
+```python
+from contextlib import asynccontextmanager
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup logic
+    print(f"Starting {settings.APP_NAME}...")
+    setup_query_logging()
+    setup_connection_pool_logging()
+
+    yield
+
+    # Shutdown logic
+    print(f"Shutting down {settings.APP_NAME}...")
+
+app = FastAPI(lifespan=lifespan, ...)
+```
+
+**Benefits**:
+- ✅ Fixes production crash
+- ✅ Removes FastAPI deprecation warnings
+- ✅ Compatible with Prometheus instrumentator
+- ✅ Follows modern FastAPI best practices
+
 ### Default Metrics (Automatic)
 The prometheus-fastapi-instrumentator provides these automatically:
 - `http_requests_total` - Total HTTP requests by endpoint, method, status
@@ -326,7 +357,8 @@ reward_adjustments_amount{le="5|10|25|50|+Inf"}
 2. ✅ **/metrics endpoint accessible**: Returns proper Prometheus format
 3. ✅ **All tests passing**: 12/12 tests pass successfully
 4. ✅ **Custom metrics working**: Business metrics (chores, users, families) properly exposed
-5. ✅ **Ready for production**: Endpoint accessible from within container network
+5. ✅ **Production crash fixed**: Replaced deprecated on_event handlers with lifespan context manager
+6. ✅ **Ready for production**: Endpoint accessible from within container network
 
 ### Next Steps for Production
 1. Configure Prometheus to scrape `/metrics` endpoint
