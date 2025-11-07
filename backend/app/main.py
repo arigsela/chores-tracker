@@ -39,6 +39,8 @@ async def lifespan(app: FastAPI):
     if os.getenv("LOG_CONNECTION_POOL") == "true":
         setup_connection_pool_logging()
 
+    print(f"Application startup complete.")
+
     yield
 
     # Shutdown
