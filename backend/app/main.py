@@ -21,13 +21,37 @@ from .api.api_v1.api import api_router
 # Prometheus monitoring
 from prometheus_fastapi_instrumentator import Instrumentator
 
+import re
+
+
+def redact_database_url(url: str) -> str:
+    """
+    Redact sensitive credentials from database URL for safe logging.
+
+    Removes the password portion while keeping host and database info visible.
+
+    Example:
+        Input:  mysql+aiomysql://user:password@host:3306/db
+        Output: mysql+aiomysql://user:***@host:3306/db
+
+    Args:
+        url: Full database URL potentially containing credentials
+
+    Returns:
+        Database URL with password redacted as ***
+    """
+    # Pattern matches: scheme://username:password@host
+    # Replaces password with ***
+    pattern = r'(://[^:]+:)([^@]+)(@)'
+    return re.sub(pattern, r'\1***\3', url)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan handler for startup and shutdown events."""
     # Startup
     print(f"Starting {settings.APP_NAME}...")
-    print(f"Database URL: {settings.DATABASE_URL}")
+    print(f"Database URL: {redact_database_url(settings.DATABASE_URL)}")
     print(f"CORS Origins: {settings.BACKEND_CORS_ORIGINS}")
     print(f"Environment: {os.getenv('ENVIRONMENT', 'development')}")
 
@@ -38,6 +62,15 @@ async def lifespan(app: FastAPI):
     # Setup connection pool logging if enabled
     if os.getenv("LOG_CONNECTION_POOL") == "true":
         setup_connection_pool_logging()
+
+    # Initialize metrics access control
+    from .core.metrics_auth import MetricsAccessControl
+    import backend.app.core.metrics_auth as metrics_auth_module
+    metrics_auth_module.metrics_access_control = MetricsAccessControl(
+        allowed_ips=settings.metrics_allowed_ips_list,
+        auth_token=settings.METRICS_AUTH_TOKEN
+    )
+    print("✅ Metrics access control initialized")
 
     yield
 
@@ -207,8 +240,30 @@ instrumentator = Instrumentator(
     inprogress_labels=True,
 )
 
-# Instrument the app and expose the /metrics endpoint
-instrumentator.instrument(app).expose(app, endpoint="/metrics", include_in_schema=True)
+# Instrument the app (but don't auto-expose - we'll create a protected endpoint)
+instrumentator.instrument(app)
+
+# Manually create protected metrics endpoint with IP whitelist/token authentication
+from fastapi.responses import Response
+from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
+from .core.metrics_auth import check_metrics_access
+
+
+@app.get("/metrics", dependencies=[Depends(check_metrics_access)], include_in_schema=False)
+async def metrics_endpoint() -> Response:
+    """
+    Prometheus metrics endpoint (IP-restricted).
+
+    Access is restricted to:
+    - Localhost (127.0.0.1)
+    - Internal networks (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16)
+    - Bearer token (if METRICS_AUTH_TOKEN env var is set)
+
+    Returns:
+        Prometheus metrics in text format
+    """
+    metrics_output = generate_latest()
+    return Response(content=metrics_output, media_type=CONTENT_TYPE_LATEST)
 
 @app.get("/")
 async def root():
