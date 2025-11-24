@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from datetime import datetime
 import os
+from contextlib import asynccontextmanager
 
 from .dependencies.auth import get_current_user
 from . import models, schemas
@@ -17,9 +18,74 @@ from .core.logging import setup_query_logging, setup_connection_pool_logging
 
 from .api.api_v1.api import api_router
 
+# Prometheus monitoring
+from prometheus_fastapi_instrumentator import Instrumentator
+
+import re
+
+
+def redact_database_url(url: str) -> str:
+    """
+    Redact sensitive credentials from database URL for safe logging.
+
+    Removes the password portion while keeping host and database info visible.
+
+    Example:
+        Input:  mysql+aiomysql://user:password@host:3306/db
+        Output: mysql+aiomysql://user:***@host:3306/db
+
+    Args:
+        url: Full database URL potentially containing credentials
+
+    Returns:
+        Database URL with password redacted as ***
+    """
+    # Pattern matches: scheme://username:password@host
+    # Replaces password with ***
+    pattern = r'(://[^:]+:)([^@]+)(@)'
+    return re.sub(pattern, r'\1***\3', url)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Application lifespan handler for startup and shutdown events."""
+    # Startup
+    print(f"Starting {settings.APP_NAME}...")
+    print(f"Database URL: {redact_database_url(settings.DATABASE_URL)}")
+    print(f"CORS Origins: {settings.BACKEND_CORS_ORIGINS}")
+    print(f"Environment: {os.getenv('ENVIRONMENT', 'development')}")
+
+    # Setup query logging if enabled
+    if os.getenv("LOG_QUERIES") == "true":
+        setup_query_logging()
+
+    # Setup connection pool logging if enabled
+    if os.getenv("LOG_CONNECTION_POOL") == "true":
+        setup_connection_pool_logging()
+
+    # Import metrics to register them with Prometheus
+    from .core import metrics  # noqa: F401 - Import to register metrics
+
+    # Initialize metrics access control
+    from .core.metrics_auth import MetricsAccessControl
+    import backend.app.core.metrics_auth as metrics_auth_module
+    metrics_auth_module.metrics_access_control = MetricsAccessControl(
+        allowed_ips=settings.metrics_allowed_ips_list,
+        auth_token=settings.METRICS_AUTH_TOKEN
+    )
+    print("✅ Metrics access control initialized")
+    print("✅ Prometheus metrics registered")
+
+    yield
+
+    # Shutdown
+    print(f"Shutting down {settings.APP_NAME}...")
+
+
 app = FastAPI(
     title=settings.APP_NAME,
     redirect_slashes=False,  # Disable automatic trailing slash redirects
+    lifespan=lifespan,
     description="""
 # Chores Tracker API
 
@@ -134,13 +200,16 @@ Min/max range defined at creation. Parent sets final amount on approval.
     ]
 )
 
-# Configure CORS
+# Configure CORS with security best practices
+# Note: Never use allow_origins=["*"] with allow_credentials=True
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
+    allow_origins=settings.CORS_ORIGINS,  # Specific origins only, no wildcards
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],  # Explicit methods
+    allow_headers=["Content-Type", "Authorization", "Accept"],  # Explicit headers
+    expose_headers=["Content-Length", "Content-Type"],
+    max_age=600,  # Cache preflight requests for 10 minutes
 )
 
 # Setup rate limiting
@@ -165,26 +234,43 @@ async def api_redoc():
 # Include API router
 app.include_router(api_router, prefix="/api/v1")
 
-# Setup query logging if enabled
-if os.getenv("LOG_QUERIES") == "true":
-    setup_query_logging()
+# Setup Prometheus metrics instrumentation
+# This will expose automatic HTTP metrics at /metrics endpoint
+instrumentator = Instrumentator(
+    should_group_status_codes=False,  # Keep detailed status codes
+    should_ignore_untemplated=True,   # Ignore non-templated routes
+    should_respect_env_var=False,     # Always enable metrics
+    should_instrument_requests_inprogress=True,  # Track active requests
+    excluded_handlers=["/metrics", "/health", "/"],  # Don't track these endpoints
+    env_var_name="ENABLE_METRICS",
+    inprogress_name="http_requests_inprogress",
+    inprogress_labels=True,
+)
 
-# Setup connection pool logging if enabled  
-if os.getenv("LOG_CONNECTION_POOL") == "true":
-    setup_connection_pool_logging()
+# Instrument the app (but don't auto-expose - we'll create a protected endpoint)
+instrumentator.instrument(app)
 
-@app.on_event("startup")
-async def startup_event():
-    """Initialize the application."""
-    print(f"Starting {settings.APP_NAME}...")
-    print(f"Database URL: {settings.DATABASE_URL}")
-    print(f"CORS Origins: {settings.BACKEND_CORS_ORIGINS}")
-    print(f"Environment: {os.getenv('ENVIRONMENT', 'development')}")
+# Manually create protected metrics endpoint with IP whitelist/token authentication
+from fastapi.responses import Response
+from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
+from .core.metrics_auth import check_metrics_access
 
-@app.on_event("shutdown")
-async def shutdown_event():
-    """Cleanup on application shutdown."""
-    print(f"Shutting down {settings.APP_NAME}...")
+
+@app.get("/metrics", dependencies=[Depends(check_metrics_access)], include_in_schema=False)
+async def metrics_endpoint() -> Response:
+    """
+    Prometheus metrics endpoint (IP-restricted).
+
+    Access is restricted to:
+    - Localhost (127.0.0.1)
+    - Internal networks (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16)
+    - Bearer token (if METRICS_AUTH_TOKEN env var is set)
+
+    Returns:
+        Prometheus metrics in text format
+    """
+    metrics_output = generate_latest()
+    return Response(content=metrics_output, media_type=CONTENT_TYPE_LATEST)
 
 @app.get("/")
 async def root():

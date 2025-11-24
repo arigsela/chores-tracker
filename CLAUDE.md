@@ -257,6 +257,78 @@ async with UnitOfWork() as uow:
 - **API-first approach**: All business logic exposed via REST endpoints
 - **Unified codebase**: Mobile and web share components and logic
 
+## Monitoring and Observability
+
+### Prometheus Metrics
+
+The backend exposes Prometheus metrics at `/metrics` endpoint for monitoring and observability.
+
+**Endpoint**: `http://localhost:8000/metrics`
+
+**Available Metrics**:
+
+#### HTTP Metrics (Automatic)
+- `http_requests_total` - Total HTTP requests by endpoint, method, and status code
+- `http_request_duration_seconds` - Request duration histogram
+- `http_request_size_bytes` - Request size histogram
+- `http_response_size_bytes` - Response size histogram
+- `http_requests_inprogress` - Active requests gauge
+
+#### Business Metrics (Custom)
+
+**Chore Metrics**:
+- `chores_created_total{mode}` - Total chores created (by assignment mode)
+- `chores_completed_total{mode}` - Total chore assignments completed
+- `chores_approved_total{mode}` - Total chore assignments approved
+- `chores_rejected_total{mode}` - Total chore assignments rejected
+- `chore_completion_time_seconds{mode}` - Time from creation to completion
+- `assignments_created_total{mode}` - Total assignments created
+- `assignments_claimed_total` - Unassigned pool chores claimed
+- `pending_approvals_count` - Current number of pending approvals
+
+**User Metrics**:
+- `user_registrations_total{role}` - User registrations (parent/child)
+- `user_logins_total{role}` - Successful logins (parent/child)
+- `user_login_failures_total` - Failed login attempts
+- `active_users_count` - Currently active users
+
+**Family Metrics**:
+- `families_created_total` - Total families created
+- `family_joins_total` - Parents joining families via invite
+- `families_active_count` - Active families with members
+
+**Reward Metrics**:
+- `reward_adjustments_total{type}` - Manual adjustments (bonus/penalty)
+- `reward_adjustments_amount{type}` - Distribution of adjustment amounts
+- `rewards_paid_total` - Total rewards approved
+
+**Error Metrics**:
+- `api_errors_total{endpoint,status_code,error_type}` - API errors
+- `database_errors_total{operation}` - Database operation errors
+
+### Querying Metrics
+
+```bash
+# View all metrics
+curl http://localhost:8000/metrics
+
+# Example Prometheus queries
+# Request rate: rate(http_requests_total[5m])
+# Error rate: rate(api_errors_total[5m])
+# Chores created per hour: rate(chores_created_total[1h]) * 3600
+# 95th percentile response time: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))
+```
+
+### Testing Metrics
+
+```bash
+# Run metrics tests
+docker compose exec api python -m pytest backend/tests/test_metrics.py -v
+
+# Check metrics endpoint
+curl http://localhost:8000/metrics | grep chores_created_total
+```
+
 ## Common Troubleshooting
 
 ### Frontend Can't Connect to Backend

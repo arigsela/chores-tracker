@@ -41,8 +41,13 @@ class Settings(BaseSettings):
         return url
     
     # CORS
-    BACKEND_CORS_ORIGINS: Union[List[str], str] = os.getenv("BACKEND_CORS_ORIGINS", "*")
-    
+    # Default to development localhost origins instead of wildcard
+    # Production should override via BACKEND_CORS_ORIGINS environment variable
+    BACKEND_CORS_ORIGINS: Union[List[str], str] = os.getenv(
+        "BACKEND_CORS_ORIGINS",
+        "http://localhost:8081,http://localhost:8080,http://localhost:3000"
+    )
+
     @property
     def CORS_ORIGINS(self) -> List[str]:
         if isinstance(self.BACKEND_CORS_ORIGINS, str):
@@ -75,6 +80,22 @@ class Settings(BaseSettings):
         if isinstance(self.REGISTRATION_CODES, str):
             return [code.strip().upper() for code in self.REGISTRATION_CODES.split(",") if code.strip()]
         return [code.upper() for code in self.REGISTRATION_CODES if code]
+
+    # Metrics Security
+    # Comma-separated list of IPs/CIDR ranges allowed to access /metrics endpoint
+    # Default allows: localhost, internal networks (10.x, 172.16-31.x, 192.168.x)
+    METRICS_ALLOWED_IPS: str = os.getenv(
+        "METRICS_ALLOWED_IPS",
+        "127.0.0.1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
+    )
+
+    @property
+    def metrics_allowed_ips_list(self) -> List[str]:
+        """Parse METRICS_ALLOWED_IPS into a list."""
+        return [ip.strip() for ip in self.METRICS_ALLOWED_IPS.split(",") if ip.strip()]
+
+    # Optional bearer token for metrics access (if not using IP whitelist)
+    METRICS_AUTH_TOKEN: Optional[str] = os.getenv("METRICS_AUTH_TOKEN", None)
 
     model_config = ConfigDict(
         env_file=".env",

@@ -17,6 +17,7 @@ from backend.app.models.chore import Chore
 from backend.app.core.security.password import get_password_hash
 from backend.app.core.security.jwt import create_access_token
 from backend.app.middleware.rate_limit import reset_limiter
+from prometheus_client import REGISTRY
 
 # Use an in-memory SQLite database for testing
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
@@ -44,11 +45,31 @@ async def client(db_session):
     """Return a FastAPI test client with overridden dependencies."""
     # Reset rate limiter before each test
     reset_limiter()
-    
+
     async def override_get_db():
         yield db_session
 
+    # Override metrics access check for testing (bypass IP whitelist)
+    async def override_metrics_access():
+        """Allow all access to /metrics in tests."""
+        return None  # No exception = access granted
+
+    # Import metrics module to register all metrics with Prometheus
+    from backend.app.core import metrics  # noqa: F401
+
+    from backend.app.core.metrics_auth import check_metrics_access
+    import backend.app.core.metrics_auth as metrics_auth_module
+    from backend.app.core.metrics_auth import MetricsAccessControl
+
+    # Initialize metrics access control for testing (allow all)
+    if metrics_auth_module.metrics_access_control is None:
+        metrics_auth_module.metrics_access_control = MetricsAccessControl(
+            allowed_ips=["127.0.0.1", "0.0.0.0/0"],  # Allow all IPs in tests
+            auth_token=None
+        )
+
     app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[check_metrics_access] = override_metrics_access
     async with AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
         yield client
     app.dependency_overrides.clear()
@@ -291,5 +312,136 @@ async def adjustment_history(db_session, test_parent_user, test_child_user):
     await db_session.commit()
     for adj in adjustments:
         await db_session.refresh(adj)
-    
-    return adjustments 
+
+    return adjustments
+
+
+# ============================================================================
+# PROMETHEUS METRICS TESTING UTILITIES
+# ============================================================================
+
+@pytest.fixture(scope="function", autouse=True)
+def reset_prometheus_registry():
+    """
+    Prometheus registry cleanup (currently disabled).
+
+    NOTE: Registry cleanup is DISABLED because:
+    1. Our tests use before/after metric comparisons (metrics_parser)
+    2. This approach works even with accumulated metrics
+    3. Unregistering collectors breaks subsequent tests
+    4. Test isolation is achieved through relative measurements
+
+    If we need to re-enable registry cleanup in the future, we would need
+    to re-register all metric collectors after cleanup, not just unregister them.
+    """
+    yield
+
+    # Cleanup DISABLED - see note above
+    # collectors = list(REGISTRY._collector_to_names.keys())
+    # for collector in collectors:
+    #     try:
+    #         REGISTRY.unregister(collector)
+    #     except Exception:
+    #         pass
+
+
+def parse_prometheus_metrics(content: str) -> dict:
+    """
+    Parse Prometheus metrics text format into a structured dictionary.
+
+    Critical Fix: Addresses Test Issue #3 from comprehensive review.
+    Enables proper value assertions instead of just checking if metric names exist.
+
+    Args:
+        content: Raw Prometheus metrics output (text format)
+
+    Returns:
+        Dictionary mapping metric names to their values and labels:
+        {
+            'metric_name': {
+                'label_combo_1': value,
+                'label_combo_2': value,
+                ...
+            }
+        }
+
+    Example:
+        >>> content = '''
+        ... # HELP chores_created_total Total chores created
+        ... # TYPE chores_created_total counter
+        ... chores_created_total{mode="single"} 5.0
+        ... chores_created_total{mode="unassigned"} 3.0
+        ... '''
+        >>> metrics = parse_prometheus_metrics(content)
+        >>> metrics['chores_created_total']['single']
+        5.0
+        >>> metrics['chores_created_total']['unassigned']
+        3.0
+    """
+    metrics = {}
+
+    for line in content.split('\n'):
+        # Skip comments and empty lines
+        if line.startswith('#') or not line.strip():
+            continue
+
+        # Skip if no space (malformed line)
+        if ' ' not in line:
+            continue
+
+        try:
+            # Split metric name+labels from value
+            metric_part, value_str = line.rsplit(' ', 1)
+
+            # Parse metric name and labels
+            if '{' in metric_part:
+                # Has labels: metric_name{label1="value1",label2="value2"}
+                metric_name, labels_str = metric_part.split('{', 1)
+                labels_str = labels_str.rstrip('}')
+
+                # Parse labels into a simple key (first label value for simplicity)
+                # For more complex cases, you could parse all labels
+                if '=' in labels_str:
+                    # Extract first label value
+                    label_value = labels_str.split('="')[1].split('"')[0]
+                else:
+                    label_value = 'default'
+            else:
+                # No labels: just metric_name
+                metric_name = metric_part
+                label_value = 'default'
+
+            # Convert value to float
+            value = float(value_str)
+
+            # Store in dictionary
+            if metric_name not in metrics:
+                metrics[metric_name] = {}
+            metrics[metric_name][label_value] = value
+
+        except (ValueError, IndexError):
+            # Skip malformed lines
+            continue
+
+    return metrics
+
+
+@pytest.fixture
+def metrics_parser():
+    """
+    Fixture that provides the parse_prometheus_metrics function.
+
+    Usage in tests:
+        def test_metric_increments(client, metrics_parser):
+            response = await client.get("/metrics")
+            before = metrics_parser(response.text)
+
+            # Perform action that should increment metric
+            await client.post("/api/v1/chores", ...)
+
+            response = await client.get("/metrics")
+            after = metrics_parser(response.text)
+
+            assert after['chores_created_total']['single'] == before.get('chores_created_total', {}).get('single', 0) + 1
+    """
+    return parse_prometheus_metrics 

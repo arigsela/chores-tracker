@@ -11,15 +11,15 @@ from ..models.family import Family  # noqa
 
 # Create async engine with optimized connection pool settings
 engine = create_async_engine(
-    settings.DATABASE_URL, 
-    echo=False, 
+    settings.DATABASE_URL,
+    echo=False,
     future=True,
     # Connection pool settings
     pool_pre_ping=True,      # Test connections before using them
     pool_size=20,            # Increased pool size for better concurrency
     max_overflow=40,         # Allow more overflow connections during peak load
     pool_recycle=3600,       # Recycle connections after 1 hour (avoid MySQL timeouts)
-    pool_timeout=30,         # Timeout for getting connection from pool
+    pool_timeout=60,         # Increased timeout for getting connection from pool
     connect_args={
         "server_settings": {
             "jit": "off"     # Disable JIT for more predictable performance

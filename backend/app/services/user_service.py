@@ -17,6 +17,7 @@ from ..core.security.jwt import create_access_token, verify_token
 from ..core.security.password import verify_password
 from ..core.unit_of_work import UnitOfWork
 from ..core.exceptions import ValidationError, NotFoundError, AuthorizationError
+from ..core.metrics import record_user_registration, record_user_login
 
 
 # Email validation pattern
@@ -125,9 +126,15 @@ class UserService(BaseService[User, UserRepository]):
         }
         if email:
             user_data["email"] = email
-        
+
         # Create user
-        return await self.repository.create(db, obj_in=user_data)
+        user = await self.repository.create(db, obj_in=user_data)
+
+        # Record registration metric
+        role = "parent" if is_parent else "child"
+        record_user_registration(role=role)
+
+        return user
     
     async def authenticate(
         self, db: AsyncSession, *, username: str, password: str
@@ -140,13 +147,16 @@ class UserService(BaseService[User, UserRepository]):
         # Get user by username
         user = await self.repository.get_by_username(db, username=username)
         if not user:
+            record_user_login(role="unknown", success=False)
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Incorrect username or password"
             )
-        
+
         # Verify password
         if not verify_password(password, user.hashed_password):
+            role = "parent" if user.is_parent else "child"
+            record_user_login(role=role, success=False)
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Incorrect username or password"
@@ -158,7 +168,11 @@ class UserService(BaseService[User, UserRepository]):
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="User is inactive"
             )
-        
+
+        # Record successful login metric
+        role = "parent" if user.is_parent else "child"
+        record_user_login(role=role, success=True)
+
         return user
     
     async def get_current_user(

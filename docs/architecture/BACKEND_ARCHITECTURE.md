@@ -17,7 +17,7 @@
 The Chores Tracker backend is a modern Python web application built with FastAPI, designed to manage household chores, rewards, and family task assignments. It follows a clean, layered architecture pattern similar to enterprise Java applications but leverages Python's async capabilities for high performance.
 
 ### Key Features
-- **Dual API Design**: Supports both REST JSON APIs and HTML/HTMX endpoints
+- **REST JSON API**: Modern RESTful API design with comprehensive OpenAPI documentation
 - **Role-Based Access**: Parent and child accounts with different permissions
 - **Async Architecture**: Full async/await support for optimal performance
 - **Clean Architecture**: Separation of concerns with distinct layers
@@ -48,9 +48,8 @@ The Chores Tracker backend is a modern Python web application built with FastAPI
 
 ### Additional Libraries
 - **Pydantic v2**: Data validation and serialization
-- **Jinja2**: Template engine for HTML rendering
-- **HTMX**: For dynamic UI updates (frontend integration)
 - **pytest**: Testing framework with async support
+- **prometheus-fastapi-instrumentator**: Metrics collection and monitoring
 
 ## Project Structure
 
@@ -86,24 +85,34 @@ backend/
 │   │   └── rate_limit.py       # Rate limiting middleware
 │   ├── models/                 # Database models (entities)
 │   │   ├── user.py             # User model
-│   │   └── chore.py            # Chore model
+│   │   ├── chore.py            # Chore model
+│   │   ├── chore_assignment.py # ChoreAssignment junction table
+│   │   ├── family.py           # Family model
+│   │   ├── activity.py         # Activity audit log
+│   │   └── reward_adjustment.py # Reward adjustment model
 │   ├── repositories/           # Data access layer
 │   │   ├── base.py             # Generic repository
 │   │   ├── user.py             # User repository
-│   │   └── chore.py            # Chore repository
+│   │   ├── chore.py            # Chore repository
+│   │   ├── chore_assignment.py # ChoreAssignment repository
+│   │   ├── family.py           # Family repository
+│   │   ├── activity.py         # Activity repository
+│   │   └── reward_adjustment.py # Reward adjustment repository
 │   ├── schemas/                # Pydantic schemas (DTOs)
 │   │   ├── user.py             # User schemas
-│   │   └── chore.py            # Chore schemas
+│   │   ├── chore.py            # Chore schemas
+│   │   ├── chore_assignment.py # ChoreAssignment schemas
+│   │   ├── family.py           # Family schemas
+│   │   ├── activity.py         # Activity schemas
+│   │   └── reward_adjustment.py # Reward adjustment schemas
 │   ├── services/               # Business logic layer
 │   │   ├── base.py             # Base service class
 │   │   ├── user_service.py     # User business logic
-│   │   └── chore_service.py    # Chore business logic
-│   ├── scripts/                # Utility scripts
-│   ├── static/                 # Static files (JS, CSS)
-│   └── templates/              # HTML templates
-│       ├── components/         # Reusable HTML components
-│       ├── layouts/            # Base layouts
-│       └── pages/              # Full page templates
+│   │   ├── chore_service.py    # Chore business logic
+│   │   ├── chore_assignment_service.py # Assignment lifecycle
+│   │   ├── family_service.py   # Family management
+│   │   └── activity_service.py # Activity logging
+│   └── scripts/                # Utility scripts
 ├── tests/                      # Test suite
 ├── requirements.txt            # Python dependencies
 └── pytest.ini                  # Test configuration
@@ -127,10 +136,10 @@ app = FastAPI(
 
 **Key Responsibilities:**
 - Configure middleware (CORS, rate limiting)
-- Mount static files and templates
 - Define root-level routes
 - Include API routers
 - Set up exception handlers
+- Configure Prometheus metrics instrumentation
 
 ### 2. Models Layer (`app/models/`)
 
@@ -140,31 +149,265 @@ Database entities using SQLAlchemy 2.0's modern declarative syntax:
 ```python
 class User(Base):
     __tablename__ = "users"
-    
+
     id: Mapped[int] = mapped_column(primary_key=True)
     username: Mapped[str] = mapped_column(String(100), unique=True)
     email: Mapped[Optional[str]] = mapped_column(String(255), unique=True)
     hashed_password: Mapped[str] = mapped_column(String(255))
+
+    # User type and hierarchy
     is_parent: Mapped[bool] = mapped_column(Boolean, default=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     parent_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"))
-    
+
+    # Family membership
+    family_id: Mapped[Optional[int]] = mapped_column(ForeignKey("families.id"))
+    registration_code: Mapped[Optional[str]] = mapped_column(String(20), unique=True)
+
+    # Timestamps
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime, onupdate=func.now())
+
     # Relationships
-    children: Mapped[List["User"]] = relationship(...)
-    chores_created: Mapped[List["Chore"]] = relationship(...)
+    children: Mapped[List["User"]] = relationship(
+        back_populates="parent",
+        foreign_keys=[parent_id],
+        remote_side=[id]
+    )
+    parent: Mapped[Optional["User"]] = relationship(
+        back_populates="children",
+        foreign_keys=[parent_id],
+        remote_side=[id]
+    )
+    family: Mapped[Optional["Family"]] = relationship(back_populates="members")
+
+    # Chore relationships
+    chore_assignments: Mapped[List["ChoreAssignment"]] = relationship(
+        back_populates="assignee",
+        cascade="all, delete-orphan"
+    )
+    chores_created: Mapped[List["Chore"]] = relationship(
+        back_populates="creator",
+        foreign_keys="Chore.creator_id"
+    )
+
+    # Activity and adjustment relationships
+    activities: Mapped[List["Activity"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
+    adjustments_received: Mapped[List["RewardAdjustment"]] = relationship(
+        back_populates="child",
+        foreign_keys="RewardAdjustment.child_id"
+    )
+    adjustments_created: Mapped[List["RewardAdjustment"]] = relationship(
+        back_populates="parent",
+        foreign_keys="RewardAdjustment.parent_id"
+    )
 ```
 
 #### Chore Model
 ```python
 class Chore(Base):
     __tablename__ = "chores"
-    
+
     id: Mapped[int] = mapped_column(primary_key=True)
     title: Mapped[str] = mapped_column(String(200))
+    description: Mapped[Optional[str]] = mapped_column(Text)
+
+    # Assignment mode: 'single', 'multi_independent', 'unassigned'
+    assignment_mode: Mapped[str] = mapped_column(String(50), default='single')
+
+    # Reward configuration
     reward: Mapped[float] = mapped_column(Float)
-    is_completed: Mapped[bool] = mapped_column(Boolean, default=False)
-    assignee_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    is_range_reward: Mapped[bool] = mapped_column(Boolean, default=False)
+    min_reward: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    max_reward: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+
+    # Recurrence settings
+    is_recurring: Mapped[bool] = mapped_column(Boolean, default=False)
+    cooldown_days: Mapped[int] = mapped_column(Integer, default=0)
+
+    # Lifecycle
+    is_disabled: Mapped[bool] = mapped_column(Boolean, default=False)
+
+    # Foreign keys
     creator_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    family_id: Mapped[Optional[int]] = mapped_column(ForeignKey("families.id"))
+
+    # Relationships
+    assignments: Mapped[List["ChoreAssignment"]] = relationship(
+        back_populates="chore",
+        cascade="all, delete-orphan"
+    )
+    creator: Mapped["User"] = relationship(back_populates="chores_created")
+    family: Mapped[Optional["Family"]] = relationship(back_populates="chores")
 ```
+
+#### ChoreAssignment Model (Junction Table)
+```python
+class ChoreAssignment(Base):
+    """
+    Junction table enabling many-to-many relationship between Chores and Users.
+    Powers the multi-assignment system with three modes:
+    - single: One child assigned
+    - multi_independent: Multiple children, each completes separately
+    - unassigned: Pool chore, created when child claims it
+    """
+    __tablename__ = "chore_assignments"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+
+    # Foreign keys
+    chore_id: Mapped[int] = mapped_column(
+        ForeignKey("chores.id", ondelete="CASCADE"),
+        index=True
+    )
+    assignee_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"),
+        index=True
+    )
+
+    # Completion tracking
+    is_completed: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    is_approved: Mapped[bool] = mapped_column(Boolean, default=False)
+    completion_date: Mapped[Optional[datetime]] = mapped_column(DateTime)
+    approval_date: Mapped[Optional[datetime]] = mapped_column(DateTime)
+
+    # Reward tracking
+    approval_reward: Mapped[Optional[float]] = mapped_column(Float)
+    rejection_reason: Mapped[Optional[str]] = mapped_column(Text)
+
+    # Timestamps
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime, onupdate=func.now())
+
+    # Relationships
+    chore: Mapped["Chore"] = relationship(back_populates="assignments")
+    assignee: Mapped["User"] = relationship(back_populates="chore_assignments")
+
+    # Constraints
+    __table_args__ = (
+        UniqueConstraint('chore_id', 'assignee_id', name='unique_chore_assignee'),
+    )
+
+    # Properties for business logic
+    @property
+    def is_pending_approval(self) -> bool:
+        """Assignment completed but not yet approved by parent."""
+        return self.is_completed and not self.is_approved
+
+    @property
+    def is_available(self) -> bool:
+        """
+        Check if assignment is available for completion.
+        For recurring chores, checks if cooldown period has passed.
+        """
+        if self.is_completed:
+            return False
+
+        if self.chore.is_recurring and self.approval_date:
+            cooldown_end = self.approval_date + timedelta(days=self.chore.cooldown_days)
+            return datetime.utcnow() >= cooldown_end
+
+        return True
+```
+
+#### Family Model
+```python
+class Family(Base):
+    """
+    Represents a family unit for multi-family support.
+    Enables family isolation and invite-based membership.
+    """
+    __tablename__ = "families"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    name: Mapped[Optional[str]] = mapped_column(String(255))
+
+    # Invite system
+    invite_code: Mapped[str] = mapped_column(String(8), unique=True, index=True)
+    invite_code_expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
+
+    # Timestamps
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime, onupdate=func.now())
+
+    # Relationships
+    members: Mapped[List["User"]] = relationship(
+        back_populates="family",
+        foreign_keys="User.family_id"
+    )
+    chores: Mapped[List["Chore"]] = relationship(back_populates="family")
+```
+
+#### Activity Model
+```python
+class Activity(Base):
+    """
+    Audit log for all system actions.
+    Provides activity feed and compliance tracking.
+    """
+    __tablename__ = "activities"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+
+    # Activity identification
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"),
+        index=True
+    )
+    activity_type: Mapped[str] = mapped_column(String(50), index=True)
+    description: Mapped[str] = mapped_column(Text)
+
+    # Optional target (e.g., child affected by parent's action)
+    target_user_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL")
+    )
+
+    # Flexible JSON storage for activity-specific data
+    activity_data: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSON)
+
+    # Timestamp
+    created_at: Mapped[datetime] = mapped_column(DateTime, index=True)
+
+    # Relationships
+    user: Mapped["User"] = relationship(back_populates="activities")
+    target_user: Mapped[Optional["User"]] = relationship(foreign_keys=[target_user_id])
+```
+
+**Activity Types:**
+- `chore_created`, `chore_completed`, `chore_approved`, `chore_rejected`
+- `user_registered`, `user_login`, `password_reset`
+- `adjustment_created`, `family_created`, `family_joined`
+
+### Model Relationships Overview
+
+The application uses a sophisticated multi-assignment system powered by the ChoreAssignment junction table:
+
+```
+User (Parent) ──creates──> Chore ──has many──> ChoreAssignment ──belongs to──> User (Child)
+     │                        │                         │
+     └─ belongs to ─> Family ─┘                         │
+                                                         │
+                                              is tracked by──> Activity
+```
+
+**Key Relationship Patterns:**
+
+1. **User-Family**: Many-to-one (users belong to one family)
+2. **Chore-Family**: Many-to-one (chores belong to one family for isolation)
+3. **Chore-User (via ChoreAssignment)**: Many-to-many (enables multi-assignment)
+4. **User-Activity**: One-to-many (users generate activities)
+5. **User-User**: Self-referential (parent-child hierarchy)
+
+**Assignment Mode Behaviors:**
+
+| Mode | Assignments Created | Completion Behavior | Approval Behavior |
+|------|-------------------|---------------------|-------------------|
+| `single` | 1 assignment | Child completes their assignment | Parent approves the assignment |
+| `multi_independent` | N assignments (one per child) | Each child completes independently | Parent approves each separately |
+| `unassigned` | 0 assignments initially | First child to complete creates assignment | Parent approves the claimed assignment |
 
 ### 3. Schemas Layer (`app/schemas/`)
 
@@ -269,26 +512,26 @@ async def register_user(
 
 ## API Design
 
-### Dual API Architecture
+### RESTful JSON API Architecture
 
-The application implements two types of APIs:
+The application implements a modern RESTful API design:
 
-#### 1. RESTful JSON APIs (`/api/v1/*`)
-Traditional REST endpoints returning JSON data:
-- `/api/v1/users/` - User management
+#### API Endpoints (`/api/v1/*`)
+JSON-based REST endpoints for all operations:
+- `/api/v1/users/` - User management and authentication
 - `/api/v1/chores/` - Chore CRUD operations
-- `/api/v1/auth/` - Authentication endpoints
-
-#### 2. HTML/HTMX APIs (`/api/v1/html/*`)
-Server-side rendered HTML fragments for dynamic UI:
-- `/api/v1/html/chores/list` - Chore list component
-- `/api/v1/html/chores/{id}/approve-form` - Approval modal
-- `/api/v1/html/users/children` - Children dropdown
+- `/api/v1/assignments/` - Chore assignment management
+- `/api/v1/adjustments/` - Reward adjustments
+- `/api/v1/families/` - Family management
+- `/api/v1/activities/` - Activity logging
+- `/api/v1/statistics/` - Statistical endpoints
+- `/api/v1/health/` - Health check endpoints
+- `/metrics` - Prometheus metrics endpoint
 
 ### Request/Response Flow
 
 ```
-Client Request
+Client Request (JSON)
     ↓
 Middleware (CORS, Rate Limit)
     ↓
@@ -305,7 +548,7 @@ Repository Layer (Data Access)
     ↓
 Database
     ↓
-Response (JSON or HTML)
+Response (JSON)
 ```
 
 ## Authentication & Security
@@ -416,11 +659,17 @@ alembic downgrade -1
 ### Indexes and Optimization
 
 Key indexes for performance:
-- `users.username` (unique)
-- `users.email` (unique)
-- `chores.assignee_id` (foreign key)
-- `chores.creator_id` (foreign key)
-- Composite indexes for common queries
+- **users**: `username` (unique), `email` (unique), `family_id`, `parent_id`
+- **chores**: `creator_id`, `family_id`, `is_disabled`, `assignment_mode`
+- **chore_assignments**: `chore_id`, `assignee_id`, `is_completed`, `(chore_id, assignee_id)` unique constraint
+- **families**: `invite_code` (unique)
+- **activities**: `user_id`, `activity_type`, `created_at` (for time-based queries)
+- **reward_adjustments**: `child_id`, `parent_id`
+
+Composite indexes for common queries:
+- `chore_assignments(chore_id, is_completed, is_approved)` - for pending approval queries
+- `chore_assignments(assignee_id, is_completed)` - for child's available chores
+- `activities(user_id, created_at)` - for activity feeds
 
 ## Business Logic Layer
 
@@ -437,17 +686,46 @@ Key indexes for performance:
    - Parent ID required
    - Simpler password (4+ chars)
 
-#### Chore Workflow
+#### Chore Workflow (Multi-Assignment System)
+
+**Single Assignment Mode:**
 ```
-Created → Assigned → Completed → Approved
-                          ↓
-                     Cooldown (if recurring)
+Chore Created → ChoreAssignment Created → Child Completes → Parent Approves
+                                                                    ↓
+                                                          Cooldown (if recurring)
+```
+
+**Multi-Independent Mode:**
+```
+Chore Created → ChoreAssignment 1 (Child A) → Completes → Approves
+             ├─ ChoreAssignment 2 (Child B) → Completes → Approves
+             └─ ChoreAssignment 3 (Child C) → Completes → Approves
+                (Each operates independently with own cooldown)
+```
+
+**Unassigned Pool Mode:**
+```
+Chore Created (no assignments) → First Child Completes (creates assignment)
+                                            ↓
+                                   Parent Approves → Cooldown → Assignment Deleted
+                                                                      ↓
+                                                         Returns to pool
 ```
 
 #### Reward System
-1. **Fixed Rewards**: Set amount on creation
-2. **Range Rewards**: Parent sets value on approval
-3. **Validation**: Within min/max bounds
+1. **Fixed Rewards**:
+   - Set `reward` amount on chore creation
+   - Applied to `ChoreAssignment.approval_reward` on approval
+2. **Range Rewards**:
+   - Set `min_reward` and `max_reward` on chore creation
+   - Parent supplies `approval_reward` value on approval via ChoreAssignment
+   - Validation: `min_reward ≤ approval_reward ≤ max_reward`
+3. **Balance Calculation**:
+   ```python
+   child_balance = sum(approved_assignments.approval_reward)
+                 + sum(adjustments.amount)
+                 - sum(payouts.amount)  # Future feature
+   ```
 
 ### Service Layer Patterns
 
@@ -590,9 +868,11 @@ services:
 4. **Caching**: Redis for session/frequently accessed data
 
 #### Monitoring
-- Health check endpoint: `/api/v1/healthcheck`
+- Health check endpoints: `/api/v1/health/` and `/api/v1/healthcheck`
+- Prometheus metrics at `/metrics` endpoint
 - Structured logging with correlation IDs
-- Metrics collection (response times, error rates)
+- Business metrics tracking (chores, users, families, activities)
+- HTTP metrics (request duration, status codes, sizes)
 - Database query performance logging
 
 #### Security Hardening
@@ -688,6 +968,24 @@ alembic current
 - Log rotation
 - Monitor disk usage
 
+## Frontend Architecture
+
+> **Note**: The backend previously supported server-side HTML rendering with HTMX (deprecated August 2024). The current architecture uses a separate React Native Web frontend application.
+
+### Current Frontend Setup
+- **Location**: `frontend/` directory (separate from backend)
+- **Technology**: React Native Web with Expo
+- **Port**: 8081 (frontend) + 8000 (backend API)
+- **Communication**: REST JSON API calls via Axios
+- **Authentication**: JWT token stored in AsyncStorage/localStorage
+- **State Management**: React Context API
+
+### Mobile Application
+- **Location**: `mobile/` directory
+- **Technology**: React Native for iOS/Android
+- **Code Sharing**: 90% component/logic sharing with web frontend
+- **Offline Support**: AsyncStorage for data persistence
+
 ## Conclusion
 
 The Chores Tracker backend is a well-architected FastAPI application that demonstrates modern Python web development practices. Its clean separation of concerns, comprehensive testing, and robust security make it suitable for production deployment while remaining maintainable and extensible.
@@ -697,7 +995,8 @@ Key strengths:
 - Type safety with Pydantic
 - Async performance
 - Comprehensive testing
-- Dual API design for flexibility
+- RESTful JSON API design
 - Strong security practices
+- Production-ready monitoring with Prometheus
 
 This architecture provides a solid foundation for scaling and extending the application as requirements evolve.

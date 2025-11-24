@@ -19,6 +19,15 @@ from ..schemas.chore import ChoreResponse
 from ..schemas.assignment import AssignmentResponse
 from ..schemas.user import UserResponse
 from ..schemas.reward_adjustment import RewardAdjustmentResponse
+from ..core.metrics import (
+    record_chore_creation,
+    record_chore_completion,
+    record_chore_approval,
+    record_chore_rejection,
+    assignments_created_total,
+    assignments_claimed_total,
+    update_pending_approvals
+)
 
 
 class ChoreService(BaseService[Chore, ChoreRepository]):
@@ -31,6 +40,43 @@ class ChoreService(BaseService[Chore, ChoreRepository]):
         self.assignment_repo = ChoreAssignmentRepository()
         self.reward_repo = RewardAdjustmentRepository()
         self.activity_service = ActivityService()
+
+    async def _update_pending_approvals_gauge(self, db: AsyncSession) -> None:
+        """
+        Update the pending approvals gauge with current database count.
+
+        This should be called after any operation that changes pending approval count:
+        - Chore completion (increments)
+        - Assignment approval (decrements)
+        - Assignment rejection (decrements)
+
+        NOTE: This method suppresses all exceptions to prevent metrics collection
+        from breaking business logic, including transaction state errors during
+        concurrent operations.
+        """
+        try:
+            from sqlalchemy import select, func
+            from ..models.chore_assignment import ChoreAssignment
+            import warnings
+
+            # Suppress SQLAlchemy warnings about Session.add() during flush
+            # This can happen during concurrent operations but doesn't affect correctness
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=Warning)
+
+                # Count assignments that are completed but not approved
+                stmt = select(func.count()).select_from(ChoreAssignment).where(
+                    ChoreAssignment.is_completed == True,
+                    ChoreAssignment.is_approved == False
+                )
+                result = await db.execute(stmt)
+                count = result.scalar()
+
+                update_pending_approvals(count or 0)
+        except Exception as e:
+            # Never let metrics errors affect business logic
+            # This includes transaction state errors during concurrent operations
+            pass  # Silently ignore - metrics are best-effort
     
     async def create_chore(
         self,
@@ -140,6 +186,12 @@ class ChoreService(BaseService[Chore, ChoreRepository]):
             }
             assignment = await self.assignment_repo.create(db, obj_in=assignment_data)
             created_assignments.append(assignment)
+
+            # Record assignment creation metric
+            assignments_created_total.labels(mode=assignment_mode).inc()
+
+        # Record chore creation metric
+        record_chore_creation(mode=assignment_mode)
 
         # Log activity for each assignment
         try:
@@ -521,11 +573,27 @@ class ChoreService(BaseService[Chore, ChoreRepository]):
                 }
                 assignment = await self.assignment_repo.create(db, obj_in=assignment_data)
 
+                # Record claim metric for unassigned pool chores
+                assignments_claimed_total.inc()
+
         else:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Unknown assignment mode: {chore.assignment_mode}"
             )
+
+        # Record metrics
+        completion_time_seconds = None
+        if assignment and assignment.completion_date:
+            # Calculate time from assignment creation to completion
+            # (would need created_at field on assignment model to calculate accurately)
+            # For now, just record the completion without duration
+            pass
+
+        record_chore_completion(mode=chore.assignment_mode, completion_time_seconds=completion_time_seconds)
+
+        # Update pending approvals gauge (completion increases pending count)
+        await self._update_pending_approvals_gauge(db)
 
         # Log activity
         try:
@@ -666,6 +734,12 @@ class ChoreService(BaseService[Chore, ChoreRepository]):
             }
         )
 
+        # Record approval metrics
+        record_chore_approval(mode=chore.assignment_mode, reward_amount=final_reward)
+
+        # Update pending approvals gauge (approval decreases pending count)
+        await self._update_pending_approvals_gauge(db)
+
         # Log activity
         try:
             await self.activity_service.log_chore_approved(
@@ -789,6 +863,12 @@ class ChoreService(BaseService[Chore, ChoreRepository]):
                 "rejection_reason": rejection_reason.strip()
             }
         )
+
+        # Record rejection metrics
+        record_chore_rejection(mode=chore.assignment_mode)
+
+        # Update pending approvals gauge (rejection decreases pending count)
+        await self._update_pending_approvals_gauge(db)
 
         # Log activity
         try:
