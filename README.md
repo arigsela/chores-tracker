@@ -9,7 +9,7 @@ This application follows a modern decoupled architecture with separate backend a
 ```
 ┌─────────────────────┐
 │  React Native Web   │
-│   Frontend (3000)   │ ← User Interface (Web, iOS, Android)
+│   Frontend (8081)   │ ← User Interface (Web, iOS, Android)
 └──────────┬──────────┘
            │ HTTP/REST API
            ↓
@@ -108,7 +108,7 @@ This application follows a modern decoupled architecture with separate backend a
 
 ### Cross-Platform Support
 The `frontend/` directory contains a **React Native Web** application that supports multiple platforms:
-- **Web Browser** - Runs in any modern web browser at http://localhost:3000
+- **Web Browser** - Runs in any modern web browser at http://localhost:8081
 - **iOS** - Native iOS app (via Expo)
 - **Android** - Native Android app (via Expo)
 - **Progressive Web App** - Can be installed on mobile devices
@@ -187,7 +187,7 @@ Before you begin, ensure you have the following installed:
 
 5. **Access the application**
    - **Backend API**: http://localhost:8000
-   - **Frontend Web UI**: http://localhost:3000
+   - **Frontend Web UI**: http://localhost:8081
    - **API Documentation**: http://localhost:8000/docs
 
 ### Development with Hot Reloading
@@ -308,7 +308,7 @@ npm run build
 ```
 
 **Platform-Specific Notes:**
-- **Web**: Runs at http://localhost:3000, hot-reloads on changes
+- **Web**: Runs at http://localhost:8081, hot-reloads on changes
 - **iOS**: Requires macOS with Xcode installed
 - **Android**: Requires Android Studio and emulator or physical device
 - **Expo Go**: Scan QR code to test on physical device without building
@@ -370,7 +370,7 @@ docker compose exec api python -m backend.app.scripts.create_parent_user
 | `MYSQL_PASSWORD` | Database password | Yes | - |
 | `DEBUG` | Enable debug mode | No | `false` |
 | `ENVIRONMENT` | Environment name | No | `development` |
-| `BACKEND_CORS_ORIGINS` | Allowed CORS origins | Yes | `["http://localhost:3000"]` |
+| `BACKEND_CORS_ORIGINS` | Allowed CORS origins | Yes | `["http://localhost:8081"]` |
 
 ### Frontend Environment Variables (frontend/.env)
 
@@ -558,7 +558,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 **Symptom**: "Address already in use" error when starting services
 
 **Solutions**:
-1. Check what's using the port: `lsof -i :8000` or `lsof -i :3000`
+1. Check what's using the port: `lsof -i :8000` or `lsof -i :8081`
 2. Stop conflicting service or change port in docker-compose.yml
 3. Ensure old containers are stopped: `docker compose down`
 
