@@ -63,6 +63,9 @@ async def lifespan(app: FastAPI):
     if os.getenv("LOG_CONNECTION_POOL") == "true":
         setup_connection_pool_logging()
 
+    # Import metrics to register them with Prometheus
+    from .core import metrics  # noqa: F401 - Import to register metrics
+
     # Initialize metrics access control
     from .core.metrics_auth import MetricsAccessControl
     import backend.app.core.metrics_auth as metrics_auth_module
@@ -71,6 +74,7 @@ async def lifespan(app: FastAPI):
         auth_token=settings.METRICS_AUTH_TOKEN
     )
     print("✅ Metrics access control initialized")
+    print("✅ Prometheus metrics registered")
 
     yield
 
@@ -196,13 +200,16 @@ Min/max range defined at creation. Parent sets final amount on approval.
     ]
 )
 
-# Configure CORS
+# Configure CORS with security best practices
+# Note: Never use allow_origins=["*"] with allow_credentials=True
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
+    allow_origins=settings.CORS_ORIGINS,  # Specific origins only, no wildcards
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],  # Explicit methods
+    allow_headers=["Content-Type", "Authorization", "Accept"],  # Explicit headers
+    expose_headers=["Content-Length", "Content-Type"],
+    max_age=600,  # Cache preflight requests for 10 minutes
 )
 
 # Setup rate limiting

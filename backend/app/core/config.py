@@ -41,8 +41,13 @@ class Settings(BaseSettings):
         return url
     
     # CORS
-    BACKEND_CORS_ORIGINS: Union[List[str], str] = os.getenv("BACKEND_CORS_ORIGINS", "*")
-    
+    # Default to development localhost origins instead of wildcard
+    # Production should override via BACKEND_CORS_ORIGINS environment variable
+    BACKEND_CORS_ORIGINS: Union[List[str], str] = os.getenv(
+        "BACKEND_CORS_ORIGINS",
+        "http://localhost:8081,http://localhost:8080,http://localhost:3000"
+    )
+
     @property
     def CORS_ORIGINS(self) -> List[str]:
         if isinstance(self.BACKEND_CORS_ORIGINS, str):

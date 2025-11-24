@@ -6,6 +6,7 @@ and optional bearer token authentication.
 """
 
 import logging
+import secrets
 from ipaddress import ip_address, ip_network, AddressValueError
 from typing import List, Optional
 
@@ -69,7 +70,10 @@ class MetricsAccessControl:
 
     def is_token_valid(self, token: Optional[str]) -> bool:
         """
-        Check if bearer token is valid.
+        Check if bearer token is valid using constant-time comparison.
+
+        Uses secrets.compare_digest() to prevent timing attacks that could
+        allow attackers to brute-force the token by measuring response times.
 
         Args:
             token: Bearer token from Authorization header
@@ -80,7 +84,11 @@ class MetricsAccessControl:
         if not self.auth_token:
             return False  # Token auth disabled if not configured
 
-        return token == self.auth_token
+        if token is None:
+            return False
+
+        # Use constant-time comparison to prevent timing attacks
+        return secrets.compare_digest(token, self.auth_token)
 
     async def check_access(self, request: Request) -> None:
         """
