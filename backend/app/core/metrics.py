@@ -307,3 +307,29 @@ def update_pending_approvals(count: int) -> None:
         pending_approvals_count.set(count)
     except Exception as e:
         print(f"Error updating pending approvals metric: {e}")
+
+
+def update_active_users(count: int) -> None:
+    """
+    Update the active users gauge.
+
+    Args:
+        count: Current number of users with active sessions
+    """
+    try:
+        active_users_count.set(count)
+    except Exception as e:
+        print(f"Error updating active users metric: {e}")
+
+
+def update_active_families(count: int) -> None:
+    """
+    Update the active families gauge.
+
+    Args:
+        count: Current number of active families
+    """
+    try:
+        families_active_count.set(count)
+    except Exception as e:
+        print(f"Error updating active families metric: {e}")
