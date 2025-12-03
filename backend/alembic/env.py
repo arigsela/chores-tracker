@@ -14,13 +14,36 @@ if config.config_file_name is not None:
 from backend.app.db.base import Base
 target_metadata = Base.metadata
 
+
 def get_url():
-    # Use the same DATABASE_URL conversion logic as the application
+    """
+    Get the DATABASE_URL with proper async driver.
+
+    Uses the same URL conversion logic as the application to ensure
+    consistency between app and migrations.
+
+    Supports:
+    - PostgreSQL (primary): postgresql+asyncpg://
+    - MySQL (legacy): mysql+aiomysql://
+    """
     from backend.app.core.config import settings
     return settings.DATABASE_URL
 
+
 def do_run_migrations(connection: Connection) -> None:
-    context.configure(connection=connection, target_metadata=target_metadata)
+    """Run migrations with proper configuration."""
+    context.configure(
+        connection=connection,
+        target_metadata=target_metadata,
+        # Compare column types for better migration detection
+        compare_type=True,
+        # Compare server defaults
+        compare_server_default=True,
+        # Include schemas
+        include_schemas=True,
+        # Render item for PostgreSQL-specific types
+        render_as_batch=False,
+    )
     with context.begin_transaction():
         context.run_migrations()
 

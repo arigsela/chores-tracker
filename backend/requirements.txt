@@ -6,7 +6,10 @@ pydantic>=2.4.2
 pydantic-settings>=2.0.0
 python-dotenv>=1.0.0
 databases>=0.8.0
-aiomysql>=0.2.0
+# PostgreSQL async driver (replacing aiomysql)
+asyncpg>=0.29.0
+# PostgreSQL sync driver for Alembic migrations
+psycopg[binary]>=3.1.0
 aiosqlite>=0.19.0
 pytest>=7.4.2
 httpx>=0.25.0

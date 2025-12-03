@@ -90,26 +90,42 @@ def format_query_plan(query_plan: str) -> str:
 
 async def analyze_query(db_session, query_string: str):
     """
-    Analyze a query's execution plan (MySQL EXPLAIN).
-    
+    Analyze a query's execution plan.
+
+    Supports PostgreSQL (EXPLAIN ANALYZE) and MySQL (EXPLAIN).
     This is useful for understanding query performance during development.
     """
     from sqlalchemy import text
-    
+
     try:
-        # For MySQL, use EXPLAIN
-        if "mysql" in str(db_session.bind.url):
+        db_url = str(db_session.bind.url) if db_session.bind else ""
+
+        # For PostgreSQL, use EXPLAIN ANALYZE
+        if "postgresql" in db_url or "postgres" in db_url:
+            result = await db_session.execute(text(f"EXPLAIN ANALYZE {query_string}"))
+            rows = result.fetchall()
+
+            analysis = "Query Analysis (PostgreSQL):\n"
+            for row in rows:
+                # PostgreSQL EXPLAIN returns a single column with the plan text
+                analysis += f"  {row[0]}\n"
+
+            return analysis
+
+        # For MySQL, use EXPLAIN (backward compatibility)
+        elif "mysql" in db_url:
             result = await db_session.execute(text(f"EXPLAIN {query_string}"))
             rows = result.fetchall()
-            
-            analysis = "Query Analysis:\n"
+
+            analysis = "Query Analysis (MySQL):\n"
             for row in rows:
                 analysis += f"  Table: {row.table}, Type: {row.type}, "
                 analysis += f"Possible Keys: {row.possible_keys}, Key: {row.key}, "
                 analysis += f"Rows: {row.rows}\n"
-            
+
             return analysis
+
     except Exception as e:
         return f"Could not analyze query: {str(e)}"
-    
+
     return "Query analysis not available for this database type"

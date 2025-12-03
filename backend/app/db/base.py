@@ -18,7 +18,7 @@ engine = create_async_engine(
     pool_pre_ping=True,      # Test connections before using them
     pool_size=20,            # Increased pool size for better concurrency
     max_overflow=40,         # Allow more overflow connections during peak load
-    pool_recycle=3600,       # Recycle connections after 1 hour (avoid MySQL timeouts)
+    pool_recycle=3600,       # Recycle connections after 1 hour (avoid PostgreSQL idle timeouts)
     pool_timeout=60,         # Increased timeout for getting connection from pool
     connect_args={
         "server_settings": {

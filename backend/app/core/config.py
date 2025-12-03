@@ -15,23 +15,39 @@ class Settings(BaseSettings):
     # Database
     _raw_database_url: str = os.getenv(
         "DATABASE_URL",
-        "mysql+aiomysql://chores-user:password@localhost:3306/chores-db"
+        "postgresql+asyncpg://chores-user:password@localhost:5432/chores-db"
     )
 
     @property
     def DATABASE_URL(self) -> str:
         """
-        Ensure DATABASE_URL always uses aiomysql driver for async compatibility.
+        Ensure DATABASE_URL always uses asyncpg driver for async compatibility.
 
-        This automatically converts:
+        This automatically converts various PostgreSQL URL formats:
+        - postgres://... -> postgresql+asyncpg://...
+        - postgresql://... -> postgresql+asyncpg://...
+        - postgresql+psycopg2://... -> postgresql+asyncpg://...
+
+        Also maintains backward compatibility with MySQL URLs during migration:
         - mysql://... -> mysql+aiomysql://...
-        - mysql+mysqldb://... -> mysql+aiomysql://...
-        - mysql+pymysql://... -> mysql+aiomysql://...
         """
         url = self._raw_database_url
 
-        # Force aiomysql driver for any MySQL connection
-        if url.startswith("mysql://"):
+        # Handle PostgreSQL URL formats
+        if url.startswith("postgres://"):
+            # Heroku-style postgres:// URLs
+            url = url.replace("postgres://", "postgresql+asyncpg://", 1)
+        elif url.startswith("postgresql://") and "+asyncpg" not in url:
+            # Standard postgresql:// without async driver
+            url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
+        elif url.startswith("postgresql+psycopg2://"):
+            # Sync psycopg2 driver - convert to async
+            url = url.replace("postgresql+psycopg2://", "postgresql+asyncpg://", 1)
+        elif url.startswith("postgresql+psycopg://"):
+            # psycopg3 sync driver - convert to async
+            url = url.replace("postgresql+psycopg://", "postgresql+asyncpg://", 1)
+        # Backward compatibility: MySQL URLs during migration period
+        elif url.startswith("mysql://"):
             url = url.replace("mysql://", "mysql+aiomysql://", 1)
         elif url.startswith("mysql+mysqldb://"):
             url = url.replace("mysql+mysqldb://", "mysql+aiomysql://", 1)
