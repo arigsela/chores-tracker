@@ -14,4 +14,4 @@ docker_build(
 
 # Configure Docker Compose resources
 dc_resource('api', labels=['backend'])
-dc_resource('mysql', labels=['backend', 'db'])
+dc_resource('postgres', labels=['backend', 'db'])

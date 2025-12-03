@@ -161,12 +161,12 @@ class FamilyRepository(BaseRepository[Family]):
                 f.invite_code,
                 f.created_at,
                 COUNT(DISTINCT u.id) as total_members,
-                COUNT(DISTINCT CASE WHEN u.is_parent = 1 THEN u.id END) as total_parents,
-                COUNT(DISTINCT CASE WHEN u.is_parent = 0 THEN u.id END) as total_children,
+                COUNT(DISTINCT CASE WHEN u.is_parent = true THEN u.id END) as total_parents,
+                COUNT(DISTINCT CASE WHEN u.is_parent = false THEN u.id END) as total_children,
                 COUNT(DISTINCT c.id) as total_chores,
-                COUNT(DISTINCT CASE WHEN ca.is_completed = 1 THEN ca.id END) as completed_chores,
-                COUNT(DISTINCT CASE WHEN ca.is_completed = 1 AND ca.is_approved = 1 THEN ca.id END) as approved_chores,
-                COALESCE(SUM(CASE WHEN ca.is_completed = 1 AND ca.is_approved = 1 THEN
+                COUNT(DISTINCT CASE WHEN ca.is_completed = true THEN ca.id END) as completed_chores,
+                COUNT(DISTINCT CASE WHEN ca.is_completed = true AND ca.is_approved = true THEN ca.id END) as approved_chores,
+                COALESCE(SUM(CASE WHEN ca.is_completed = true AND ca.is_approved = true THEN
                     COALESCE(ca.approval_reward, c.reward, 0) END), 0) as total_rewards_earned
             FROM families f
             LEFT JOIN users u ON u.family_id = f.id
@@ -197,14 +197,14 @@ class FamilyRepository(BaseRepository[Family]):
     async def get_families_with_member_counts(self, db: AsyncSession, *, skip: int = 0, limit: int = 100) -> List[Dict[str, Any]]:
         """Get families with member counts for admin/debugging purposes."""
         result = await db.execute(text("""
-            SELECT 
+            SELECT
                 f.id,
                 f.name,
                 f.invite_code,
                 f.created_at,
                 COUNT(u.id) as member_count,
-                SUM(CASE WHEN u.is_parent = 1 THEN 1 ELSE 0 END) as parent_count,
-                SUM(CASE WHEN u.is_parent = 0 THEN 1 ELSE 0 END) as child_count
+                SUM(CASE WHEN u.is_parent = true THEN 1 ELSE 0 END) as parent_count,
+                SUM(CASE WHEN u.is_parent = false THEN 1 ELSE 0 END) as child_count
             FROM families f
             LEFT JOIN users u ON u.family_id = f.id
             GROUP BY f.id, f.name, f.invite_code, f.created_at
@@ -233,7 +233,7 @@ class FamilyRepository(BaseRepository[Family]):
                 f.id,
                 f.name,
                 f.invite_code,
-                GROUP_CONCAT(u.username ORDER BY u.is_parent DESC, u.username) as members
+                STRING_AGG(u.username, ',' ORDER BY u.is_parent DESC, u.username) as members
             FROM families f
             JOIN users u ON u.family_id = f.id
             WHERE u.username LIKE :pattern

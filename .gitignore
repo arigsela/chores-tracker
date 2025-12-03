@@ -186,3 +186,9 @@ monitoring_credentials.json
 .monitoring_env
 *monitoring_password*
 *monitoring_secret*
+# Production data exports (contain PII)
+docs/mysql-production-export.json
+docs/*-production-export.json
+
+# Playwright MCP screenshots
+.playwright-mcp/

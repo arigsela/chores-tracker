@@ -71,12 +71,12 @@ async def detailed_health(db: AsyncSession = Depends(get_db)):
 
     # Check database connectivity and version
     try:
-        result = await db.execute(text("SELECT VERSION()"))
+        result = await db.execute(text("SELECT version()"))
         db_version = result.scalar()
         components["database"] = {
             "status": "healthy",
             "version": db_version,
-            "type": "MySQL"
+            "type": "PostgreSQL"
         }
     except Exception as e:
         components["database"] = {
