@@ -8,7 +8,7 @@ import { render, fireEvent } from '@testing-library/react-native';
 import ChildCard from '../ChildCard';
 import { ChildWithChores } from '../../api/users';
 
-// Mock child user factory
+// Mock child user factory - matches ChoreAssignmentSummary schema
 const createMockChild = (overrides: Partial<ChildWithChores> = {}): ChildWithChores => ({
   id: 1,
   username: 'testchild',
@@ -19,30 +19,27 @@ const createMockChild = (overrides: Partial<ChildWithChores> = {}): ChildWithCho
   chores: [
     {
       id: 1,
-      title: 'Clean room',
+      chore_id: 101,
+      chore_title: 'Clean room',
+      reward: 5.0,
       is_completed: false,
       is_approved: false,
-      completed_at: null,
-      approved_at: null,
-      completion_date: null,
     },
     {
       id: 2,
-      title: 'Do dishes',
+      chore_id: 102,
+      chore_title: 'Do dishes',
+      reward: 3.0,
       is_completed: true,
       is_approved: false,
-      completed_at: '2024-01-15T10:00:00Z',
-      approved_at: null,
-      completion_date: '2024-01-15T10:00:00Z',
     },
     {
       id: 3,
-      title: 'Take out trash',
+      chore_id: 103,
+      chore_title: 'Take out trash',
+      reward: 2.0,
       is_completed: true,
       is_approved: true,
-      completed_at: '2024-01-14T14:00:00Z',
-      approved_at: '2024-01-14T15:00:00Z',
-      completion_date: '2024-01-14T14:00:00Z',
     },
   ],
   ...overrides,
@@ -149,13 +146,13 @@ describe('ChildCard Component', () => {
       expect(zeroElements).toHaveLength(3);
     });
 
-    it('should calculate active chores correctly with different completion field names', () => {
+    it('should calculate active chores correctly based on is_completed field', () => {
       const child = createMockChild({
         chores: [
-          { id: 1, is_completed: false, completed_at: null, completion_date: null },
-          { id: 2, is_completed: false, completed_at: null, completion_date: null },
-          { id: 3, is_completed: true, completed_at: '2024-01-15T10:00:00Z' },
-          { id: 4, completion_date: '2024-01-15T11:00:00Z' },
+          { id: 1, chore_id: 101, chore_title: 'Chore 1', reward: 5.0, is_completed: false, is_approved: false },
+          { id: 2, chore_id: 102, chore_title: 'Chore 2', reward: 5.0, is_completed: false, is_approved: false },
+          { id: 3, chore_id: 103, chore_title: 'Chore 3', reward: 5.0, is_completed: true, is_approved: false },
+          { id: 4, chore_id: 104, chore_title: 'Chore 4', reward: 5.0, is_completed: true, is_approved: true },
         ],
       });
 
@@ -164,15 +161,15 @@ describe('ChildCard Component', () => {
       );
 
       const twoElements = getAllByText('2');
-      expect(twoElements.length).toBeGreaterThan(0); // Should show 2 active chores
+      expect(twoElements.length).toBeGreaterThan(0); // Should show 2 active chores (not completed)
     });
 
-    it('should calculate completed chores correctly with different approval field names', () => {
+    it('should calculate completed (approved) chores correctly based on is_approved field', () => {
       const child = createMockChild({
         chores: [
-          { id: 1, is_approved: true },
-          { id: 2, approved_at: '2024-01-15T10:00:00Z' },
-          { id: 3, is_approved: false, approved_at: null },
+          { id: 1, chore_id: 101, chore_title: 'Chore 1', reward: 5.0, is_completed: true, is_approved: true },
+          { id: 2, chore_id: 102, chore_title: 'Chore 2', reward: 5.0, is_completed: true, is_approved: true },
+          { id: 3, chore_id: 103, chore_title: 'Chore 3', reward: 5.0, is_completed: true, is_approved: false },
         ],
       });
 
@@ -181,17 +178,17 @@ describe('ChildCard Component', () => {
       );
 
       const twoElements = getAllByText('2');
-      expect(twoElements.length).toBeGreaterThan(0); // 2 approved chores
+      expect(twoElements.length).toBeGreaterThan(0); // 2 approved chores (is_approved: true)
     });
 
     it('should use provided pendingCount override', () => {
       const child = createMockChild();
 
       const { getAllByText } = render(
-        <ChildCard 
-          child={child} 
-          onPress={mockOnPress} 
-          pendingCount={5} 
+        <ChildCard
+          child={child}
+          onPress={mockOnPress}
+          pendingCount={5}
         />
       );
 
@@ -199,35 +196,36 @@ describe('ChildCard Component', () => {
       expect(fiveElements.length).toBeGreaterThan(0); // Should use override value
     });
 
+    it('should use provided completed_chores override from allowance summary', () => {
+      // When completed_chores is provided (from allowance summary), use it instead of calculating
+      const child = createMockChild({
+        chores: [
+          { id: 1, chore_id: 101, chore_title: 'Chore 1', reward: 5.0, is_completed: true, is_approved: true },
+        ],
+        // Override completed_chores from allowance summary (even though only 1 chore above)
+        completed_chores: 10,
+      });
+
+      const { getAllByText } = render(
+        <ChildCard child={child} onPress={mockOnPress} />
+      );
+
+      // Should show 10 (the override) not 1 (calculated from chores)
+      const tenElements = getAllByText('10');
+      expect(tenElements.length).toBeGreaterThan(0);
+    });
+
     it('should calculate pending approval chores correctly', () => {
       const child = createMockChild({
         chores: [
-          // Completed but not approved
-          { 
-            id: 1, 
-            is_completed: true, 
-            is_approved: false,
-            completed_at: '2024-01-15T10:00:00Z',
-          },
-          // Completed via completion_date but not approved
-          { 
-            id: 2, 
-            completion_date: '2024-01-15T11:00:00Z',
-            is_approved: false,
-          },
-          // Not completed
-          { 
-            id: 3, 
-            is_completed: false,
-            completed_at: null,
-          },
-          // Completed and approved
-          { 
-            id: 4, 
-            is_completed: true, 
-            is_approved: true,
-            completed_at: '2024-01-15T12:00:00Z',
-          },
+          // Completed but not approved (pending)
+          { id: 1, chore_id: 101, chore_title: 'Chore 1', reward: 5.0, is_completed: true, is_approved: false },
+          // Completed but not approved (pending)
+          { id: 2, chore_id: 102, chore_title: 'Chore 2', reward: 5.0, is_completed: true, is_approved: false },
+          // Not completed (active)
+          { id: 3, chore_id: 103, chore_title: 'Chore 3', reward: 5.0, is_completed: false, is_approved: false },
+          // Completed and approved (completed)
+          { id: 4, chore_id: 104, chore_title: 'Chore 4', reward: 5.0, is_completed: true, is_approved: true },
         ],
       });
 
@@ -236,7 +234,7 @@ describe('ChildCard Component', () => {
       );
 
       const twoElements = getAllByText('2');
-      expect(twoElements.length).toBeGreaterThan(0); // 2 pending approval
+      expect(twoElements.length).toBeGreaterThan(0); // 2 pending approval (is_completed: true, is_approved: false)
     });
   });
 
@@ -380,12 +378,11 @@ describe('ChildCard Component', () => {
     it('should handle child with large number of chores', () => {
       const manyChores = Array.from({ length: 100 }, (_, i) => ({
         id: i + 1,
-        title: `Chore ${i + 1}`,
+        chore_id: 100 + i + 1,
+        chore_title: `Chore ${i + 1}`,
+        reward: 5.0,
         is_completed: i % 3 === 0,
         is_approved: i % 5 === 0,
-        completed_at: i % 3 === 0 ? '2024-01-15T10:00:00Z' : null,
-        approved_at: i % 5 === 0 ? '2024-01-15T11:00:00Z' : null,
-        completion_date: null,
       }));
 
       const child = createMockChild({
@@ -403,8 +400,8 @@ describe('ChildCard Component', () => {
     it('should handle malformed chore data gracefully', () => {
       const child = createMockChild({
         chores: [
-          { id: 1, is_completed: false, is_approved: false }, // Missing some fields but valid
-          { id: 2, is_completed: false, is_approved: false }, // Invalid field type handled by filter
+          { id: 1, chore_id: 101, chore_title: 'Chore 1', reward: 5.0, is_completed: false, is_approved: false },
+          { id: 2, chore_id: 102, chore_title: 'Chore 2', reward: 5.0, is_completed: false, is_approved: false },
         ] as any,
       });
 
@@ -488,13 +485,13 @@ describe('ChildCard Component', () => {
       const child = createMockChild({
         chores: [
           // Active: not completed
-          { id: 1, is_completed: false, is_approved: false },
-          // Pending: completed but not approved  
-          { id: 2, is_completed: true, is_approved: false },
+          { id: 1, chore_id: 101, chore_title: 'Chore 1', reward: 5.0, is_completed: false, is_approved: false },
+          // Pending: completed but not approved
+          { id: 2, chore_id: 102, chore_title: 'Chore 2', reward: 5.0, is_completed: true, is_approved: false },
           // Completed: both completed and approved
-          { id: 3, is_completed: true, is_approved: true },
+          { id: 3, chore_id: 103, chore_title: 'Chore 3', reward: 5.0, is_completed: true, is_approved: true },
           // Edge case: approved but not marked completed (shouldn't happen but test anyway)
-          { id: 4, is_completed: false, is_approved: true },
+          { id: 4, chore_id: 104, chore_title: 'Chore 4', reward: 5.0, is_completed: false, is_approved: true },
         ],
       });
 
@@ -506,25 +503,30 @@ describe('ChildCard Component', () => {
       expect(getByText('testchild')).toBeTruthy();
     });
 
-    it('should prioritize completion_date over other completion fields', () => {
+    it('should correctly calculate stats using only is_completed and is_approved fields', () => {
       const child = createMockChild({
         chores: [
-          { 
-            id: 1, 
-            is_completed: false, 
-            completed_at: null,
-            completion_date: '2024-01-15T10:00:00Z',
-            is_approved: false,
-          },
+          // Active (is_completed: false)
+          { id: 1, chore_id: 101, chore_title: 'Chore 1', reward: 5.0, is_completed: false, is_approved: false },
+          // Pending (is_completed: true, is_approved: false)
+          { id: 2, chore_id: 102, chore_title: 'Chore 2', reward: 5.0, is_completed: true, is_approved: false },
         ],
       });
 
-      const { getByText } = render(
+      const { getAllByText, getByText } = render(
         <ChildCard child={child} onPress={mockOnPress} />
       );
 
-      // Should count as pending (completed via completion_date but not approved)
-      expect(getByText('1')).toBeTruthy(); // This should be in pending column
+      // Should show 1 active, 1 pending, 0 completed
+      // Both Active and Pending show '1', so we expect 2 elements with text '1'
+      const onesElements = getAllByText('1');
+      expect(onesElements).toHaveLength(2);
+
+      // Completed should show '0'
+      expect(getByText('0')).toBeTruthy();
+
+      // Verify the child's name is rendered (proves component rendered correctly)
+      expect(getByText('testchild')).toBeTruthy();
     });
   });
 });
