@@ -78,13 +78,16 @@ class UserRepository(BaseRepository[User]):
         return user
     
     async def get_children(self, db: AsyncSession, *, parent_id: int) -> List[User]:
-        """Get all children for a parent."""
+        """Get all children for a parent with their chore assignments and chore details."""
+        from ..models.chore_assignment import ChoreAssignment
         result = await db.execute(
             select(User).where(
                 User.parent_id == parent_id,
                 User.is_parent == False
             )
-            .options(joinedload(User.chore_assignments))
+            .options(
+                joinedload(User.chore_assignments).joinedload(ChoreAssignment.chore)
+            )
         )
         return result.unique().scalars().all()
     

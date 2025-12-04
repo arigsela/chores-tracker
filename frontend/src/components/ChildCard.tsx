@@ -14,24 +14,21 @@ interface ChildCardProps {
 
 const ChildCard: React.FC<ChildCardProps> = (props) => {
   const { child, onPress, onResetPassword } = props;
-  // Count active and completed chores if available (handle both field names)
-  const activeChores = child.chores?.filter(c =>
-    !c.is_completed && !c.completed_at && !c.completion_date
-  ).length || 0;
+
+  // Count active chores (not completed, not approved)
+  const activeChores = child.chores?.filter(c => !c.is_completed).length || 0;
 
   // Use provided completed_chores if available (from allowance summary), otherwise calculate
+  // Completed = approved chores
   const completedChores = child.completed_chores !== undefined
     ? child.completed_chores
-    : (child.chores?.filter(c =>
-        (c.is_approved || c.approved_at)
-      ).length || 0);
+    : (child.chores?.filter(c => c.is_approved).length || 0);
+
   // Use provided pendingCount if available, otherwise calculate from child.chores
-  const pendingApproval = props.pendingCount !== undefined 
-    ? props.pendingCount 
-    : (child.chores?.filter(c => 
-        (c.is_completed || c.completed_at || c.completion_date) && 
-        !c.is_approved && !c.approved_at
-      ).length || 0);
+  // Pending = completed but not yet approved
+  const pendingApproval = props.pendingCount !== undefined
+    ? props.pendingCount
+    : (child.chores?.filter(c => c.is_completed && !c.is_approved).length || 0);
 
   return (
     <View style={styles.card}>

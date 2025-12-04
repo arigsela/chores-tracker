@@ -479,11 +479,16 @@ class UserService(BaseService[User, UserRepository]):
         }
     
     async def get_family_children_for_user(
-        self, db: AsyncSession, *, user_id: int
+        self, db: AsyncSession, *, user_id: int, include_chores: bool = False
     ) -> List[User]:
         """
         Get all children accessible to a user based on family context.
-        
+
+        Args:
+            db: Database session
+            user_id: ID of the user requesting children
+            include_chores: If True, eager-loads chore assignments with chore details
+
         For parents: Returns all children in their family
         For children: Returns empty list (children can't manage other children)
         """
@@ -493,15 +498,18 @@ class UserService(BaseService[User, UserRepository]):
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="User not found"
             )
-        
+
         if not user.is_parent:
             return []
-        
+
         if not user.family_id:
             # Legacy mode: use parent_id relationship
+            # get_children already includes chore assignments with chore details
             return await self.repository.get_children(db, parent_id=user_id)
-        
+
         # Family mode: get all children in the family
+        if include_chores:
+            return await self.family_repo.get_family_children_with_chores(db, family_id=user.family_id)
         return await self.family_repo.get_family_children(db, family_id=user.family_id)
     
     async def validate_user_access(

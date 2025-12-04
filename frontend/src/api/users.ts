@@ -9,8 +9,17 @@ export interface User {
   parent_id: number | null;
 }
 
+export interface ChoreAssignmentSummary {
+  id: number;
+  chore_id: number;
+  chore_title: string;
+  reward: number;
+  is_completed: boolean;
+  is_approved: boolean;
+}
+
 export interface ChildWithChores extends User {
-  chores?: any[]; // Chores are optional and come from eager loading
+  chores?: ChoreAssignmentSummary[]; // Chore assignments for this child
 }
 
 export interface ChildAllowanceSummary {

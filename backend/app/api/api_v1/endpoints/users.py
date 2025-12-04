@@ -8,7 +8,7 @@ from sqlalchemy import text
 from ....core.config import settings
 
 from ....db.base import get_db
-from ....schemas.user import UserCreate, UserResponse, Token, ChildAllowanceSummary
+from ....schemas.user import UserCreate, UserResponse, Token, ChildAllowanceSummary, UserWithChoresResponse, ChoreAssignmentSummary
 from ....core.security.jwt import create_access_token, verify_token
 from ....dependencies.auth import get_current_user, get_current_user_with_family, UserWithFamily
 from ....dependencies.services import UserServiceDep
@@ -23,18 +23,23 @@ router = APIRouter()
 # Convenience: get children for current parent (JSON)
 @router.get(
     "/my-children",
-    response_model=List[UserResponse],
-    summary="Get children for current parent",
+    response_model=List[UserWithChoresResponse],
+    summary="Get children for current parent with their chores",
     description="""
-    Get all child accounts for the authenticated parent.
-    
+    Get all child accounts for the authenticated parent, including their chore assignments.
+
+    Each child includes a `chores` array with their assigned chores showing:
+    - Active chores (not completed)
+    - Pending approval chores (completed but not approved)
+    - Completed chores (approved)
+
     This is a convenience over `/users/children/{parent_id}` that infers the parent
     from the current authenticated user.
     """,
     tags=["users"],
     responses={
         200: {
-            "description": "List of child accounts for current parent",
+            "description": "List of child accounts for current parent with chores",
             "content": {
                 "application/json": {
                     "example": [
@@ -44,7 +49,17 @@ router = APIRouter()
                             "email": "child@example.com",
                             "is_parent": False,
                             "is_active": True,
-                            "parent_id": 1
+                            "parent_id": 1,
+                            "chores": [
+                                {
+                                    "id": 1,
+                                    "chore_id": 5,
+                                    "chore_title": "Clean room",
+                                    "reward": 5.0,
+                                    "is_completed": False,
+                                    "is_approved": False
+                                }
+                            ]
                         }
                     ]
                 }
@@ -59,7 +74,7 @@ async def read_my_children(
     user_service: UserServiceDep = None
 ):
     """
-    Get children for the current authenticated parent.
+    Get children for the current authenticated parent with their chore assignments.
     """
     if not current_user.is_parent:
         raise HTTPException(
@@ -73,7 +88,36 @@ async def read_my_children(
         children = await family_repo.get_family_children(db, family_id=current_user.family_id)
     else:
         children = await UserRepository().get_children(db, parent_id=current_user.id)
-    return children
+
+    # Transform children to include chore details
+    result = []
+    for child in children:
+        # Build chore summaries from assignments
+        chores = []
+        if hasattr(child, 'chore_assignments') and child.chore_assignments:
+            for assignment in child.chore_assignments:
+                # Need to load the chore for title and reward
+                if assignment.chore:
+                    chores.append(ChoreAssignmentSummary(
+                        id=assignment.id,
+                        chore_id=assignment.chore_id,
+                        chore_title=assignment.chore.title,
+                        reward=assignment.approval_reward if assignment.approval_reward else assignment.chore.reward,
+                        is_completed=assignment.is_completed,
+                        is_approved=assignment.is_approved
+                    ))
+
+        result.append(UserWithChoresResponse(
+            id=child.id,
+            username=child.username,
+            email=child.email,
+            is_parent=child.is_parent,
+            is_active=child.is_active,
+            parent_id=child.parent_id,
+            chores=chores
+        ))
+
+    return result
 
 
 # Templates
@@ -773,14 +817,20 @@ async def get_current_user_profile(
 
 @router.get(
     "/my-family-children",
-    response_model=List[UserResponse], 
-    summary="Get children in current user's family",
+    response_model=List[UserWithChoresResponse],
+    summary="Get children in current user's family with their chores",
     description="""
-    Get all child accounts accessible to the current user based on family membership.
-    
+    Get all child accounts accessible to the current user based on family membership,
+    including their chore assignments.
+
+    Each child includes a `chores` array with their assigned chores showing:
+    - Active chores (not completed)
+    - Pending approval chores (completed but not approved)
+    - Completed chores (approved)
+
     **Family Mode**: Returns all children in the family (for parents)
     **Legacy Mode**: Returns direct children (for users not in families)
-    
+
     **Access**: Parent users only
     """
 )
@@ -789,18 +839,44 @@ async def get_my_family_children(
     user_service: UserService = Depends(),
     db: AsyncSession = Depends(get_db)
 ):
-    """Get children accessible to current user (family-aware)."""
+    """Get children accessible to current user (family-aware) with their chore assignments."""
     if not current_user.is_parent:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only parents can access children information"
         )
-    
+
     try:
         children = await user_service.get_family_children_for_user(
-            db, user_id=current_user.id
+            db, user_id=current_user.id, include_chores=True
         )
-        return [UserResponse.model_validate(child) for child in children]
+        # Transform children to include chore details
+        result = []
+        for child in children:
+            # Build chore summaries from assignments
+            chores = []
+            if hasattr(child, 'chore_assignments') and child.chore_assignments:
+                for assignment in child.chore_assignments:
+                    if assignment.chore:
+                        chores.append(ChoreAssignmentSummary(
+                            id=assignment.id,
+                            chore_id=assignment.chore_id,
+                            chore_title=assignment.chore.title,
+                            reward=assignment.approval_reward if assignment.approval_reward else assignment.chore.reward,
+                            is_completed=assignment.is_completed,
+                            is_approved=assignment.is_approved
+                        ))
+
+            result.append(UserWithChoresResponse(
+                id=child.id,
+                username=child.username,
+                email=child.email,
+                is_parent=child.is_parent,
+                is_active=child.is_active,
+                parent_id=child.parent_id,
+                chores=chores
+            ))
+        return result
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
