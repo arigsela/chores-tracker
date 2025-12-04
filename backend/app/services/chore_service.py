@@ -1037,6 +1037,7 @@ class ChoreService(BaseService[Chore, ChoreRepository]):
         Business rules:
         - Parent must be in same family as chore creator (or be the creator in legacy mode)
         - Cannot update if any assignments are completed/approved
+        - If assignee_ids is provided, validates and updates the chore_assignments table
         """
         chore = await self.repository.get_with_assignments(db, chore_id=chore_id)
         if not chore:
@@ -1084,10 +1085,81 @@ class ChoreService(BaseService[Chore, ChoreRepository]):
                         detail="Cannot update chore with completed or approved assignments"
                     )
 
-        # Update chore
-        return await self.repository.update(
+        # Extract and handle assignee_ids if provided
+        assignee_ids = update_data.pop("assignee_ids", None)
+
+        if assignee_ids is not None:
+            # Validate assignee_ids based on assignment_mode
+            assignment_mode = chore.assignment_mode
+
+            if assignment_mode == "single":
+                if len(assignee_ids) != 1:
+                    raise HTTPException(
+                        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                        detail="'single' assignment mode requires exactly 1 assignee_id"
+                    )
+            elif assignment_mode == "multi_independent":
+                if len(assignee_ids) < 1:
+                    raise HTTPException(
+                        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                        detail="'multi_independent' assignment mode requires at least 1 assignee_id"
+                    )
+            elif assignment_mode == "unassigned":
+                if len(assignee_ids) != 0:
+                    raise HTTPException(
+                        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                        detail="'unassigned' assignment mode must have 0 assignee_ids"
+                    )
+
+            # Validate all new assignees exist and belong to the family
+            new_assignees = []
+            for assignee_id in assignee_ids:
+                assignee = await self.user_repo.get(db, id=assignee_id)
+                if not assignee:
+                    raise HTTPException(
+                        status_code=status.HTTP_404_NOT_FOUND,
+                        detail=f"Assignee with ID {assignee_id} not found"
+                    )
+
+                # Family-based access control
+                if creator.family_id and assignee.family_id:
+                    if creator.family_id != assignee.family_id:
+                        raise HTTPException(
+                            status_code=status.HTTP_403_FORBIDDEN,
+                            detail=f"Assignee {assignee_id} is not in your family"
+                        )
+                else:
+                    # Legacy single-parent mode
+                    if assignee.parent_id != creator.id:
+                        raise HTTPException(
+                            status_code=status.HTTP_403_FORBIDDEN,
+                            detail=f"Assignee {assignee_id} is not your child"
+                        )
+
+                new_assignees.append(assignee)
+
+            # Delete existing assignments
+            for assignment in chore.assignments:
+                await self.assignment_repo.delete(db, id=assignment.id)
+
+            # Create new assignments
+            for assignee in new_assignees:
+                assignment_data = {
+                    "chore_id": chore.id,
+                    "assignee_id": assignee.id,
+                    "is_completed": False,
+                    "is_approved": False
+                }
+                await self.assignment_repo.create(db, obj_in=assignment_data)
+                assignments_created_total.labels(mode=assignment_mode).inc()
+
+        # Update chore (only fields in the chores table, not assignee_ids)
+        updated_chore = await self.repository.update(
             db, id=chore_id, obj_in=update_data
         )
+
+        # Reload chore with updated assignments for the response
+        return await self.repository.get_with_assignments(db, chore_id=chore_id)
     
     async def disable_chore(
         self,
