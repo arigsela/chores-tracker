@@ -189,8 +189,11 @@ class ChoreUpdate(BaseModel):
         None,
         description="Enable/disable the chore"
     )
-    # Note: assignment_mode and assignee_ids cannot be changed after creation
-    # To change assignments, delete and recreate the chore
+    assignee_ids: Optional[List[int]] = Field(
+        None,
+        description="Update the list of assignees for the chore. Only allowed for chores with no completed/approved assignments."
+    )
+    # Note: assignment_mode cannot be changed after creation
 
 class ChoreResponse(ChoreBase):
     """Schema for chore responses with multi-assignment support."""

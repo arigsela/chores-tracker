@@ -69,6 +69,23 @@ class FamilyRepository(BaseRepository[Family]):
             .order_by(User.username)
         )
         return result.unique().scalars().all()
+
+    async def get_family_children_with_chores(self, db: AsyncSession, *, family_id: int) -> List[User]:
+        """Get child members of a family with their chore assignments and chore details."""
+        from ..models.chore_assignment import ChoreAssignment
+        result = await db.execute(
+            select(User)
+            .where(
+                User.family_id == family_id,
+                User.is_parent == False
+            )
+            .options(
+                joinedload(User.chore_assignments).joinedload(ChoreAssignment.chore),
+                joinedload(User.parent)
+            )
+            .order_by(User.username)
+        )
+        return result.unique().scalars().all()
     
     async def generate_unique_invite_code(self, db: AsyncSession) -> str:
         """Generate a unique 8-character invite code."""

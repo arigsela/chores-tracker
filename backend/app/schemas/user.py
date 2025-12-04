@@ -146,6 +146,50 @@ class UserBalanceResponse(BaseModel):
     )
 
 
+class ChoreAssignmentSummary(BaseModel):
+    """Simplified chore assignment for child card display."""
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int = Field(..., description="Assignment ID")
+    chore_id: int = Field(..., description="Chore ID")
+    chore_title: str = Field(..., description="Chore title")
+    reward: float = Field(..., description="Reward amount")
+    is_completed: bool = Field(False, description="Whether completed by child")
+    is_approved: bool = Field(False, description="Whether approved by parent")
+
+
+class UserWithChoresResponse(UserResponse):
+    """User response with their chore assignments for dashboard display."""
+    model_config = ConfigDict(
+        from_attributes=True,
+        json_schema_extra={
+            "example": {
+                "id": 2,
+                "username": "child_user",
+                "email": "child@example.com",
+                "is_parent": False,
+                "is_active": True,
+                "parent_id": 1,
+                "chores": [
+                    {
+                        "id": 1,
+                        "chore_id": 5,
+                        "chore_title": "Clean room",
+                        "reward": 5.0,
+                        "is_completed": False,
+                        "is_approved": False
+                    }
+                ]
+            }
+        }
+    )
+
+    chores: List[ChoreAssignmentSummary] = Field(
+        default_factory=list,
+        description="List of chore assignments for this child"
+    )
+
+
 class ChildAllowanceSummary(BaseModel):
     """Per-child allowance summary for parent dashboard/API."""
     model_config = ConfigDict(

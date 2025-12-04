@@ -151,6 +151,37 @@ const ChoresManagementScreen: React.FC = () => {
     return child ? child.username : `Child #${assigneeId}`;
   };
 
+  /**
+   * Get the assignee display text for a chore.
+   * Handles both multi-assignment (assignments array) and legacy (assignee_id) formats.
+   */
+  const getAssigneeDisplay = (chore: Chore): string => {
+    // For unassigned pool chores
+    if (chore.assignment_mode === 'unassigned') {
+      return 'Pool (Any child can claim)';
+    }
+
+    // Try multi-assignment format first (assignments array)
+    if (chore.assignments && chore.assignments.length > 0) {
+      if (chore.assignment_mode === 'multi_independent') {
+        // Multiple assignees - show all names
+        const names = chore.assignments.map(a => {
+          const child = children.find(c => c.id === a.assignee_id);
+          return child ? child.username : `Child #${a.assignee_id}`;
+        });
+        return names.join(', ');
+      } else {
+        // Single assignment - show first assignee
+        const assigneeId = chore.assignments[0].assignee_id;
+        return getChildName(assigneeId);
+      }
+    }
+
+    // Fall back to legacy fields for backward compatibility
+    const legacyAssigneeId = chore.assignee_id || chore.assigned_to_id;
+    return getChildName(legacyAssigneeId || null);
+  };
+
   const renderChoreCard = (chore: Chore) => {
     const isDisabled = chore.is_disabled || false;
     const isCompleted = chore.is_completed || chore.completed_at || chore.completion_date;
@@ -213,7 +244,7 @@ const ChoresManagementScreen: React.FC = () => {
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Assigned to:</Text>
             <Text style={[styles.detailValue, isDisabled && styles.disabledText]}>
-              {getChildName(chore.assignee_id || chore.assigned_to_id)}
+              {getAssigneeDisplay(chore)}
             </Text>
           </View>
         </View>
