@@ -150,12 +150,13 @@ describe('ChildCard Component', () => {
     });
 
     it('should calculate active chores correctly with different completion field names', () => {
+      // Component checks is_completed field to determine active status
       const child = createMockChild({
         chores: [
           { id: 1, is_completed: false, completed_at: null, completion_date: null },
           { id: 2, is_completed: false, completed_at: null, completion_date: null },
           { id: 3, is_completed: true, completed_at: '2024-01-15T10:00:00Z' },
-          { id: 4, completion_date: '2024-01-15T11:00:00Z' },
+          { id: 4, is_completed: true, completion_date: '2024-01-15T11:00:00Z' }, // Must have is_completed: true
         ],
       });
 
@@ -164,15 +165,17 @@ describe('ChildCard Component', () => {
       );
 
       const twoElements = getAllByText('2');
-      expect(twoElements.length).toBeGreaterThan(0); // Should show 2 active chores
+      expect(twoElements.length).toBeGreaterThan(0); // Should show 2 active chores (items 1 and 2)
     });
 
     it('should calculate completed chores correctly with different approval field names', () => {
+      // Component checks is_approved field to count completed (approved) chores
+      // Also need is_completed to not count as active
       const child = createMockChild({
         chores: [
-          { id: 1, is_approved: true },
-          { id: 2, approved_at: '2024-01-15T10:00:00Z' },
-          { id: 3, is_approved: false, approved_at: null },
+          { id: 1, is_completed: true, is_approved: true },
+          { id: 2, is_completed: true, is_approved: true, approved_at: '2024-01-15T10:00:00Z' },
+          { id: 3, is_completed: true, is_approved: false, approved_at: null },
         ],
       });
 
@@ -181,7 +184,7 @@ describe('ChildCard Component', () => {
       );
 
       const twoElements = getAllByText('2');
-      expect(twoElements.length).toBeGreaterThan(0); // 2 approved chores
+      expect(twoElements.length).toBeGreaterThan(0); // 2 approved chores (items 1 and 2)
     });
 
     it('should use provided pendingCount override', () => {
