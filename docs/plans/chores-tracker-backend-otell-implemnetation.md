@@ -4,7 +4,7 @@
 **Owner:** Ari Sela
 **Created:** 2026-04-17
 **Last Updated:** 2026-04-17
-**Current Status:** Phase 1 complete — endpoint confirmed as `coroot-coroot.coroot.svc.cluster.local:4317` (gRPC)
+**Current Status:** Phase 2 code changes complete — image build/push pending (user-handled)
 
 ---
 
@@ -82,30 +82,29 @@ chores-tracker pod → ztunnel (mTLS) → coroot namespace → Coroot pod. Works
 
 **Goal:** Rebuild the app container with OTel auto-instrumentation available.
 
-> These changes live in the **chores-tracker-backend source repo**, not this repo.
+> **Correction from original plan:** this repo is a monorepo — backend source (`backend/`) and infra (`base-apps/`, root `Dockerfile`) live together. Phase 2 changes were made in-place here.
 
-- ⬜ **2.1** Add to `requirements.txt` (or `pyproject.toml`):
+- ✅ **2.1** Added to `backend/requirements.txt`:
   ```
-  opentelemetry-distro
-  opentelemetry-exporter-otlp-proto-grpc   # gRPC-specific exporter (Coroot exposes 4317 only)
-  opentelemetry-instrumentation-fastapi
-  opentelemetry-instrumentation-sqlalchemy
-  opentelemetry-instrumentation-requests
-  opentelemetry-instrumentation-logging
+  opentelemetry-distro>=0.48b0
+  opentelemetry-exporter-otlp-proto-grpc>=1.27.0   # gRPC exporter (Coroot exposes 4317 only)
+  opentelemetry-instrumentation-fastapi>=0.48b0
+  opentelemetry-instrumentation-sqlalchemy>=0.48b0
+  opentelemetry-instrumentation-asyncpg>=0.48b0    # swapped for httpx/asyncpg — app uses these, not `requests`
+  opentelemetry-instrumentation-httpx>=0.48b0
+  opentelemetry-instrumentation-logging>=0.48b0
   ```
-- ⬜ **2.2** Update Dockerfile CMD to wrap entrypoint with `opentelemetry-instrument`:
+  Deviation from original plan: replaced `opentelemetry-instrumentation-requests` with `httpx` + `asyncpg` since the app actually uses those libraries (httpx for outbound HTTP, asyncpg as the PG driver after the recent MySQL→PostgreSQL migration).
+- ✅ **2.2** Updated root `Dockerfile` CMD:
   ```dockerfile
-  # Before:
-  CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
-
-  # After:
-  CMD ["opentelemetry-instrument", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+  CMD ["opentelemetry-instrument", "uvicorn", "backend.app.main:app", "--host", "0.0.0.0", "--port", "8000"]
   ```
-- ⬜ **2.3** Run `opentelemetry-bootstrap -a install` during image build to auto-pull detected instrumentations (optional, belt-and-suspenders)
-- ⬜ **2.4** Local smoke test: run container with `OTEL_EXPORTER_OTLP_ENDPOINT` pointing to a local Jaeger or console exporter, verify spans emit
-- ⬜ **2.5** Build and push new image tag (e.g. `7.1.0`) to ECR
+  Note: the existing `ENTRYPOINT` script (`docker-entrypoint.sh`) ends in `exec "$@"`, so the OTel wrapper flows through after the DB-wait logic.
+- ✅ **2.3** Added `RUN opentelemetry-bootstrap -a install` after pip install in the Dockerfile
+- ⬜ **2.4** Local smoke test *(user to run)*: `docker compose up` then hit an endpoint — with `OTEL_TRACES_EXPORTER=console` spans print to stdout; with the prod env vars they go to Coroot
+- ⬜ **2.5** Build and push new image tag to ECR *(user handles image builds per global CLAUDE.md)*
 
-**Exit criteria:** New image tag in ECR, verified emitting spans locally.
+**Exit criteria:** New image tag in ECR, verified emitting spans. Tasks 2.1–2.3 done; 2.4–2.5 blocked on user.
 
 ---
 
@@ -220,12 +219,12 @@ No stateful changes, no data migration, fully reversible via Git.
 | Phase | Tasks | Status |
 |---|---|---|
 | 1 — Discovery | 5/5 | ✅ Complete |
-| 2 — App changes | 0/5 | ⬜ Not started |
+| 2 — App changes | 3/5 | 🟡 Code done; smoke test + image build pending (user) |
 | 3 — K8s config | 0/4 | ⬜ Not started |
 | 4 — Validation | 0/7 | ⬜ Not started |
 | 5 — Hardening | 0/5 | ⬜ Optional |
 
-**Overall completion:** 5 / 21 core tasks (24%)
+**Overall completion:** 8 / 21 core tasks (38%)
 
 ---
 

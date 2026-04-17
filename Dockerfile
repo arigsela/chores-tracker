@@ -21,6 +21,11 @@ RUN apt-get update && apt-get install -y \
 COPY backend/requirements.txt .
 RUN pip install -U pip && pip install -r requirements.txt
 
+# Register OpenTelemetry auto-instrumentations detected from installed packages.
+# Safe to run even if individual instrumentation packages are already pinned in
+# requirements.txt — this just wires them into the entry-point config.
+RUN opentelemetry-bootstrap -a install
+
 # Copy source code
 COPY backend /app/backend
 
@@ -38,5 +43,7 @@ EXPOSE 8000
 # Set entrypoint
 ENTRYPOINT ["/app/docker-entrypoint.sh"]
 
-# Run the application
-CMD ["uvicorn", "backend.app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Run the application under the OpenTelemetry auto-instrumentation wrapper.
+# The SDK is a no-op unless OTEL_EXPORTER_OTLP_ENDPOINT (and OTEL_TRACES_EXPORTER)
+# env vars are set at runtime — configured via the Kubernetes ConfigMap.
+CMD ["opentelemetry-instrument", "uvicorn", "backend.app.main:app", "--host", "0.0.0.0", "--port", "8000"]
